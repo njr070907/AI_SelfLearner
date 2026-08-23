@@ -86,7 +86,11 @@ class ProviderObservation(StrictSchema):
     evidence: list[EvidenceItem]
     gaps: list[GapItem]
     possible_misconceptions: list[MisconceptionItem]
-    observation_confidence: float = Field(ge=0, le=1)
+    observation_confidence: float = Field(
+        ge=0,
+        le=1,
+        description="Confidence that the extracted observation is accurate, not a mastery score.",
+    )
     limitations: list[str]
 
 

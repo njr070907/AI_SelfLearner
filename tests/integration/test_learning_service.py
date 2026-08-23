@@ -23,7 +23,7 @@ def setup_service(tmp_path: Path) -> tuple[LearningService, SQLiteSessionReposit
     ("scenario", "expected_level"),
     [
         (FakeScenario.STRONG, "solid"),
-        (FakeScenario.PARTIAL, "developing"),
+        (FakeScenario.PARTIAL, "fragile"),
         (FakeScenario.MISCONCEPTION, "fragile"),
         (FakeScenario.INSUFFICIENT_EVIDENCE, "not_evident"),
     ],

@@ -89,3 +89,13 @@ def test_invalid_schema_scenario_is_rejected() -> None:
 
     with pytest.raises(ValidationError):
         ProviderObservation.model_validate(response.content)
+
+
+def test_insufficient_evidence_can_be_a_high_confidence_observation() -> None:
+    provider = FakeLLMProvider(FakeScenario.INSUFFICIENT_EVIDENCE)
+    response = provider.evaluate(evaluation_request(), request_id="insufficient-request")
+    observation = ProviderObservation.model_validate(response.content)
+
+    assert observation.observation_confidence == 0.85
+    assert observation.evidence == []
+    assert observation.possible_misconceptions == []

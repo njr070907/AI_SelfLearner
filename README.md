@@ -6,6 +6,8 @@ AI Growth Companion 是一个以费曼学习法为核心的学习诊断实验。
 
 Sprint 1 已开始建立 Mastery Protocol 的真实评测基线。第一批 20 个高等数学案例已经由产品负责人逐项完成人工复核，可以作为第一版回归基线；在真实模型实验通过前，项目仍不会声称能够可靠诊断学习掌握度。
 
+`evaluator-v0.1` 已作为独立、可哈希的 Prompt 版本加入工程，并提供 20 案例批量运行器。当前运行器支持零调用 dry-run 和免费确定性的 Fake 管道基线；真实 Provider 只有在明确选择供应商、模型和预算后才会启用。
+
 ## Sprint 0 已经能做什么
 
 - 启动 Streamlit 页面，创建知识点学习会话并保存回答。
@@ -71,6 +73,8 @@ uv run ruff check .
 uv run ruff format --check .
 uv run pytest
 uv run python scripts/smoke_streamlit.py
+uv run python scripts/run_golden_eval.py --dry-run
+uv run python scripts/run_golden_eval.py
 ```
 
 完整质量报告：
@@ -97,6 +101,22 @@ CI 中必须通过的项目包括 Secret Scan、基础 lint、格式、数据库
 
 这些场景都是免费的固定测试数据，不会访问外部模型。
 
+## Prompt 与批量评测
+
+只验证 Prompt 渲染、输入边界和 20 个案例数量，不调用 Provider：
+
+```powershell
+uv run python scripts/run_golden_eval.py --dry-run
+```
+
+运行确定性的 Fake 管道基线：
+
+```powershell
+uv run python scripts/run_golden_eval.py
+```
+
+结果写入被 Git 忽略的 `evals/runs/`。Fake 基线通过只表示 Schema、Mastery Engine、Learning Policy 和自动检查互相一致；每条成功结果仍标记为需要人工语义复核，不能作为真实模型质量结论。真实 Provider 模式必须显式允许付费调用，默认零重试，避免意外扩大成本。
+
 ## GitHub 协作流程
 
 当前仓库保持私有。由于现有 GitHub 套餐不支持私有仓库分支保护，团队暂时通过流程约定保护 `main`：不要直接推送，所有修改使用短生命周期分支和 Pull Request，并在 CI 通过后合并。
@@ -120,6 +140,7 @@ git push -u origin feat/short-description
 ```text
 app.py                         Streamlit 入口
 src/ai_growth_companion/       应用、领域、Provider、仓库和 UI
+src/ai_growth_companion/prompts/ 版本化 Prompt、清单与安全渲染
 migrations/                    顺序执行的 SQLite 迁移
 tests/unit/                    单元测试
 tests/integration/             数据库与服务集成测试
