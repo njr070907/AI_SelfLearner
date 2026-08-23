@@ -1,66 +1,40 @@
-# AI Growth Companion
+# 项目 README 基线
 
-一个以费曼学习法为核心的 AI 学习诊断实验：让用户用自己的话解释知识，AI 基于证据指出理解缺口、可能误解和下一步行动。
-
-长期愿景是从学习切入，逐步形成一个真正理解用户、帮助其学习、成长和创造的个人 AI 伙伴。当前版本只做第一步：验证 AI 能否通过一次及多次表达建立可靠、透明、可纠正的认知状态。
+仓库根目录的 [`README.md`](../README.md) 是当前可执行的项目入口，已经包含经过验证的安装、迁移、健康检查、测试和启动命令。本文件只保留文档基线与维护规则，避免两份快速开始长期漂移。
 
 ## 当前状态
 
-项目处于 v0.1 开发启动阶段。文档基线已经冻结，当前目标不是继续设计更多功能，而是实现并验证第一个端到端闭环。
+Sprint 0 工程基线已经完成：Streamlit、SQLite migration、多场景 Fake Provider、结构化 Schema、学习事件历史、可重算当前状态、端到端假闭环和分级 CI 均已实现并验证。
 
-## MVP 流程
+这不代表真实学习诊断已经完成。当前 Provider 结果全部是免费、确定性的测试数据；Sprint 1 才开始验证真实 Mastery Protocol。
 
-```text
-输入主题 → AI 提问 → 用户解释 → 结构化诊断 → 用户纠错 → 更新认知状态 → 展示成长证据
+## 最短启动路径
+
+```powershell
+uv sync --locked --all-groups
+uv run python -m ai_growth_companion.repositories.database migrate
+uv run python -m ai_growth_companion.application.health
+uv run streamlit run app.py
 ```
 
-## 快速开始（代码仓库建立后补实）
+完整克隆、配置、检查和协作命令以根目录 [`README.md`](../README.md) 为准。
 
-```text
-1. 安装仓库声明的 Python 版本
-2. 安装锁定依赖
-3. 复制 .env.example 为本地配置
-4. 执行数据库迁移
-5. 运行自动测试
-6. 以 Fake Provider 启动应用
-7. 可选：配置真实 LLM API Key
-```
+## README 维护规则
 
-具体命令必须由实际项目脚手架生成并在全新环境验证后写入；本 README 不预先虚构尚不存在的命令。
+- 命令必须在实际工程中验证后才能写入。
+- 用户可见行为、安装步骤、配置项或已知限制变化时，同一个 Pull Request 必须更新根 README。
+- 不在 README 中宣称尚未实现的真实 AI、部署、登录、同步、导出或删除能力。
+- 重大协议、架构和数据变化分别更新 Mastery Protocol、ADR 和变更记录。
+- 仓库公开或接受外部贡献前，必须明确许可证和贡献条款。
 
 ## 文档入口
 
-- 产品唯一基线：`37_AI_Growth_Companion_Master_PRD.md`
-- Codex 启动：`38_Codex_Project_Kickoff_Instructions.md`
-- 架构与数据流：`39_System_Architecture_and_Data_Flow.md`
-- 测试：`42_Test_and_Quality_Strategy.md`
-- 隐私与安全：`44_Privacy_Security_and_Data_Governance.md`
-- 模型治理：`45_AI_Model_Governance.md`
-- 发布与回滚：`48_Release_CI_CD_and_Rollback.md`
-- 全部索引：`51_Document_Index_and_Reading_Order.md`
-
-## 项目原则
-
-- 结论必须有证据，证据不足就承认不确定。
-- 数据描述用户，不定义用户。
-- 表达流畅不等于真正理解；诊断不得把语言表现当作理解本身。
-- 用户可以查看、纠正、导出和删除数据。
-- AI帮助用户看见模式与选择，不替用户做决定，也不制造依赖。
-- 先闭环，再扩展；先验证，再加基础设施。
-- 历史诊断可追溯，不因模型升级被静默覆盖。
-
-## 开发路线
-
-1. Sprint 0：可运行骨架、Fake Provider、迁移与 CI。
-2. Sprint 1：费曼提问与诊断闭环。
-3. Sprint 2：历史、反馈、最小认知状态与成长证据、导出和删除。
-4. 5–20 名用户、30 天验证。
-5. 只有指标支持时才进入 P1。
-
-## 安全说明
-
-当前为学习产品实验，不提供医疗、心理、法律或职业诊断。发现安全或隐私问题时，不要在公开 Issue 中附上密钥、真实回答或个人信息；项目建立公开渠道后在此补充联系方式。
-
-## License
-
-尚未选择。在公开代码或接受外部贡献前，由所有者明确许可证与贡献协议。
+- [最终主 PRD](37_AI_Growth_Companion_Master_PRD.md)
+- [Codex 启动指令](38_Codex_Project_Kickoff_Instructions.md)
+- [架构与数据流](39_System_Architecture_and_Data_Flow.md)
+- [测试与质量策略](42_Test_and_Quality_Strategy.md)
+- [隐私与安全](44_Privacy_Security_and_Data_Governance.md)
+- [发布与回滚](48_Release_CI_CD_and_Rollback.md)
+- [架构决策](49_ADR_Architecture_Decision_Log.md)
+- [完整文档索引](51_Document_Index_and_Reading_Order.md)
+- [Mastery Protocol](mastery-protocol/README.md)
