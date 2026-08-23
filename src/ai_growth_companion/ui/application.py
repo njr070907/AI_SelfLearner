@@ -4,6 +4,7 @@ from uuid import uuid4
 
 import streamlit as st
 
+from ai_growth_companion.application.health import HealthReport
 from ai_growth_companion.application.learning_service import LearningService
 from ai_growth_companion.application.models import DiagnosisView
 from ai_growth_companion.config import Settings
@@ -31,7 +32,7 @@ def render_application(
     service: LearningService,
     *,
     settings: Settings,
-    database_version: int,
+    health_report: HealthReport,
 ) -> None:
     """Render navigation and keep all business behavior inside the service."""
     st.title("AI Growth Companion")
@@ -48,7 +49,7 @@ def render_application(
     elif page == "历史记录":
         _render_history(service)
     else:
-        _render_system_status(settings=settings, database_version=database_version)
+        _render_system_status(settings=settings, health_report=health_report)
 
 
 def _render_learning_flow(service: LearningService) -> None:
@@ -231,7 +232,7 @@ def _render_history(service: LearningService) -> None:
         _render_diagnosis(result)
 
 
-def _render_system_status(*, settings: Settings, database_version: int) -> None:
+def _render_system_status(*, settings: Settings, health_report: HealthReport) -> None:
     st.subheader("系统状态")
     st.success("应用、配置和数据库迁移均已就绪。")
     st.json(
@@ -239,7 +240,10 @@ def _render_system_status(*, settings: Settings, database_version: int) -> None:
             "environment": settings.app_env,
             "provider": settings.llm_provider,
             "model": settings.llm_model,
-            "database_version": database_version,
+            "liveness": health_report.liveness.state.value,
+            "readiness": health_report.readiness.state.value,
+            "provider_dependency": health_report.provider_dependency.state.value,
+            "database_version": health_report.database_version,
             "content_logging": settings.log_content_enabled,
             "telemetry": settings.telemetry_enabled,
             "api_key_displayed": False,

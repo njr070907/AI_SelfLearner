@@ -17,7 +17,8 @@ dependencies = [
 [dependency-groups]
 dev = [
   "mypy>=1.13,<2",
-  "pytest>=8.3,<9",
+  "pip-audit>=2.9,<3",
+  "pytest>=9.0.3,<10",
   "pytest-cov>=6,<8",
   "ruff>=0.8,<1",
 ]
@@ -52,4 +53,3 @@ source = ["ai_growth_companion"]
 [tool.coverage.report]
 show_missing = true
 skip_covered = true
-
