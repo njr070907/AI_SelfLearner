@@ -57,6 +57,14 @@ uv run python scripts/run_golden_eval.py --dry-run
 uv run python scripts/run_golden_eval.py
 ```
 
+在 API Key 和费用得到明确授权后，可以运行 OpenAI 结构化输出适配器。真实模式默认只跑 1 条、每条零重试：
+
+```powershell
+uv run python scripts/run_golden_eval.py --provider openai --confirm-paid-calls
+```
+
+运行前需在本机 `.env` 设置 `LLM_PROVIDER=openai`、精确的 `LLM_MODEL` 和 `LLM_API_KEY`。扩大批量必须显式传入 `--max-cases`。不要将 Key 或真实运行产物提交到仓库。
+
 运行记录保存在被 Git 忽略的 `evals/runs/`，包含数据集、Prompt、Provider、模型、Schema、协议、动作、用量、自动检查和错误版本信息。Fake 模式不会真正把 Prompt 发给模型，运行记录会明确保存 `prompt_applied_to_provider=false`。
 
 自动检查覆盖结构、证据原文、观察形状、掌握等级、动作与置信度范围。它不能判断自然语言诊断是否真正表达了量表中的数学语义，因此所有成功结果仍标记为需要人工语义复核。

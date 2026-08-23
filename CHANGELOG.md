@@ -21,6 +21,9 @@
 - 增加独立版本与内容哈希的 `evaluator-v0.1` Prompt、输入边界和注入防护。
 - 增加 20 案例 dry-run、Fake 批量运行器、版本化运行记录和付费调用安全门。
 - 将确定性 Mastery Protocol 提升为 `mastery-protocol-v0.2-golden-baseline`，使部分复述映射为 `fragile`，并澄清观察置信度不是掌握分数。
+- 增加 OpenAI Responses API 结构化输出适配器，并保持 Provider 只负责证据提取。
+- 增加真实评测 CLI 安全门：显式付费确认、默认 1 条、零重试、输出 token 上限和本地运行记录。
+- 增加真实 Provider 的全离线 Mock 测试，覆盖成功、超时、连接失败、限流、请求拒绝和结构化输出缺失。
 
 ### 数据与协议
 
@@ -31,15 +34,15 @@
 
 ### 验证
 
-- 55 项自动测试通过。
-- 分支覆盖率为 88%。
+- 69 项自动测试通过。
+- 分支覆盖率为 87%；新增 OpenAI 适配器本身为 86%。
 - 数据库迁移、健康检查和真实 Streamlit 启动通过。
 - Secret Scan、Ruff、Mypy 和依赖漏洞审计通过。
 - GitHub Actions 的 Sprint 0 CI 已通过。
 
 ### 已知限制
 
-- 当前只实现 Fake Provider，不能产生真实学习诊断。
+- OpenAI 适配器已实现但尚未进行获授权的真实付费基线运行，因此不能声称真实诊断效果已经验证。
 - 当前只支持本地单用户 SQLite 数据。
 - 私有仓库在现有 GitHub 套餐下无法启用分支保护，暂以 PR、CI 和协作约定保护 `main`。
 - 尚未实现登录、同步、导出、删除、真实模型和正式部署。

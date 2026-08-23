@@ -69,17 +69,21 @@ class ProviderUnavailableError(ProviderError):
         super().__init__("The provider is unavailable", code="LLM_UNAVAILABLE", retryable=True)
 
 
-class LLMProvider(Protocol):
-    """The only provider behavior visible to application services."""
+class EvaluationProvider(Protocol):
+    """Provider behavior required by the evidence-extraction evaluation pipeline."""
 
     provider_name: str
     model_name: str
     model_revision: str | None
 
-    def generate_question(self, request: QuestionRequest, *, request_id: str) -> ProviderResponse:
-        """Generate a raw structured question candidate."""
-        ...
-
     def evaluate(self, request: EvaluationRequest, *, request_id: str) -> ProviderResponse:
         """Generate a raw structured observation candidate."""
+        ...
+
+
+class LLMProvider(EvaluationProvider, Protocol):
+    """Full provider behavior visible to interactive application services."""
+
+    def generate_question(self, request: QuestionRequest, *, request_id: str) -> ProviderResponse:
+        """Generate a raw structured question candidate."""
         ...
