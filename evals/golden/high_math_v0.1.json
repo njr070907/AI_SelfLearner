@@ -93,7 +93,7 @@
         {"document_id": "hm-03-limit-definition", "pages": [11, 12, 13, 14, 15, 16], "topics": ["函数极限定义", "左右极限"]},
         {"document_id": "hm-04-limit-upper", "pages": [1, 2, 3, 4, 5, 6], "topics": ["极限存在判定"]}
       ],
-      "human_review": {"status": "pending", "reviewer": null, "reviewed_at": null, "notes": []}
+      "human_review": {"status": "approved", "reviewer": "njr070907", "reviewed_at": "2026-08-23T23:22:24+08:00", "notes": ["用户在 Codex 逐项复核中确认通过。"]}
     },
     {
       "case_id": "hm-limit-existence-partial",
@@ -104,21 +104,21 @@
       "learner_answer": "要从 a 的左边和右边都靠近。如果两边最后趋向同一个数，整体极限就存在；如果一边趋向 1、另一边趋向 2，整体极限就不存在。我暂时没有想清楚 f(a) 本身和极限是什么关系。",
       "coverage_points": ["左右极限存在性", "左右极限相等", "点值与极限的关系", "例子"],
       "rubric": {
-        "required_evidence": ["正确指出左右两侧趋向同一数时双侧极限存在", "正确指出左右极限不同时双侧极限不存在"],
-        "required_gaps": ["没有说明 f(a) 不决定极限", "没有构造完整分段函数例子"],
+        "required_evidence": ["能够复述左右两侧趋向同一数时双侧极限存在", "能够复述左右极限不同时双侧极限不存在"],
+        "required_gaps": ["没有解释为什么必须同时检查左右两侧", "没有说明 f(a) 不决定极限", "只用数字重复规则，没有构造完整分段函数", "没有提供能够证明迁移或机制理解的证据"],
         "required_misconceptions": [],
         "required_limitations": [],
-        "forbidden_claims": ["不得把未回答的点值关系补写成已掌握", "不得判定为完整掌握"],
-        "acceptable_mastery_levels": ["developing"],
-        "forbidden_mastery_levels": ["solid", "not_evident"],
-        "recommended_actions": ["example"],
-        "confidence": {"minimum": 0.55, "maximum": 0.85},
-        "evaluator_note": "核心判定已建立，但点值边界没有证据；下一步应让学习者比较同一邻域、不同 f(a) 的两个函数。"
+        "forbidden_claims": ["不得把规则复述当成机制理解", "不得把未回答的点值关系补写成已掌握", "不得判定为 developing 或 solid"],
+        "acceptable_mastery_levels": ["fragile"],
+        "forbidden_mastery_levels": ["solid", "developing"],
+        "recommended_actions": ["re_explain", "example"],
+        "confidence": {"minimum": 0.65, "maximum": 0.9},
+        "evaluator_note": "回答只能证明记住了判定规则，不能证明理解其原因或边界。应先要求学习者解释为什么左右极限不等时不存在同一个逼近值，再比较同一邻域、不同 f(a) 的函数。"
       },
       "source_refs": [
         {"document_id": "hm-03-limit-definition", "pages": [11, 12, 13, 14, 15, 16], "topics": ["函数极限定义", "左右极限"]}
       ],
-      "human_review": {"status": "pending", "reviewer": null, "reviewed_at": null, "notes": []}
+      "human_review": {"status": "approved", "reviewer": "njr070907", "reviewed_at": "2026-08-23T23:26:15+08:00", "notes": ["复述正确规则只能证明记忆，不能证明理解；掌握等级已降为 fragile。"]}
     },
     {
       "case_id": "hm-limit-existence-misconception",
@@ -143,7 +143,7 @@
       "source_refs": [
         {"document_id": "hm-04-limit-upper", "pages": [1, 2, 3, 4, 5, 6], "topics": ["左右极限与双侧极限"]}
       ],
-      "human_review": {"status": "pending", "reviewer": null, "reviewed_at": null, "notes": []}
+      "human_review": {"status": "approved", "reviewer": "njr070907", "reviewed_at": "2026-08-23T23:27:05+08:00", "notes": ["用户在 Codex 逐项复核中确认通过。"]}
     },
     {
       "case_id": "hm-limit-existence-insufficient",
@@ -157,18 +157,18 @@
         "required_evidence": [],
         "required_gaps": ["没有给出左右极限相等的判定条件", "没有回答 f(a) 与极限的关系", "没有例子"],
         "required_misconceptions": [],
-        "required_limitations": ["“感觉差不多”含义不明确，无法判断是否知道严格条件"],
-        "forbidden_claims": ["不得从模糊措辞推断掌握", "不得把可能的错误当成已确认误区"],
+        "required_limitations": ["无法从回答识别更具体的错误模式，只能确定本次没有显示掌握"],
+        "forbidden_claims": ["不得把“知道要从两边看”当成已经掌握", "不得把一次未掌握扩大成永久没有知识储备", "不得把尚未表达的错误当成已确认误区"],
         "acceptable_mastery_levels": ["not_evident"],
         "forbidden_mastery_levels": ["solid", "developing"],
         "recommended_actions": ["re_explain"],
-        "confidence": {"minimum": 0.1, "maximum": 0.4},
-        "evaluator_note": "优先追问“左右两边分别趋向什么关系时双侧极限存在”，不要直接宣判具体误区。"
+        "confidence": {"minimum": 0.75, "maximum": 0.95},
+        "evaluator_note": "本次回答足以判定当前未掌握（not_evident），但不足以识别具体误区。应先追问“左右两边分别趋向什么关系时双侧极限存在”；仍不能回答时，进入重新讲解。"
       },
       "source_refs": [
         {"document_id": "hm-03-limit-definition", "pages": [11, 12, 13, 14, 15, 16], "topics": ["函数极限定义", "左右极限"]}
       ],
-      "human_review": {"status": "pending", "reviewer": null, "reviewed_at": null, "notes": []}
+      "human_review": {"status": "approved", "reviewer": "njr070907", "reviewed_at": "2026-08-23T23:30:26+08:00", "notes": ["该回答足以判定当前没有掌握；证据不足只表示无法识别具体错误模式。"]}
     },
 
     {
