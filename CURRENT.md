@@ -16,7 +16,7 @@ Sprint 1：用真实 Provider 验证 `evaluator-v0.1` 能否区分充分理解�
 - PR #3 合并前 CI 全部通过：55 tests、lint、format、migration、启动、Secret Scan、Fake 闭环。
 - 合并后 `main` CI 已成功。
 - 当前分支 69 tests、lint、format、mypy、87% coverage、Secret Scan、migration、Fake 闭环、Streamlit 启动与依赖审计通过。
-- PR #4 CI 已成功并已合并；合并后的 `main` CI 待最终确认。
+- PR #4 和状态更新 PR #5 均已合并；两次合并后的 `main` CI 均已成功。
 
 ## Resume Point
 

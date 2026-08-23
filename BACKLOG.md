@@ -1,6 +1,6 @@
 # Backlog
 
-本文件只记录当前可执行队列；完整产品需求见 `docs/28_Backlog_and_Development_Priorities.md`。
+本文件只记录当前可执行队列；完整产品需求见 `docs/28_AI_Growth_Companion_Backlog.md`。
 
 ## P0 — 当前里程碑
 
