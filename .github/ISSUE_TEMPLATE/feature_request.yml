@@ -1,0 +1,36 @@
+name: 功能或实验建议
+description: 提议一个可验证、与核心闭环相关的修改
+title: "experiment: "
+labels: ["type:experiment", "status:needs-evidence"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: 用户问题或已有证据
+      description: 观察到了什么真实问题？
+    validations:
+      required: true
+  - type: textarea
+    id: hypothesis
+    attributes:
+      label: 可证伪假设
+      description: 如果做什么，哪个指标会改善，为什么？
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: 最小范围与非目标
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 验收与停止条件
+    validations:
+      required: true
+  - type: textarea
+    id: risk
+    attributes:
+      label: 数据、隐私和 AI 风险
+
