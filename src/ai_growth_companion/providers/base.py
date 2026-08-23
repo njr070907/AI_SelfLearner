@@ -72,6 +72,10 @@ class ProviderUnavailableError(ProviderError):
 class LLMProvider(Protocol):
     """The only provider behavior visible to application services."""
 
+    provider_name: str
+    model_name: str
+    model_revision: str | None
+
     def generate_question(self, request: QuestionRequest, *, request_id: str) -> ProviderResponse:
         """Generate a raw structured question candidate."""
         ...

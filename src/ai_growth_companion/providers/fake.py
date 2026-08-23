@@ -27,9 +27,9 @@ class FakeScenario(StrEnum):
 class FakeLLMProvider:
     """Return predictable fixtures without calling a network or paid model."""
 
-    provider_name = "fake"
-    model_name = "fake-mastery-v0.1"
-    model_revision = "deterministic-1"
+    provider_name: str = "fake"
+    model_name: str = "fake-mastery-v0.1"
+    model_revision: str | None = "deterministic-1"
 
     def __init__(self, scenario: FakeScenario = FakeScenario.PARTIAL) -> None:
         self.scenario = scenario
