@@ -400,7 +400,7 @@
       "source_refs": [
         {"document_id": "hm-09-lhopital", "pages": [11, 12, 13, 14, 15, 16, 17, 18, 19, 20], "topics": ["洛必达法则", "未定式", "适用条件"]}
       ],
-      "human_review": {"status": "pending", "reviewer": null, "reviewed_at": null, "notes": []}
+      "human_review": {"status": "approved", "reviewer": "njr070907", "reviewed_at": "2026-08-23T23:44:21+08:00", "notes": ["用户在 Codex 逐项复核中确认通过。"]}
     },
     {
       "case_id": "hm-lhopital-partial",
@@ -411,21 +411,21 @@
       "learner_answer": "洛必达主要用于 0/0 和无穷/无穷型，做法是分子分母分别求导。如果求导后还是这两种未定式，可以继续求导。我知道不能所有分式都直接用，但记不全可导、分母导数以及导数比极限的具体条件。",
       "coverage_points": ["未定式类型", "可导与分母条件", "导数比极限", "重复使用重新检查"],
       "rubric": {
-        "required_evidence": ["正确识别 0/0 与无穷/无穷型", "知道非未定式不能直接使用", "知道重复使用仍需保持未定式"],
-        "required_gaps": ["没有完整说明去心邻域可导和分母导数条件", "没有说明导数之比极限的要求"],
+        "required_evidence": ["能够复述 0/0 与无穷/无穷型", "能够复述非未定式不能直接使用", "能够复述求导后仍是未定式时可继续"],
+        "required_gaps": ["没有完整说明去心邻域可导和分母导数条件", "没有说明导数之比极限的要求", "没有解释为什么非未定式不能直接求导", "没有在新表达式上独立判断适用性"],
         "required_misconceptions": [],
         "required_limitations": [],
-        "forbidden_claims": ["不得因会背两个类型就认定完整掌握定理", "不得判为 solid"],
-        "acceptable_mastery_levels": ["developing"],
-        "forbidden_mastery_levels": ["solid", "not_evident"],
-        "recommended_actions": ["example", "re_explain"],
-        "confidence": {"minimum": 0.6, "maximum": 0.85},
-        "evaluator_note": "应用入口正确但定理条件不完整，下一步给一个条件失败的分式让其判断。"
+        "forbidden_claims": ["不得因会背两个类型和操作步骤就认定理解定理", "不得判为 developing 或 solid"],
+        "acceptable_mastery_levels": ["fragile"],
+        "forbidden_mastery_levels": ["solid", "developing"],
+        "recommended_actions": ["practice", "re_explain"],
+        "confidence": {"minimum": 0.65, "maximum": 0.9},
+        "evaluator_note": "回答只能证明记住了适用类型和操作步骤，尚未证明理解条件或边界。下一步应给出多个未提示表达式，要求独立判断能否使用并说明理由；能够迁移后才可进入 developing。"
       },
       "source_refs": [
         {"document_id": "hm-09-lhopital", "pages": [11, 12, 13, 14, 15, 16, 17, 18, 19, 20], "topics": ["洛必达法则条件"]}
       ],
-      "human_review": {"status": "pending", "reviewer": null, "reviewed_at": null, "notes": []}
+      "human_review": {"status": "approved", "reviewer": "njr070907", "reviewed_at": "2026-08-23T23:45:15+08:00", "notes": ["规则和操作步骤的复述不构成机制或迁移理解，掌握等级确认为 fragile。"]}
     },
     {
       "case_id": "hm-lhopital-misconception",
@@ -450,7 +450,7 @@
       "source_refs": [
         {"document_id": "hm-09-lhopital", "pages": [11, 12, 13, 14, 15, 16, 17, 18, 19, 20], "topics": ["未定式", "洛必达法则边界"]}
       ],
-      "human_review": {"status": "pending", "reviewer": null, "reviewed_at": null, "notes": []}
+      "human_review": {"status": "approved", "reviewer": "njr070907", "reviewed_at": "2026-08-23T23:46:53+08:00", "notes": ["用户在 Codex 逐项复核中确认通过。"]}
     },
     {
       "case_id": "hm-lhopital-insufficient",
@@ -464,18 +464,18 @@
         "required_evidence": [],
         "required_gaps": ["没有识别未定式类型", "没有定理条件", "没有重复使用规则"],
         "required_misconceptions": [],
-        "required_limitations": ["只记得操作外形，无法判断其是否会在错误场景使用"],
-        "forbidden_claims": ["不得将缺失条件直接解释为坚信任意分式都能用", "不得因记住求导动作而给出 developing"],
+        "required_limitations": ["只记得操作外形，无法识别具体错误模式，只能确定本次没有显示掌握"],
+        "forbidden_claims": ["不得将缺失条件直接解释为坚信任意分式都能用", "不得因记住求导动作而给出 developing", "不得把一次未掌握扩大成永久没有知识储备"],
         "acceptable_mastery_levels": ["not_evident"],
         "forbidden_mastery_levels": ["solid", "developing"],
         "recommended_actions": ["re_explain"],
-        "confidence": {"minimum": 0.1, "maximum": 0.4},
-        "evaluator_note": "用一个 0/0 和一个可直接代入的分式做二选一追问，先收集边界判断证据。"
+        "confidence": {"minimum": 0.75, "maximum": 0.95},
+        "evaluator_note": "本次回答足以判定当前未掌握（not_evident），但不足以识别具体误区。应用一个 0/0 和一个可直接代入的分式做二选一追问；仍不能判断时，进入重新讲解。"
       },
       "source_refs": [
         {"document_id": "hm-09-lhopital", "pages": [11, 12, 13, 14, 15], "topics": ["洛必达法则条件"]}
       ],
-      "human_review": {"status": "pending", "reviewer": null, "reviewed_at": null, "notes": []}
+      "human_review": {"status": "approved", "reviewer": "njr070907", "reviewed_at": "2026-08-23T23:47:43+08:00", "notes": ["该回答足以判定当前没有掌握；证据不足只表示无法识别具体错误模式。"]}
     },
 
     {
