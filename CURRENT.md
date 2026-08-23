@@ -6,8 +6,8 @@ Sprint 1：用真实 Provider 验证 `evaluator-v0.1` 能否区分充分理解�
 
 ## 当前状态
 
-- 分支：`feature/sprint1-openai-provider`
-- 任务：OpenAI Responses API 评估适配器、付费调用安全门和离线测试已实现，等待提交 PR。
+- 基线分支：`main`
+- 任务：OpenAI Responses API 评估适配器、付费调用安全门和离线测试已通过 PR #4 合并。
 - 约束：默认 Fake；真实运行必须显式确认；每个案例零重试；任何成功结果仍需人工语义复核。
 
 ## 最近验证
@@ -16,7 +16,8 @@ Sprint 1：用真实 Provider 验证 `evaluator-v0.1` 能否区分充分理解�
 - PR #3 合并前 CI 全部通过：55 tests、lint、format、migration、启动、Secret Scan、Fake 闭环。
 - 合并后 `main` CI 已成功。
 - 当前分支 69 tests、lint、format、mypy、87% coverage、Secret Scan、migration、Fake 闭环、Streamlit 启动与依赖审计通过。
+- PR #4 CI 已成功并已合并；合并后的 `main` CI 待最终确认。
 
 ## Resume Point
 
-提交并创建 OpenAI 适配器 PR；CI 通过后可合并。实际发起模型调用仍需用户提供 API Key 并明确授权真实费用。
+实际发起模型调用前，由用户在本机提供 OpenAI API Key、指定可用的精确模型，并明确授权最多 1 个案例的真实费用；随后运行并人工复核首条结果。
