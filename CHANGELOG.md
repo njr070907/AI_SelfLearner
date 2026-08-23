@@ -18,6 +18,9 @@
 - 增加黄金集严格 Schema、来源页码/哈希追溯、人工复核状态和 CI 校验。
 - 完成 20 个黄金案例的逐项人工复核，并将 `high-math-mastery-v0.1` 标记为 `approved`。
 - 明确机械复述只能支持 `fragile`，回答类型 `partial` 不自动等于掌握等级 `developing`。
+- 增加独立版本与内容哈希的 `evaluator-v0.1` Prompt、输入边界和注入防护。
+- 增加 20 案例 dry-run、Fake 批量运行器、版本化运行记录和付费调用安全门。
+- 将确定性 Mastery Protocol 提升为 `mastery-protocol-v0.2-golden-baseline`，使部分复述映射为 `fragile`，并澄清观察置信度不是掌握分数。
 
 ### 数据与协议
 
@@ -28,7 +31,7 @@
 
 ### 验证
 
-- 38 项自动测试通过。
+- 55 项自动测试通过。
 - 分支覆盖率为 88%。
 - 数据库迁移、健康检查和真实 Streamlit 启动通过。
 - Secret Scan、Ruff、Mypy 和依赖漏洞审计通过。

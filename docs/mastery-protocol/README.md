@@ -1,7 +1,7 @@
 # Mastery Protocol
 
-> 状态：Sprint 0 协议骨架  
-> 版本：`mastery-protocol-v0.1-demo`  
+> 状态：Sprint 1 黄金基线
+> 版本：`mastery-protocol-v0.2-golden-baseline`
 > 所有者：Founder / Product Owner  
 > 重要说明：当前版本只定义可实验边界，不代表掌握判断规则已经通过真实用户验证。
 
@@ -34,7 +34,7 @@ Provider 输出必须结构化并经过 Schema 校验，至少包含：
 - `evidence`：来自本次回答的最短必要证据；
 - `gaps`：缺失内容及严重度；
 - `possible_misconceptions`：用户明确表达的可能误区及置信度；
-- `observation_confidence`：本次观察的证据充分度；
+- `observation_confidence`：对“本次结构化观察是否准确”的置信度，不是掌握分数；回答者明确表示不会时，可以高置信度观察到当前未掌握；
 - `limitations`：当前不能可靠判断的内容；
 - Provider、模型、Prompt、Schema、参数和请求版本元数据。
 
@@ -101,3 +101,5 @@ Fake 场景至少覆盖：`strong`、`partial`、`misconception`、`insufficient
 原始讲义 PDF 不进入仓库。评测集只保存原创案例、文件哈希与页码来源，因此它是回归测试基线，不是运行时材料库，也不会提前触发 RAG 范围。
 
 首轮复核进一步确定：规则、公式和题目已提示例子的复述只能支持 `fragile`；`partial` 回答类型不自动映射为 `developing`；无法识别具体误区时，仍可根据明确的不会解释或应用，高置信度判定当前 `not_evident`；任何一次结果都不得推断为永久知识储备或能力结论。
+
+`mastery-protocol-v0.2-golden-baseline` 已将这些决定写入确定性基线：单次回答仍有机制或边界缺口时最多为 `fragile`；`developing` 需要后续未提示任务中的迁移证据。`observation_confidence` 只表示观察提取的可靠性，所以“明确表示不会”可以同时产生高置信度观察和 `not_evident` 决定。

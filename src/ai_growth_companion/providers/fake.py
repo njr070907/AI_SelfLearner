@@ -126,7 +126,7 @@ class FakeLLMProvider:
                         "answer_excerpt": excerpt,
                     }
                 ],
-                "observation_confidence": 0.85,
+                "observation_confidence": 0.95,
                 "limitations": ["错误概念来自选定的 Fake 场景，而非真实语义判断"],
             }
         if self.scenario is FakeScenario.INSUFFICIENT_EVIDENCE:
@@ -135,8 +135,8 @@ class FakeLLMProvider:
                 "evidence": [],
                 "gaps": [{"description": "当前回答不足以判断核心机制", "severity": "high"}],
                 "possible_misconceptions": [],
-                "observation_confidence": 0.2,
-                "limitations": ["需要更多解释或一个高信息量追问"],
+                "observation_confidence": 0.85,
+                "limitations": ["可判断当前未掌握，但无法从回答定位具体误区"],
             }
         if self.scenario is FakeScenario.INVALID_SCHEMA:
             return {

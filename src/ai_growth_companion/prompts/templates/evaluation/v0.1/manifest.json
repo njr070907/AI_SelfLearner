@@ -1,0 +1,13 @@
+{
+  "prompt_id": "evaluation",
+  "version": "evaluator-v0.1",
+  "purpose": "从单次学习者回答中提取可追溯的正确证据、缺口、明确误区与观察限制，不直接决定掌握等级。",
+  "input_schema": "evaluation-request-v0.1",
+  "output_schema": "provider-observation-v0.1",
+  "owner": "Founder / Product Owner",
+  "updated_at": "2026-08-24",
+  "evaluation_set": "high-math-mastery-v0.1",
+  "system_file": "system.md",
+  "user_file": "user.md",
+  "required_placeholders": ["evaluation_input_json"]
+}

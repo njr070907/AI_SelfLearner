@@ -43,6 +43,24 @@ uv run pytest tests/unit/test_golden_set.py
 
 自动校验只证明数据结构自洽，不证明数学内容正确。
 
+## 批量运行
+
+零成本检查 20 个 Prompt 输入信封能否正确渲染：
+
+```powershell
+uv run python scripts/run_golden_eval.py --dry-run
+```
+
+运行免费的确定性 Fake 管道基线：
+
+```powershell
+uv run python scripts/run_golden_eval.py
+```
+
+运行记录保存在被 Git 忽略的 `evals/runs/`，包含数据集、Prompt、Provider、模型、Schema、协议、动作、用量、自动检查和错误版本信息。Fake 模式不会真正把 Prompt 发给模型，运行记录会明确保存 `prompt_applied_to_provider=false`。
+
+自动检查覆盖结构、证据原文、观察形状、掌握等级、动作与置信度范围。它不能判断自然语言诊断是否真正表达了量表中的数学语义，因此所有成功结果仍标记为需要人工语义复核。
+
 ## 人工复核方法
 
 复核者逐个案例检查：
