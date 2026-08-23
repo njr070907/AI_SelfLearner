@@ -297,7 +297,7 @@
         {"document_id": "hm-06-derivative-definition", "pages": [14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24], "topics": ["导数定义", "可导与连续"]},
         {"document_id": "hm-08-differential-mvt", "pages": [5, 6, 7, 8, 9, 10, 11, 12, 13], "topics": ["微分", "局部线性近似"]}
       ],
-      "human_review": {"status": "pending", "reviewer": null, "reviewed_at": null, "notes": []}
+      "human_review": {"status": "approved", "reviewer": "njr070907", "reviewed_at": "2026-08-23T23:37:17+08:00", "notes": ["用户在 Codex 逐项复核中确认通过。"]}
     },
     {
       "case_id": "hm-differentiability-partial",
@@ -308,22 +308,22 @@
       "learner_answer": "可导一定连续，但连续不一定可导。|x| 在 0 点连续，可是左右两边的斜率一个是 -1、一个是 1，所以它在 0 点不可导。我不太会解释可微和可导是否完全一样，也说不清微分为什么叫线性近似。",
       "coverage_points": ["可导与可微等价", "可导推出连续", "连续不推出可导", "局部线性近似"],
       "rubric": {
-        "required_evidence": ["正确说明可导推出连续而连续不一定可导", "正确使用 |x| 的左右斜率说明不可导"],
-        "required_gaps": ["没有确认一元函数可导与可微等价", "没有解释增量的线性主部"],
+        "required_evidence": ["能够复述可导推出连续而连续不一定可导", "能够复述题目已提示的 |x| 左右斜率不同"],
+        "required_gaps": ["没有用导数定义解释为什么左右导数不同就不可导", "没有在未提示的新函数上表现出迁移能力", "没有确认一元函数可导与可微等价", "没有解释增量的线性主部"],
         "required_misconceptions": [],
         "required_limitations": [],
-        "forbidden_claims": ["不得把导数关系掌握扩展成已经理解微分", "不得判为 solid"],
-        "acceptable_mastery_levels": ["developing"],
-        "forbidden_mastery_levels": ["solid", "not_evident"],
-        "recommended_actions": ["example", "re_explain"],
-        "confidence": {"minimum": 0.6, "maximum": 0.85},
-        "evaluator_note": "关系链掌握良好但微分机制缺失，应针对 Δy 的线性主部追问。"
+        "forbidden_claims": ["不得把题目提示的经典反例当成迁移证据", "不得把规则和例子的复述判成机制理解", "不得判为 developing 或 solid"],
+        "acceptable_mastery_levels": ["fragile"],
+        "forbidden_mastery_levels": ["solid", "developing"],
+        "recommended_actions": ["practice", "re_explain"],
+        "confidence": {"minimum": 0.65, "maximum": 0.9},
+        "evaluator_note": "题目已经提示 |x|，因此复述这个固定反例仍可能只是机械记忆。下一步应提供一个未提示的新分段函数，要求学习者从左右差商独立判断；能够迁移后才可进入 developing。"
       },
       "source_refs": [
         {"document_id": "hm-06-derivative-definition", "pages": [18, 19, 20, 21, 22, 23, 24], "topics": ["可导与连续"]},
         {"document_id": "hm-08-differential-mvt", "pages": [5, 6, 7, 8, 9, 10, 11, 12, 13], "topics": ["微分定义"]}
       ],
-      "human_review": {"status": "pending", "reviewer": null, "reviewed_at": null, "notes": []}
+      "human_review": {"status": "approved", "reviewer": "njr070907", "reviewed_at": "2026-08-23T23:41:09+08:00", "notes": ["题目已提示经典反例，复述左右斜率仍可能是机械记忆；掌握等级已降为 fragile。"]}
     },
     {
       "case_id": "hm-differentiability-misconception",
@@ -349,7 +349,7 @@
         {"document_id": "hm-06-derivative-definition", "pages": [18, 19, 20, 21, 22, 23, 24], "topics": ["导数定义", "连续与可导"]},
         {"document_id": "hm-08-differential-mvt", "pages": [5, 6, 7, 8, 9, 10, 11, 12, 13], "topics": ["微分定义"]}
       ],
-      "human_review": {"status": "pending", "reviewer": null, "reviewed_at": null, "notes": []}
+      "human_review": {"status": "approved", "reviewer": "njr070907", "reviewed_at": "2026-08-23T23:42:05+08:00", "notes": ["用户在 Codex 逐项复核中确认通过。"]}
     },
     {
       "case_id": "hm-differentiability-insufficient",
@@ -363,18 +363,18 @@
         "required_evidence": [],
         "required_gaps": ["没有给出任何方向的蕴含关系", "没有说明 |x| 的连续性和左右导数", "没有解释微分"],
         "required_misconceptions": [],
-        "required_limitations": ["提到反例名称但没有陈述性质，无法判断理解程度"],
-        "forbidden_claims": ["不得把熟悉 |x| 这个例子当成理解反例", "不得猜测学习者持有某个具体错误关系"],
+        "required_limitations": ["提到反例名称但没有陈述性质，无法识别具体错误模式，只能确定本次没有显示掌握"],
+        "forbidden_claims": ["不得把熟悉 |x| 这个例子当成理解反例", "不得猜测学习者持有某个具体错误关系", "不得把一次未掌握扩大成永久没有知识储备"],
         "acceptable_mastery_levels": ["not_evident"],
         "forbidden_mastery_levels": ["solid", "developing"],
         "recommended_actions": ["re_explain"],
-        "confidence": {"minimum": 0.1, "maximum": 0.4},
-        "evaluator_note": "应先让学习者选出可导与连续的正确箭头，再追问 |x| 的左右导数。"
+        "confidence": {"minimum": 0.75, "maximum": 0.95},
+        "evaluator_note": "本次回答足以判定当前未掌握（not_evident），但不足以识别具体误区。应先让学习者判断可导与连续的关系，再追问一个未提示函数的左右导数；仍不能回答时，进入重新讲解。"
       },
       "source_refs": [
         {"document_id": "hm-06-derivative-definition", "pages": [18, 19, 20, 21, 22, 23, 24], "topics": ["可导与连续"]}
       ],
-      "human_review": {"status": "pending", "reviewer": null, "reviewed_at": null, "notes": []}
+      "human_review": {"status": "approved", "reviewer": "njr070907", "reviewed_at": "2026-08-23T23:43:23+08:00", "notes": ["该回答足以判定当前没有掌握；证据不足只表示无法识别具体错误模式。"]}
     },
 
     {
