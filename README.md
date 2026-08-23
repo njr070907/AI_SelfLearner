@@ -6,7 +6,7 @@ AI Growth Companion 是一个以费曼学习法为核心的学习诊断实验。
 
 Sprint 1 已开始建立 Mastery Protocol 的真实评测基线。第一批 20 个高等数学案例已经由产品负责人逐项完成人工复核，可以作为第一版回归基线；在真实模型实验通过前，项目仍不会声称能够可靠诊断学习掌握度。
 
-`evaluator-v0.1` 已作为独立、可哈希的 Prompt 版本加入工程，并提供 20 案例批量运行器。当前运行器支持零调用 dry-run 和免费确定性的 Fake 管道基线；真实 Provider 只有在明确选择供应商、模型和预算后才会启用。
+`evaluator-v0.1` 已作为独立、可哈希的 Prompt 版本加入工程，并提供 20 案例批量运行器。当前运行器支持零调用 dry-run、免费确定性的 Fake 管道基线和默认关闭的 OpenAI 适配器；真实 Provider 只有在明确选择供应商、模型并确认付费后才会启用。
 
 ## Sprint 0 已经能做什么
 
@@ -116,6 +116,28 @@ uv run python scripts/run_golden_eval.py
 ```
 
 结果写入被 Git 忽略的 `evals/runs/`。Fake 基线通过只表示 Schema、Mastery Engine、Learning Policy 和自动检查互相一致；每条成功结果仍标记为需要人工语义复核，不能作为真实模型质量结论。真实 Provider 模式必须显式允许付费调用，默认零重试，避免意外扩大成本。
+
+### OpenAI 真实评测（会产生费用）
+
+适配器使用 OpenAI Responses API 的 Pydantic 结构化输出，模型只产生 `ProviderObservation`；掌握状态和下一步仍由本地确定性代码决定。实现依据见 [OpenAI Structured Outputs 官方文档](https://developers.openai.com/api/docs/guides/structured-outputs)。
+
+先将 `.env.example` 复制为被 Git 忽略的 `.env`，再只在本机填写：
+
+```dotenv
+LLM_PROVIDER=openai
+LLM_MODEL=<精确模型名>
+LLM_API_KEY=<本机 API Key>
+```
+
+完成费用授权后，首次只运行 1 条：
+
+```powershell
+uv run python scripts/run_golden_eval.py --provider openai --confirm-paid-calls
+```
+
+真实模式默认 `--max-cases 1`、每条零重试、最多输出 1200 tokens，且不会把响应保存到供应商侧的应用存储。只有显式传入 `--max-cases 2` 至 `20` 才会扩大批量。Token 用量、延迟、模型、Prompt 版本、请求 ID 和错误码会写入本地运行记录；API Key、Prompt 原文和回答原文不会进入控制台摘要。实际账单以供应商后台为准，运行器目前不猜测费用。
+
+即使自动检查全过，仍必须逐条人工复核数学语义；一次真实运行不直接更新学习者长期状态。
 
 ## GitHub 协作流程
 

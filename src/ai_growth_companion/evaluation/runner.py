@@ -25,13 +25,17 @@ from ai_growth_companion.evaluation.run_models import (
     RunSummary,
 )
 from ai_growth_companion.prompts.registry import PromptRegistry
-from ai_growth_companion.providers.base import EvaluationRequest, LLMProvider, ProviderError
+from ai_growth_companion.providers.base import (
+    EvaluationProvider,
+    EvaluationRequest,
+    ProviderError,
+)
 from ai_growth_companion.schemas.diagnosis import (
     ProviderObservation,
     validate_answer_excerpts,
 )
 
-ProviderFactory = Callable[[GoldenCase], LLMProvider]
+ProviderFactory = Callable[[GoldenCase], EvaluationProvider]
 
 
 def run_golden_evaluation(
