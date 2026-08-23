@@ -14,6 +14,8 @@
 - 增加 liveness、readiness 和 Provider dependency 健康检查。
 - 增加单元、集成、Streamlit E2E、真实启动、Secret Scan、类型、覆盖率和依赖审计。
 - 增加 GitHub Actions、Issue/PR 模板、协作规范和代码所有者。
+- 增加 5 个高数知识点、四类回答矩阵组成的 20 个 Sprint 1 黄金案例草案。
+- 增加黄金集严格 Schema、来源页码/哈希追溯、人工复核状态和 CI 校验。
 
 ### 数据与协议
 

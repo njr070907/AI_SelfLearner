@@ -4,6 +4,8 @@ AI Growth Companion 是一个以费曼学习法为核心的学习诊断实验。
 
 项目当前已经完成 Sprint 0 工程基线。这里的诊断全部来自免费、可预测的 Fake Provider，用于验证产品管道，不代表真实 AI 学习判断。
 
+Sprint 1 已开始建立 Mastery Protocol 的真实评测基线。第一批 20 个高等数学案例已经形成结构化草案，正在等待人工复核；在复核完成和真实模型实验通过前，项目仍不会声称能够可靠诊断学习掌握度。
+
 ## Sprint 0 已经能做什么
 
 - 启动 Streamlit 页面，创建知识点学习会话并保存回答。
@@ -123,6 +125,7 @@ tests/unit/                    单元测试
 tests/integration/             数据库与服务集成测试
 tests/e2e/                     Streamlit 假闭环测试
 scripts/                       Secret Scan 与真实启动检查
+evals/golden/                  固定评测集与人工判分量表
 docs/mastery-protocol/         Mastery Protocol 独立协议
 .github/                       CI、Issue、PR 和代码所有者配置
 ```
@@ -138,6 +141,7 @@ docs/mastery-protocol/         Mastery Protocol 独立协议
 - [架构决策](docs/49_ADR_Architecture_Decision_Log.md)
 - [完整文档索引](docs/51_Document_Index_and_Reading_Order.md)
 - [Mastery Protocol](docs/mastery-protocol/README.md)
+- [固定评测集与人工复核](evals/README.md)
 - [变更记录](CHANGELOG.md)
 
 ## Sprint 0 停止条件

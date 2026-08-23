@@ -44,6 +44,9 @@ jobs:
       - name: Formatting check
         run: uv run ruff format --check .
 
+      - name: Golden set contract and provenance check
+        run: uv run python scripts/validate_golden_set.py
+
       - name: Database migration smoke test
         env:
           DATABASE_URL: sqlite:///data/ci.db
