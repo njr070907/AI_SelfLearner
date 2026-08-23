@@ -1,0 +1,586 @@
+{
+  "schema_version": "golden-set-v0.1",
+  "dataset_id": "high-math-mastery-v0.1",
+  "language": "zh-CN",
+  "status": "approved",
+  "mastery_protocol_version": "mastery-protocol-v0.1-demo",
+  "purpose": "用固定、可复核的高等数学回答检验系统能否区分充分理解、部分理解、明确误区和证据不足。",
+  "source_policy": {
+    "raw_pdfs_in_repository": false,
+    "derived_cases_are_original": true,
+    "source_text_is_not_reproduced": true
+  },
+  "sources": [
+    {
+      "document_id": "hm-03-limit-definition",
+      "title": "高数第三讲：函数极限定义计算及无穷小",
+      "page_count": 22,
+      "sha256": "7ec0f5c41ba22c3a6a733b1809e37f8760802c210ff953614303b367f4b0dcda",
+      "included_in_repository": false
+    },
+    {
+      "document_id": "hm-04-limit-upper",
+      "title": "第四讲：函数极限（上）",
+      "page_count": 23,
+      "sha256": "08855cd4dbeaaa17a42393170475e01e5b82074dcdf84eea28ec84984eafe703",
+      "included_in_repository": false
+    },
+    {
+      "document_id": "hm-05-limit-lower",
+      "title": "第五讲：函数极限的计算（下）",
+      "page_count": 24,
+      "sha256": "bd1b923187501b6c34d1567838b0beb3ef26292ce39d91ff7a65dd2a71c56e4b",
+      "included_in_repository": false
+    },
+    {
+      "document_id": "hm-06-derivative-definition",
+      "title": "第六讲：导数的定义及运算（上）",
+      "page_count": 28,
+      "sha256": "f687d3be44aad9514ec9e1e2f698be4bcf8f13b9b1708501e4390082db4b91e7",
+      "included_in_repository": false
+    },
+    {
+      "document_id": "hm-08-differential-mvt",
+      "title": "高数第八讲：导数与微分及微分中值定理（上）",
+      "page_count": 25,
+      "sha256": "c82cb2f578d56db57901acaea8f05380b140ed19d2fe507c836fefd8ab9bc700",
+      "included_in_repository": false
+    },
+    {
+      "document_id": "hm-09-lhopital",
+      "title": "高数第九讲：微分中值定理（下）及洛必达法则",
+      "page_count": 21,
+      "sha256": "f100b83c452f27503dc2dad1cfcc42b5f4f1753fa4257eef620109bf18abe85a",
+      "included_in_repository": false
+    },
+    {
+      "document_id": "hm-13-definite-integral",
+      "title": "第十三讲：不定积分分部积分及定积分定义",
+      "page_count": 25,
+      "sha256": "deb303e7f236e38a0fc609ce7347bf89a3639791267a85c720028c76d9dd4cca",
+      "included_in_repository": false
+    },
+    {
+      "document_id": "hm-14-definite-properties",
+      "title": "第十四次课：定积分性质及变限积分",
+      "page_count": 27,
+      "sha256": "c503bbccd3f1064744af605ed54e0a48c165e4f7e9dfb46acf9be93ba1a5a7be",
+      "included_in_repository": false
+    }
+  ],
+  "cases": [
+    {
+      "case_id": "hm-limit-existence-strong",
+      "concept_id": "function-limit-existence",
+      "concept": "函数极限存在与左右极限",
+      "scenario": "strong",
+      "question_text": "为什么判断 x 趋近 a 时函数极限存在，需要同时检查左极限和右极限？函数在 a 点的取值会不会决定这个极限？请用例子说明。",
+      "learner_answer": "双侧极限存在，当且仅当左极限和右极限都存在，而且二者等于同一个数 L。极限只看 a 附近的函数值，所以 f(a) 可以不存在，也可以和 L 不同。例如 x 不等于 0 时 f(x)=1，而 f(0)=9，x 趋近 0 的极限仍是 1。反过来，若 x<0 时取 -1、x>0 时取 1，左右极限不同，因此双侧极限不存在。",
+      "coverage_points": ["左右极限都存在", "左右极限相等", "点值不决定极限", "分段函数反例"],
+      "rubric": {
+        "required_evidence": ["明确说出双侧极限存在等价于左右极限存在且相等", "说明函数点值不决定邻域极限", "给出左右极限不等时极限不存在的例子"],
+        "required_gaps": [],
+        "required_misconceptions": [],
+        "required_limitations": [],
+        "forbidden_claims": ["不得声称只检查一侧即可", "不得把 f(a) 等同于极限"],
+        "acceptable_mastery_levels": ["solid"],
+        "forbidden_mastery_levels": ["not_evident", "fragile"],
+        "recommended_actions": ["practice"],
+        "confidence": {"minimum": 0.8, "maximum": 1.0},
+        "evaluator_note": "答案同时覆盖判定条件、点值边界和正反例，可进入新的分段函数迁移题。"
+      },
+      "source_refs": [
+        {"document_id": "hm-03-limit-definition", "pages": [11, 12, 13, 14, 15, 16], "topics": ["函数极限定义", "左右极限"]},
+        {"document_id": "hm-04-limit-upper", "pages": [1, 2, 3, 4, 5, 6], "topics": ["极限存在判定"]}
+      ],
+      "human_review": {"status": "approved", "reviewer": "njr070907", "reviewed_at": "2026-08-23T23:22:24+08:00", "notes": ["用户在 Codex 逐项复核中确认通过。"]}
+    },
+    {
+      "case_id": "hm-limit-existence-partial",
+      "concept_id": "function-limit-existence",
+      "concept": "函数极限存在与左右极限",
+      "scenario": "partial",
+      "question_text": "为什么判断 x 趋近 a 时函数极限存在，需要同时检查左极限和右极限？函数在 a 点的取值会不会决定这个极限？请用例子说明。",
+      "learner_answer": "要从 a 的左边和右边都靠近。如果两边最后趋向同一个数，整体极限就存在；如果一边趋向 1、另一边趋向 2，整体极限就不存在。我暂时没有想清楚 f(a) 本身和极限是什么关系。",
+      "coverage_points": ["左右极限存在性", "左右极限相等", "点值与极限的关系", "例子"],
+      "rubric": {
+        "required_evidence": ["能够复述左右两侧趋向同一数时双侧极限存在", "能够复述左右极限不同时双侧极限不存在"],
+        "required_gaps": ["没有解释为什么必须同时检查左右两侧", "没有说明 f(a) 不决定极限", "只用数字重复规则，没有构造完整分段函数", "没有提供能够证明迁移或机制理解的证据"],
+        "required_misconceptions": [],
+        "required_limitations": [],
+        "forbidden_claims": ["不得把规则复述当成机制理解", "不得把未回答的点值关系补写成已掌握", "不得判定为 developing 或 solid"],
+        "acceptable_mastery_levels": ["fragile"],
+        "forbidden_mastery_levels": ["solid", "developing"],
+        "recommended_actions": ["re_explain", "example"],
+        "confidence": {"minimum": 0.65, "maximum": 0.9},
+        "evaluator_note": "回答只能证明记住了判定规则，不能证明理解其原因或边界。应先要求学习者解释为什么左右极限不等时不存在同一个逼近值，再比较同一邻域、不同 f(a) 的函数。"
+      },
+      "source_refs": [
+        {"document_id": "hm-03-limit-definition", "pages": [11, 12, 13, 14, 15, 16], "topics": ["函数极限定义", "左右极限"]}
+      ],
+      "human_review": {"status": "approved", "reviewer": "njr070907", "reviewed_at": "2026-08-23T23:26:15+08:00", "notes": ["复述正确规则只能证明记忆，不能证明理解；掌握等级已降为 fragile。"]}
+    },
+    {
+      "case_id": "hm-limit-existence-misconception",
+      "concept_id": "function-limit-existence",
+      "concept": "函数极限存在与左右极限",
+      "scenario": "misconception",
+      "question_text": "为什么判断 x 趋近 a 时函数极限存在，需要同时检查左极限和右极限？函数在 a 点的取值会不会决定这个极限？请用例子说明。",
+      "learner_answer": "只要左极限和右极限分别存在，双侧极限就存在。两边不一样时可以取平均数作为极限，比如左边是 1、右边是 3，极限就是 2。并且函数在 a 点取多少，极限一般也就是多少。",
+      "coverage_points": ["左右极限存在性", "左右极限相等", "点值与极限的关系", "反例"],
+      "rubric": {
+        "required_evidence": [],
+        "required_gaps": [],
+        "required_misconceptions": ["错误地认为左右极限不相等时可取平均作为双侧极限", "错误地认为 f(a) 一般决定 x 趋近 a 时的极限"],
+        "required_limitations": [],
+        "forbidden_claims": ["不得把术语使用流畅当成正确理解", "不得输出双侧极限存在"],
+        "acceptable_mastery_levels": ["fragile"],
+        "forbidden_mastery_levels": ["solid", "developing"],
+        "recommended_actions": ["review", "re_explain"],
+        "confidence": {"minimum": 0.8, "maximum": 1.0},
+        "evaluator_note": "两个错误均由原回答直接表达，应引用原句并先修正定义，不能只补充例子。"
+      },
+      "source_refs": [
+        {"document_id": "hm-04-limit-upper", "pages": [1, 2, 3, 4, 5, 6], "topics": ["左右极限与双侧极限"]}
+      ],
+      "human_review": {"status": "approved", "reviewer": "njr070907", "reviewed_at": "2026-08-23T23:27:05+08:00", "notes": ["用户在 Codex 逐项复核中确认通过。"]}
+    },
+    {
+      "case_id": "hm-limit-existence-insufficient",
+      "concept_id": "function-limit-existence",
+      "concept": "函数极限存在与左右极限",
+      "scenario": "insufficient_evidence",
+      "question_text": "为什么判断 x 趋近 a 时函数极限存在，需要同时检查左极限和右极限？函数在 a 点的取值会不会决定这个极限？请用例子说明。",
+      "learner_answer": "应该从两边看图，但具体要满足什么关系、f(a) 是否有关，我都记不清了。",
+      "coverage_points": ["左右极限存在性", "左右极限相等", "点值与极限的关系", "例子"],
+      "rubric": {
+        "required_evidence": [],
+        "required_gaps": ["没有给出左右极限相等的判定条件", "没有回答 f(a) 与极限的关系", "没有例子"],
+        "required_misconceptions": [],
+        "required_limitations": ["无法从回答识别更具体的错误模式，只能确定本次没有显示掌握"],
+        "forbidden_claims": ["不得把“知道要从两边看”当成已经掌握", "不得把一次未掌握扩大成永久没有知识储备", "不得把尚未表达的错误当成已确认误区"],
+        "acceptable_mastery_levels": ["not_evident"],
+        "forbidden_mastery_levels": ["solid", "developing"],
+        "recommended_actions": ["re_explain"],
+        "confidence": {"minimum": 0.75, "maximum": 0.95},
+        "evaluator_note": "本次回答足以判定当前未掌握（not_evident），但不足以识别具体误区。应先追问“左右两边分别趋向什么关系时双侧极限存在”；仍不能回答时，进入重新讲解。"
+      },
+      "source_refs": [
+        {"document_id": "hm-03-limit-definition", "pages": [11, 12, 13, 14, 15, 16], "topics": ["函数极限定义", "左右极限"]}
+      ],
+      "human_review": {"status": "approved", "reviewer": "njr070907", "reviewed_at": "2026-08-23T23:30:26+08:00", "notes": ["该回答足以判定当前没有掌握；证据不足只表示无法识别具体错误模式。"]}
+    },
+
+    {
+      "case_id": "hm-equivalent-infinitesimal-strong",
+      "concept_id": "equivalent-infinitesimal-substitution",
+      "concept": "等价无穷小替换的条件与加减陷阱",
+      "scenario": "strong",
+      "question_text": "在 x 趋近 0 时，等价无穷小什么时候适合替换？计算 (sin x - x)/x^3 时，为什么不能直接把 sin x 换成 x 后就结束？",
+      "learner_answer": "α 与 β 等价无穷小是指 α/β 趋近 1。它常用于乘积或商中的因子替换，但还要保证相关分母不为零并且极限条件满足。加减时可能发生同阶项抵消，所以不能机械替换。这道题若把 sin x 直接换成 x，分子会被抹成 0，却丢掉 sin x 与 x 之间三阶量级的差；真实极限是 -1/6，不是由 0/x^3 得出的 0。",
+      "coverage_points": ["等价定义", "乘除因子替换", "加减抵消", "高阶差异"],
+      "rubric": {
+        "required_evidence": ["用比值趋近 1 说明等价无穷小", "区分乘除因子替换与加减项替换", "指出 sin x 与 x 抵消后高阶差异决定结果"],
+        "required_gaps": [],
+        "required_misconceptions": [],
+        "required_limitations": [],
+        "forbidden_claims": ["不得声称等价等于恒等", "不得声称加减项总能直接替换"],
+        "acceptable_mastery_levels": ["solid"],
+        "forbidden_mastery_levels": ["not_evident", "fragile"],
+        "recommended_actions": ["practice"],
+        "confidence": {"minimum": 0.8, "maximum": 1.0},
+        "evaluator_note": "已解释替换的数学含义和失效机制，下一步用新的抵消型极限做迁移。"
+      },
+      "source_refs": [
+        {"document_id": "hm-04-limit-upper", "pages": [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22], "topics": ["无穷小比较", "等价无穷小替换"]},
+        {"document_id": "hm-05-limit-lower", "pages": [1, 2, 3, 4, 5, 6], "topics": ["等价替换条件", "加减项限制"]}
+      ],
+      "human_review": {"status": "approved", "reviewer": "njr070907", "reviewed_at": "2026-08-23T23:32:55+08:00", "notes": ["用户在 Codex 逐项复核中确认通过。"]}
+    },
+    {
+      "case_id": "hm-equivalent-infinitesimal-partial",
+      "concept_id": "equivalent-infinitesimal-substitution",
+      "concept": "等价无穷小替换的条件与加减陷阱",
+      "scenario": "partial",
+      "question_text": "在 x 趋近 0 时，等价无穷小什么时候适合替换？计算 (sin x - x)/x^3 时，为什么不能直接把 sin x 换成 x 后就结束？",
+      "learner_answer": "我记得 sin x 和 x 是等价无穷小，做乘除的极限时通常可以替换；如果它们出现在加减里就要小心，所以这题不能直接换。我知道直接换会出问题，但还解释不清为什么，也不会继续算出结果。",
+      "coverage_points": ["等价定义", "乘除因子替换", "加减抵消", "高阶差异"],
+      "rubric": {
+        "required_evidence": ["能够复述 sin x 与 x 在 x 趋近 0 时等价", "能够复述乘除通常可替换而加减不能机械替换"],
+        "required_gaps": ["没有给出比值趋近 1 的定义", "没有解释同阶项抵消后为何高阶差异变重要", "没有完成极限", "没有提供能够证明机制理解或迁移的证据"],
+        "required_misconceptions": [],
+        "required_limitations": [],
+        "forbidden_claims": ["不得把记住口诀判成理解替换机制", "不得判为 developing 或 solid"],
+        "acceptable_mastery_levels": ["fragile"],
+        "forbidden_mastery_levels": ["solid", "developing"],
+        "recommended_actions": ["re_explain", "example"],
+        "confidence": {"minimum": 0.65, "maximum": 0.9},
+        "evaluator_note": "学习者只复述了替换边界，没有解释原因或完成计算，因此只能证明记住规则。下一步应用两个同阶项抵消前后的量级比较补足机制。"
+      },
+      "source_refs": [
+        {"document_id": "hm-04-limit-upper", "pages": [15, 16, 17, 18, 19, 20, 21, 22], "topics": ["等价无穷小替换", "替换限制"]}
+      ],
+      "human_review": {"status": "approved", "reviewer": "njr070907", "reviewed_at": "2026-08-23T23:34:26+08:00", "notes": ["按统一复核标准，规则复述不构成机制理解，掌握等级确认为 fragile。"]}
+    },
+    {
+      "case_id": "hm-equivalent-infinitesimal-misconception",
+      "concept_id": "equivalent-infinitesimal-substitution",
+      "concept": "等价无穷小替换的条件与加减陷阱",
+      "scenario": "misconception",
+      "question_text": "在 x 趋近 0 时，等价无穷小什么时候适合替换？计算 (sin x - x)/x^3 时，为什么不能直接把 sin x 换成 x 后就结束？",
+      "learner_answer": "既然 sin x 等价于 x，就表示在极限题里二者完全相同，放在加减乘除任何位置都能换。因此分子 sin x-x 可以换成 x-x=0，所以整个极限是 0。",
+      "coverage_points": ["等价定义", "乘除因子替换", "加减抵消", "高阶差异"],
+      "rubric": {
+        "required_evidence": [],
+        "required_gaps": [],
+        "required_misconceptions": ["把等价无穷小误解为两个函数完全相同", "认为等价替换对加减乘除无条件成立", "因机械替换得到错误极限 0"],
+        "required_limitations": [],
+        "forbidden_claims": ["不得只说计算粗心而忽略规则误解", "不得判为 developing 或 solid"],
+        "acceptable_mastery_levels": ["fragile"],
+        "forbidden_mastery_levels": ["solid", "developing"],
+        "recommended_actions": ["review", "re_explain"],
+        "confidence": {"minimum": 0.85, "maximum": 1.0},
+        "evaluator_note": "这是明确、可定位的概念误区；应先区分“比值趋近 1”和“函数恒等”，再处理抵消。"
+      },
+      "source_refs": [
+        {"document_id": "hm-05-limit-lower", "pages": [1, 2, 3, 4, 5, 6], "topics": ["等价替换条件", "加减项限制"]}
+      ],
+      "human_review": {"status": "approved", "reviewer": "njr070907", "reviewed_at": "2026-08-23T23:35:10+08:00", "notes": ["用户在 Codex 逐项复核中确认通过。"]}
+    },
+    {
+      "case_id": "hm-equivalent-infinitesimal-insufficient",
+      "concept_id": "equivalent-infinitesimal-substitution",
+      "concept": "等价无穷小替换的条件与加减陷阱",
+      "scenario": "insufficient_evidence",
+      "question_text": "在 x 趋近 0 时，等价无穷小什么时候适合替换？计算 (sin x - x)/x^3 时，为什么不能直接把 sin x 换成 x 后就结束？",
+      "learner_answer": "我记得有 sin x 约等于 x 这个公式，但这道题该不该换、怎么继续，我都不确定。",
+      "coverage_points": ["等价定义", "乘除因子替换", "加减抵消", "高阶差异"],
+      "rubric": {
+        "required_evidence": [],
+        "required_gaps": ["没有说明等价无穷小的定义", "没有说明替换条件", "没有处理抵消"],
+        "required_misconceptions": [],
+        "required_limitations": ["无法从回答识别具体错误模式，只能确定本次没有显示掌握"],
+        "forbidden_claims": ["不得把“不确定”解释成明确错误规则", "不得因为写出 sin x 约等于 x 就给出正向掌握结论", "不得把一次未掌握扩大成永久没有知识储备"],
+        "acceptable_mastery_levels": ["not_evident"],
+        "forbidden_mastery_levels": ["solid", "developing"],
+        "recommended_actions": ["re_explain"],
+        "confidence": {"minimum": 0.75, "maximum": 0.95},
+        "evaluator_note": "本次回答足以判定当前未掌握（not_evident），但不足以识别具体误区。应先追问等价的比值定义以及乘积和差式的区别；仍不能回答时，进入重新讲解。"
+      },
+      "source_refs": [
+        {"document_id": "hm-04-limit-upper", "pages": [15, 16, 17, 18, 19, 20, 21, 22], "topics": ["等价无穷小替换"]}
+      ],
+      "human_review": {"status": "approved", "reviewer": "njr070907", "reviewed_at": "2026-08-23T23:35:54+08:00", "notes": ["该回答足以判定当前没有掌握；证据不足只表示无法识别具体错误模式。"]}
+    },
+
+    {
+      "case_id": "hm-differentiability-strong",
+      "concept_id": "continuity-differentiability-differential",
+      "concept": "连续、可导与可微的关系",
+      "scenario": "strong",
+      "question_text": "在一元函数里，连续、可导和可微之间是什么关系？请用 |x| 在 0 点的情况说明逆命题为什么不成立，并解释微分为何是局部线性近似。",
+      "learner_answer": "一元函数在一点可导与在该点可微是等价的，而且可导一定推出连续；但连续不一定可导。f(x)=|x| 在 0 连续，因为左右函数值都趋向 0，但左导数是 -1、右导数是 1，所以不可导也不可微。可微还表示增量能写成 Δy=f'(x)Δx+o(Δx)，其中 f'(x)Δx 是主要的线性部分，因此在很小范围内可用它近似函数增量。",
+      "coverage_points": ["可导与可微等价", "可导推出连续", "连续不推出可导", "局部线性近似"],
+      "rubric": {
+        "required_evidence": ["正确说明一元函数可导与可微等价", "正确说明可导推出连续而逆命题不成立", "用 |x| 的左右导数给出反例", "用增量分解解释微分的线性主部"],
+        "required_gaps": [],
+        "required_misconceptions": [],
+        "required_limitations": [],
+        "forbidden_claims": ["不得声称连续必然可导", "不得忽略一元函数语境"],
+        "acceptable_mastery_levels": ["solid"],
+        "forbidden_mastery_levels": ["not_evident", "fragile"],
+        "recommended_actions": ["practice"],
+        "confidence": {"minimum": 0.85, "maximum": 1.0},
+        "evaluator_note": "关系、反例和微分机制都完整，可用新的分段函数检验左右导数。"
+      },
+      "source_refs": [
+        {"document_id": "hm-06-derivative-definition", "pages": [14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24], "topics": ["导数定义", "可导与连续"]},
+        {"document_id": "hm-08-differential-mvt", "pages": [5, 6, 7, 8, 9, 10, 11, 12, 13], "topics": ["微分", "局部线性近似"]}
+      ],
+      "human_review": {"status": "approved", "reviewer": "njr070907", "reviewed_at": "2026-08-23T23:37:17+08:00", "notes": ["用户在 Codex 逐项复核中确认通过。"]}
+    },
+    {
+      "case_id": "hm-differentiability-partial",
+      "concept_id": "continuity-differentiability-differential",
+      "concept": "连续、可导与可微的关系",
+      "scenario": "partial",
+      "question_text": "在一元函数里，连续、可导和可微之间是什么关系？请用 |x| 在 0 点的情况说明逆命题为什么不成立，并解释微分为何是局部线性近似。",
+      "learner_answer": "可导一定连续，但连续不一定可导。|x| 在 0 点连续，可是左右两边的斜率一个是 -1、一个是 1，所以它在 0 点不可导。我不太会解释可微和可导是否完全一样，也说不清微分为什么叫线性近似。",
+      "coverage_points": ["可导与可微等价", "可导推出连续", "连续不推出可导", "局部线性近似"],
+      "rubric": {
+        "required_evidence": ["能够复述可导推出连续而连续不一定可导", "能够复述题目已提示的 |x| 左右斜率不同"],
+        "required_gaps": ["没有用导数定义解释为什么左右导数不同就不可导", "没有在未提示的新函数上表现出迁移能力", "没有确认一元函数可导与可微等价", "没有解释增量的线性主部"],
+        "required_misconceptions": [],
+        "required_limitations": [],
+        "forbidden_claims": ["不得把题目提示的经典反例当成迁移证据", "不得把规则和例子的复述判成机制理解", "不得判为 developing 或 solid"],
+        "acceptable_mastery_levels": ["fragile"],
+        "forbidden_mastery_levels": ["solid", "developing"],
+        "recommended_actions": ["practice", "re_explain"],
+        "confidence": {"minimum": 0.65, "maximum": 0.9},
+        "evaluator_note": "题目已经提示 |x|，因此复述这个固定反例仍可能只是机械记忆。下一步应提供一个未提示的新分段函数，要求学习者从左右差商独立判断；能够迁移后才可进入 developing。"
+      },
+      "source_refs": [
+        {"document_id": "hm-06-derivative-definition", "pages": [18, 19, 20, 21, 22, 23, 24], "topics": ["可导与连续"]},
+        {"document_id": "hm-08-differential-mvt", "pages": [5, 6, 7, 8, 9, 10, 11, 12, 13], "topics": ["微分定义"]}
+      ],
+      "human_review": {"status": "approved", "reviewer": "njr070907", "reviewed_at": "2026-08-23T23:41:09+08:00", "notes": ["题目已提示经典反例，复述左右斜率仍可能是机械记忆；掌握等级已降为 fragile。"]}
+    },
+    {
+      "case_id": "hm-differentiability-misconception",
+      "concept_id": "continuity-differentiability-differential",
+      "concept": "连续、可导与可微的关系",
+      "scenario": "misconception",
+      "question_text": "在一元函数里，连续、可导和可微之间是什么关系？请用 |x| 在 0 点的情况说明逆命题为什么不成立，并解释微分为何是局部线性近似。",
+      "learner_answer": "只要函数在一点连续，图像不断开，它在那一点就一定有切线，所以必然可导。|x| 在 0 点连续，因此它在 0 点也可导，导数可以把左右斜率取平均得到 0。可微只是函数值变化得很小。",
+      "coverage_points": ["可导与可微等价", "可导推出连续", "连续不推出可导", "局部线性近似"],
+      "rubric": {
+        "required_evidence": [],
+        "required_gaps": [],
+        "required_misconceptions": ["错误地认为连续必然可导", "错误地对不相等的左右导数取平均", "错误地把可微解释为函数值变化很小"],
+        "required_limitations": [],
+        "forbidden_claims": ["不得因提到连续和切线就视为有效机制", "不得判为 developing 或 solid"],
+        "acceptable_mastery_levels": ["fragile"],
+        "forbidden_mastery_levels": ["solid", "developing"],
+        "recommended_actions": ["review", "re_explain"],
+        "confidence": {"minimum": 0.85, "maximum": 1.0},
+        "evaluator_note": "答案明确表达了三处误区，应从 |x| 左右差商重新建立反例。"
+      },
+      "source_refs": [
+        {"document_id": "hm-06-derivative-definition", "pages": [18, 19, 20, 21, 22, 23, 24], "topics": ["导数定义", "连续与可导"]},
+        {"document_id": "hm-08-differential-mvt", "pages": [5, 6, 7, 8, 9, 10, 11, 12, 13], "topics": ["微分定义"]}
+      ],
+      "human_review": {"status": "approved", "reviewer": "njr070907", "reviewed_at": "2026-08-23T23:42:05+08:00", "notes": ["用户在 Codex 逐项复核中确认通过。"]}
+    },
+    {
+      "case_id": "hm-differentiability-insufficient",
+      "concept_id": "continuity-differentiability-differential",
+      "concept": "连续、可导与可微的关系",
+      "scenario": "insufficient_evidence",
+      "question_text": "在一元函数里，连续、可导和可微之间是什么关系？请用 |x| 在 0 点的情况说明逆命题为什么不成立，并解释微分为何是局部线性近似。",
+      "learner_answer": "这三个概念应该有关系，|x| 好像是一个特殊例子，但具体关系和原因我记不清。",
+      "coverage_points": ["可导与可微等价", "可导推出连续", "连续不推出可导", "局部线性近似"],
+      "rubric": {
+        "required_evidence": [],
+        "required_gaps": ["没有给出任何方向的蕴含关系", "没有说明 |x| 的连续性和左右导数", "没有解释微分"],
+        "required_misconceptions": [],
+        "required_limitations": ["提到反例名称但没有陈述性质，无法识别具体错误模式，只能确定本次没有显示掌握"],
+        "forbidden_claims": ["不得把熟悉 |x| 这个例子当成理解反例", "不得猜测学习者持有某个具体错误关系", "不得把一次未掌握扩大成永久没有知识储备"],
+        "acceptable_mastery_levels": ["not_evident"],
+        "forbidden_mastery_levels": ["solid", "developing"],
+        "recommended_actions": ["re_explain"],
+        "confidence": {"minimum": 0.75, "maximum": 0.95},
+        "evaluator_note": "本次回答足以判定当前未掌握（not_evident），但不足以识别具体误区。应先让学习者判断可导与连续的关系，再追问一个未提示函数的左右导数；仍不能回答时，进入重新讲解。"
+      },
+      "source_refs": [
+        {"document_id": "hm-06-derivative-definition", "pages": [18, 19, 20, 21, 22, 23, 24], "topics": ["可导与连续"]}
+      ],
+      "human_review": {"status": "approved", "reviewer": "njr070907", "reviewed_at": "2026-08-23T23:43:23+08:00", "notes": ["该回答足以判定当前没有掌握；证据不足只表示无法识别具体错误模式。"]}
+    },
+
+    {
+      "case_id": "hm-lhopital-strong",
+      "concept_id": "lhopital-applicability",
+      "concept": "洛必达法则的适用条件",
+      "scenario": "strong",
+      "question_text": "遇到分式极限时能否直接使用洛必达法则？请说明它处理的未定式、需要检查的条件，以及重复使用时为什么每次都要重新判断。",
+      "learner_answer": "不能见到分式就用。先要确认原式在目标过程中是 0/0 型或无穷/无穷型，并检查分子分母在相应去心邻域可导、分母导数不为 0 等条件；还要看导数之比的极限是否满足法则要求。若求导后仍是未定式，可以在条件继续成立时再用一次，但每次都要重新检查。若原式本来是 1/2 这类确定形式，硬求导会改变问题，不能用洛必达。",
+      "coverage_points": ["未定式类型", "可导与分母条件", "导数比极限", "重复使用重新检查"],
+      "rubric": {
+        "required_evidence": ["限制在 0/0 或无穷/无穷未定式", "说明去心邻域可导和分母导数条件", "说明需要考察导数之比的极限", "说明重复使用前重新检查"],
+        "required_gaps": [],
+        "required_misconceptions": [],
+        "required_limitations": [],
+        "forbidden_claims": ["不得声称任意分式极限都可直接求导", "不得省略重新判断未定式"],
+        "acceptable_mastery_levels": ["solid"],
+        "forbidden_mastery_levels": ["not_evident", "fragile"],
+        "recommended_actions": ["practice"],
+        "confidence": {"minimum": 0.85, "maximum": 1.0},
+        "evaluator_note": "条件和边界完整，可安排包含可用与不可用表达式的分类迁移题。"
+      },
+      "source_refs": [
+        {"document_id": "hm-09-lhopital", "pages": [11, 12, 13, 14, 15, 16, 17, 18, 19, 20], "topics": ["洛必达法则", "未定式", "适用条件"]}
+      ],
+      "human_review": {"status": "approved", "reviewer": "njr070907", "reviewed_at": "2026-08-23T23:44:21+08:00", "notes": ["用户在 Codex 逐项复核中确认通过。"]}
+    },
+    {
+      "case_id": "hm-lhopital-partial",
+      "concept_id": "lhopital-applicability",
+      "concept": "洛必达法则的适用条件",
+      "scenario": "partial",
+      "question_text": "遇到分式极限时能否直接使用洛必达法则？请说明它处理的未定式、需要检查的条件，以及重复使用时为什么每次都要重新判断。",
+      "learner_answer": "洛必达主要用于 0/0 和无穷/无穷型，做法是分子分母分别求导。如果求导后还是这两种未定式，可以继续求导。我知道不能所有分式都直接用，但记不全可导、分母导数以及导数比极限的具体条件。",
+      "coverage_points": ["未定式类型", "可导与分母条件", "导数比极限", "重复使用重新检查"],
+      "rubric": {
+        "required_evidence": ["能够复述 0/0 与无穷/无穷型", "能够复述非未定式不能直接使用", "能够复述求导后仍是未定式时可继续"],
+        "required_gaps": ["没有完整说明去心邻域可导和分母导数条件", "没有说明导数之比极限的要求", "没有解释为什么非未定式不能直接求导", "没有在新表达式上独立判断适用性"],
+        "required_misconceptions": [],
+        "required_limitations": [],
+        "forbidden_claims": ["不得因会背两个类型和操作步骤就认定理解定理", "不得判为 developing 或 solid"],
+        "acceptable_mastery_levels": ["fragile"],
+        "forbidden_mastery_levels": ["solid", "developing"],
+        "recommended_actions": ["practice", "re_explain"],
+        "confidence": {"minimum": 0.65, "maximum": 0.9},
+        "evaluator_note": "回答只能证明记住了适用类型和操作步骤，尚未证明理解条件或边界。下一步应给出多个未提示表达式，要求独立判断能否使用并说明理由；能够迁移后才可进入 developing。"
+      },
+      "source_refs": [
+        {"document_id": "hm-09-lhopital", "pages": [11, 12, 13, 14, 15, 16, 17, 18, 19, 20], "topics": ["洛必达法则条件"]}
+      ],
+      "human_review": {"status": "approved", "reviewer": "njr070907", "reviewed_at": "2026-08-23T23:45:15+08:00", "notes": ["规则和操作步骤的复述不构成机制或迁移理解，掌握等级确认为 fragile。"]}
+    },
+    {
+      "case_id": "hm-lhopital-misconception",
+      "concept_id": "lhopital-applicability",
+      "concept": "洛必达法则的适用条件",
+      "scenario": "misconception",
+      "question_text": "遇到分式极限时能否直接使用洛必达法则？请说明它处理的未定式、需要检查的条件，以及重复使用时为什么每次都要重新判断。",
+      "learner_answer": "只要极限写成分式就能用洛必达，直接把分子和分母各自求导即可，不需要先代入判断类型。例如 x 趋近 0 时 (1+x)/2 也可以求导成 1/0，得到无穷。连续用几次也不用重新检查条件。",
+      "coverage_points": ["未定式类型", "可导与分母条件", "导数比极限", "重复使用重新检查"],
+      "rubric": {
+        "required_evidence": [],
+        "required_gaps": [],
+        "required_misconceptions": ["认为任意分式极限都可使用洛必达", "跳过未定式和定理条件检查", "错误地把 (1+x)/2 的极限改成无穷", "认为重复使用无需重新检查"],
+        "required_limitations": [],
+        "forbidden_claims": ["不得把会执行形式求导当成会使用法则", "不得判为 developing 或 solid"],
+        "acceptable_mastery_levels": ["fragile"],
+        "forbidden_mastery_levels": ["solid", "developing"],
+        "recommended_actions": ["review", "re_explain"],
+        "confidence": {"minimum": 0.9, "maximum": 1.0},
+        "evaluator_note": "误区由明确例子支持，应先让学习者直接代入该例并比较结果，再重建适用条件。"
+      },
+      "source_refs": [
+        {"document_id": "hm-09-lhopital", "pages": [11, 12, 13, 14, 15, 16, 17, 18, 19, 20], "topics": ["未定式", "洛必达法则边界"]}
+      ],
+      "human_review": {"status": "approved", "reviewer": "njr070907", "reviewed_at": "2026-08-23T23:46:53+08:00", "notes": ["用户在 Codex 逐项复核中确认通过。"]}
+    },
+    {
+      "case_id": "hm-lhopital-insufficient",
+      "concept_id": "lhopital-applicability",
+      "concept": "洛必达法则的适用条件",
+      "scenario": "insufficient_evidence",
+      "question_text": "遇到分式极限时能否直接使用洛必达法则？请说明它处理的未定式、需要检查的条件，以及重复使用时为什么每次都要重新判断。",
+      "learner_answer": "我只记得洛必达是分子求导、分母也求导，什么时候能用已经忘了。",
+      "coverage_points": ["未定式类型", "可导与分母条件", "导数比极限", "重复使用重新检查"],
+      "rubric": {
+        "required_evidence": [],
+        "required_gaps": ["没有识别未定式类型", "没有定理条件", "没有重复使用规则"],
+        "required_misconceptions": [],
+        "required_limitations": ["只记得操作外形，无法识别具体错误模式，只能确定本次没有显示掌握"],
+        "forbidden_claims": ["不得将缺失条件直接解释为坚信任意分式都能用", "不得因记住求导动作而给出 developing", "不得把一次未掌握扩大成永久没有知识储备"],
+        "acceptable_mastery_levels": ["not_evident"],
+        "forbidden_mastery_levels": ["solid", "developing"],
+        "recommended_actions": ["re_explain"],
+        "confidence": {"minimum": 0.75, "maximum": 0.95},
+        "evaluator_note": "本次回答足以判定当前未掌握（not_evident），但不足以识别具体误区。应用一个 0/0 和一个可直接代入的分式做二选一追问；仍不能判断时，进入重新讲解。"
+      },
+      "source_refs": [
+        {"document_id": "hm-09-lhopital", "pages": [11, 12, 13, 14, 15], "topics": ["洛必达法则条件"]}
+      ],
+      "human_review": {"status": "approved", "reviewer": "njr070907", "reviewed_at": "2026-08-23T23:47:43+08:00", "notes": ["该回答足以判定当前没有掌握；证据不足只表示无法识别具体错误模式。"]}
+    },
+
+    {
+      "case_id": "hm-definite-integral-strong",
+      "concept_id": "definite-integral-ftc",
+      "concept": "定积分定义、符号面积与变上限积分",
+      "scenario": "strong",
+      "question_text": "请从分割、取样、求和、取极限解释定积分，而不只写牛顿—莱布尼茨公式。为什么定积分是带符号的面积？若 f 连续，F(x)=∫_a^x f(t)dt 的导数是什么？",
+      "learner_answer": "把 [a,b] 分成很多小区间，在每段选一个取样点，用 f(取样点)乘该小段长度，再把这些量相加；当最大分段长度趋近 0，并且和的极限与分法及取样点无关时，这个极限就是定积分。函数在 x 轴上方贡献正值、下方贡献负值，所以它是带符号面积，不一定等于几何面积。若 f 连续，F(x)=∫_a^x f(t)dt 满足 F'(x)=f(x)，因为 F(x+Δx)-F(x) 是短区间上的积分，除以 Δx 后趋向 f(x)。",
+      "coverage_points": ["黎曼和构造", "取样无关的极限", "带符号面积", "变上限积分求导"],
+      "rubric": {
+        "required_evidence": ["完整描述分割、取点、乘区间长度、求和与取极限", "说明极限与分法和取样点无关", "区分带符号面积与几何面积", "解释连续条件下变上限积分导数为 f(x)"],
+        "required_gaps": [],
+        "required_misconceptions": [],
+        "required_limitations": [],
+        "forbidden_claims": ["不得把定积分定义成原函数作差", "不得声称定积分总为非负"],
+        "acceptable_mastery_levels": ["solid"],
+        "forbidden_mastery_levels": ["not_evident", "fragile"],
+        "recommended_actions": ["practice"],
+        "confidence": {"minimum": 0.85, "maximum": 1.0},
+        "evaluator_note": "定义、几何意义和微积分基本定理的局部机制完整，可做符号变化函数的迁移题。"
+      },
+      "source_refs": [
+        {"document_id": "hm-13-definite-integral", "pages": [17, 18, 19, 20, 21, 22, 23, 24], "topics": ["定积分定义", "黎曼和", "几何意义"]},
+        {"document_id": "hm-14-definite-properties", "pages": [20, 21, 22, 23, 24, 25, 26, 27], "topics": ["变上限积分", "微积分基本定理"]}
+      ],
+      "human_review": {"status": "approved", "reviewer": "njr070907", "reviewed_at": "2026-08-23T23:49:43+08:00", "notes": ["用户在 Codex 逐项复核中确认通过。"]}
+    },
+    {
+      "case_id": "hm-definite-integral-partial",
+      "concept_id": "definite-integral-ftc",
+      "concept": "定积分定义、符号面积与变上限积分",
+      "scenario": "partial",
+      "question_text": "请从分割、取样、求和、取极限解释定积分，而不只写牛顿—莱布尼茨公式。为什么定积分是带符号的面积？若 f 连续，F(x)=∫_a^x f(t)dt 的导数是什么？",
+      "learner_answer": "定积分可以理解成很多很窄的长方形面积相加，分得越来越细就得到曲线下面积。变上限积分 F(x)=∫_a^x f(t)dt 求导后是 f(x)。不过我没有说明任意分割和取样点，也不确定函数在 x 轴下方时该怎样计算。",
+      "coverage_points": ["黎曼和构造", "取样无关的极限", "带符号面积", "变上限积分求导"],
+      "rubric": {
+        "required_evidence": ["能够复述用越来越细的小块求和逼近定积分", "能够复述连续条件下 F'(x)=f(x)"],
+        "required_gaps": ["没有说明分割、取样和极限独立性", "没有区分 x 轴下方的负贡献与几何面积", "没有解释变上限求导机制", "没有在跨越 x 轴或变更积分区间的新情境中表现出迁移能力"],
+        "required_misconceptions": [],
+        "required_limitations": [],
+        "forbidden_claims": ["不得把“窄长方形相加”自动视为理解黎曼和定义", "不得把公式复述当成理解变上限求导机制", "不得判为 developing 或 solid"],
+        "acceptable_mastery_levels": ["fragile"],
+        "forbidden_mastery_levels": ["solid", "developing"],
+        "recommended_actions": ["practice", "re_explain"],
+        "confidence": {"minimum": 0.65, "maximum": 0.9},
+        "evaluator_note": "回答只能证明记住了几何直观和求导公式，尚未证明理解定义、符号边界或求导机制。下一步应用跨越 x 轴的未提示函数构造黎曼和并解释变上限增量；能够迁移后才可进入 developing。"
+      },
+      "source_refs": [
+        {"document_id": "hm-13-definite-integral", "pages": [17, 18, 19, 20, 21, 22, 23, 24], "topics": ["定积分定义", "几何意义"]},
+        {"document_id": "hm-14-definite-properties", "pages": [20, 21, 22, 23, 24, 25, 26, 27], "topics": ["变上限积分"]}
+      ],
+      "human_review": {"status": "approved", "reviewer": "njr070907", "reviewed_at": "2026-08-23T23:50:27+08:00", "notes": ["几何直观和公式的复述不构成定义、机制或迁移理解，掌握等级确认为 fragile。"]}
+    },
+    {
+      "case_id": "hm-definite-integral-misconception",
+      "concept_id": "definite-integral-ftc",
+      "concept": "定积分定义、符号面积与变上限积分",
+      "scenario": "misconception",
+      "question_text": "请从分割、取样、求和、取极限解释定积分，而不只写牛顿—莱布尼茨公式。为什么定积分是带符号的面积？若 f 连续，F(x)=∫_a^x f(t)dt 的导数是什么？",
+      "learner_answer": "定积分就是普通几何面积，所以结果一定大于等于 0，函数在 x 轴下面也要把面积变成正数。它的定义就是先找原函数再用上限减下限。F(x)=∫_a^x f(t)dt 求导应该得到 f(a)，因为 a 是积分起点。",
+      "coverage_points": ["黎曼和构造", "取样无关的极限", "带符号面积", "变上限积分求导"],
+      "rubric": {
+        "required_evidence": [],
+        "required_gaps": [],
+        "required_misconceptions": ["认为定积分一定非负并把下方区域强制取正", "把计算公式误当成定积分定义", "错误地认为变上限积分的导数是 f(a)"],
+        "required_limitations": [],
+        "forbidden_claims": ["不得只纠正计算结果而遗漏三个概念误区", "不得判为 developing 或 solid"],
+        "acceptable_mastery_levels": ["fragile"],
+        "forbidden_mastery_levels": ["solid", "developing"],
+        "recommended_actions": ["review", "re_explain"],
+        "confidence": {"minimum": 0.9, "maximum": 1.0},
+        "evaluator_note": "误区证据明确，应依次区分定义与计算定理、代数面积与几何面积，并用短区间解释 F'(x)。"
+      },
+      "source_refs": [
+        {"document_id": "hm-13-definite-integral", "pages": [17, 18, 19, 20, 21, 22, 23, 24], "topics": ["定积分定义", "几何意义"]},
+        {"document_id": "hm-14-definite-properties", "pages": [20, 21, 22, 23, 24, 25, 26, 27], "topics": ["变上限积分"]}
+      ],
+      "human_review": {"status": "approved", "reviewer": "njr070907", "reviewed_at": "2026-08-23T23:51:16+08:00", "notes": ["用户在 Codex 逐项复核中确认通过。"]}
+    },
+    {
+      "case_id": "hm-definite-integral-insufficient",
+      "concept_id": "definite-integral-ftc",
+      "concept": "定积分定义、符号面积与变上限积分",
+      "scenario": "insufficient_evidence",
+      "question_text": "请从分割、取样、求和、取极限解释定积分，而不只写牛顿—莱布尼茨公式。为什么定积分是带符号的面积？若 f 连续，F(x)=∫_a^x f(t)dt 的导数是什么？",
+      "learner_answer": "我只会套牛顿—莱布尼茨公式来计算，定积分的定义和变上限积分求导我都忘了。",
+      "coverage_points": ["黎曼和构造", "取样无关的极限", "带符号面积", "变上限积分求导"],
+      "rubric": {
+        "required_evidence": [],
+        "required_gaps": ["没有解释黎曼和定义", "没有说明带符号面积", "没有给出变上限积分导数"],
+        "required_misconceptions": [],
+        "required_limitations": ["只提到一个计算公式，无法识别其是否把公式误当定义，只能确定本次没有显示掌握"],
+        "forbidden_claims": ["不得直接确认其持有“公式就是定义”的误区", "不得从会说公式名称推断掌握", "不得把一次未掌握扩大成永久没有知识储备"],
+        "acceptable_mastery_levels": ["not_evident"],
+        "forbidden_mastery_levels": ["solid", "developing"],
+        "recommended_actions": ["re_explain"],
+        "confidence": {"minimum": 0.75, "maximum": 0.95},
+        "evaluator_note": "本次回答足以判定当前未掌握（not_evident），但不足以识别具体误区。应先让学习者用三块长方形描述一次近似求和；仍不能回答时，进入重新讲解。"
+      },
+      "source_refs": [
+        {"document_id": "hm-13-definite-integral", "pages": [17, 18, 19, 20, 21, 22, 23, 24], "topics": ["定积分定义", "黎曼和"]},
+        {"document_id": "hm-14-definite-properties", "pages": [20, 21, 22, 23, 24, 25, 26, 27], "topics": ["变上限积分"]}
+      ],
+      "human_review": {"status": "approved", "reviewer": "njr070907", "reviewed_at": "2026-08-23T23:52:51+08:00", "notes": ["该回答足以判定当前没有掌握；证据不足只表示无法识别具体错误模式。"]}
+    }
+  ]
+}

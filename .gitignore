@@ -30,6 +30,7 @@ data/*
 *.sqlite-*
 logs/
 exports/
+tmp/
 
 # Private evaluation output
 evals/results/raw/
