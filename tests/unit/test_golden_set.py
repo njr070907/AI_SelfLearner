@@ -34,11 +34,28 @@ def test_canonical_golden_set_has_complete_scenario_matrix() -> None:
         assert scenarios == set(GoldenScenario)
 
 
-def test_canonical_golden_set_remains_draft_until_every_case_is_approved() -> None:
+def test_canonical_golden_set_is_human_approved() -> None:
     golden_set = load_golden_set(GOLDEN_SET_PATH)
 
-    assert golden_set.status == "draft_human_review"
-    assert any(case.human_review.status is not ReviewStatus.APPROVED for case in golden_set.cases)
+    assert golden_set.status == "approved"
+    assert all(case.human_review.status is ReviewStatus.APPROVED for case in golden_set.cases)
+
+
+def test_approved_dataset_rejects_an_unreviewed_case() -> None:
+    payload = load_payload()
+    cases = payload["cases"]
+    assert isinstance(cases, list)
+    first_case = cases[0]
+    assert isinstance(first_case, dict)
+    first_case["human_review"] = {
+        "status": "pending",
+        "reviewer": None,
+        "reviewed_at": None,
+        "notes": [],
+    }
+
+    with pytest.raises(ValidationError, match="requires every case to be human-approved"):
+        GoldenSet.model_validate(payload)
 
 
 def test_canonical_golden_set_does_not_include_source_pdfs() -> None:

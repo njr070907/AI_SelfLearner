@@ -16,6 +16,8 @@
 - 增加 GitHub Actions、Issue/PR 模板、协作规范和代码所有者。
 - 增加 5 个高数知识点、四类回答矩阵组成的 20 个 Sprint 1 黄金案例草案。
 - 增加黄金集严格 Schema、来源页码/哈希追溯、人工复核状态和 CI 校验。
+- 完成 20 个黄金案例的逐项人工复核，并将 `high-math-mastery-v0.1` 标记为 `approved`。
+- 明确机械复述只能支持 `fragile`，回答类型 `partial` 不自动等于掌握等级 `developing`。
 
 ### 数据与协议
 

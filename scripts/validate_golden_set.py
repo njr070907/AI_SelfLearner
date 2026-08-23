@@ -19,7 +19,9 @@ def main() -> int:
     print(f"Scenarios: {dict(sorted(scenarios.items()))}")
     print(f"Human review: {dict(sorted(reviews.items()))}")
 
-    if reviews.get(ReviewStatus.PENDING.value, 0):
+    if all(case.human_review.status is ReviewStatus.APPROVED for case in golden_set.cases):
+        print("Status: structurally valid and human-approved")
+    else:
         print("Status: structurally valid; human review is still required")
     return 0
 

@@ -96,6 +96,8 @@ Fake 场景至少覆盖：`strong`、`partial`、`misconception`、`insufficient
 
 第一份固定评测集为 `high-math-mastery-v0.1`，包含 5 个高等数学知识点和 20 个原创模拟回答。每个知识点固定覆盖 `strong`、`partial`、`misconception` 和 `insufficient_evidence`，用于比较 Provider Observation、Mastery Decision 与 Learning Action 是否稳定、保守且可解释。
 
-当前数据集状态是 `draft_human_review`。Schema 校验通过不等于数学内容已经成为黄金标准；必须由人逐项核对来源、答案类型、期望证据、误区和下一步，全部通过后才能标记为 `approved`。具体流程见 `evals/README.md`。
+当前数据集状态是 `approved`。20 个案例已经由产品负责人逐项核对来源范围、答案类型、期望证据、误区和下一步。这个状态表示它可以作为第一版人工回归基线，不表示真实模型已经通过评测。具体流程见 `evals/README.md`。
 
 原始讲义 PDF 不进入仓库。评测集只保存原创案例、文件哈希与页码来源，因此它是回归测试基线，不是运行时材料库，也不会提前触发 RAG 范围。
+
+首轮复核进一步确定：规则、公式和题目已提示例子的复述只能支持 `fragile`；`partial` 回答类型不自动映射为 `developing`；无法识别具体误区时，仍可根据明确的不会解释或应用，高置信度判定当前 `not_evident`；任何一次结果都不得推断为永久知识储备或能力结论。
