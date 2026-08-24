@@ -1,0 +1,42 @@
+name: 黄金案例人工复核
+description: 记录真实评测结果的人工语义复核，不上传原始回答
+title: "review: golden cases"
+labels: ["type:review", "status:needs-evidence"]
+body:
+  - type: markdown
+    attributes:
+      value: 只填写脱敏摘要、case_id 和运行 ID。禁止粘贴 API Key、用户信息、回答原文或 evals/runs 文件。
+  - type: input
+    id: run_id
+    attributes:
+      label: 运行 ID
+      description: 例如 deepseek-evaluator-v0.1-20260824T015320Z
+    validations:
+      required: true
+  - type: textarea
+    id: cases
+    attributes:
+      label: 复核案例
+      description: 写出已复核的 case_id；可按 judgement 分组。
+    validations:
+      required: true
+  - type: textarea
+    id: rubric
+    attributes:
+      label: 量表结论
+      description: 分别记录结构是否可消费、证据是否充分、judgement 是否正确、推荐动作是否合理。
+    validations:
+      required: true
+  - type: textarea
+    id: findings
+    attributes:
+      label: 发现与建议
+      description: 记录可复现的错误模式；不要粘贴回答原文。
+    validations:
+      required: true
+  - type: textarea
+    id: reviewer
+    attributes:
+      label: 复核人和日期
+    validations:
+      required: true

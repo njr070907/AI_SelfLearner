@@ -119,3 +119,39 @@ def test_deepseek_provider_uses_required_model_even_if_env_has_display_name(
     assert exit_code == 1
     assert captured["provider_kwargs"]["model"] == "deepseek-v4-flash-vision-exp"
     assert captured["run_kwargs"]["max_cases"] == 1
+
+
+def test_case_id_selection_reorders_dataset_and_bounds_run(monkeypatch: pytest.MonkeyPatch) -> None:
+    captured: dict[str, Any] = {}
+
+    def stub_run(golden_set: Any, **kwargs: Any) -> SimpleNamespace:
+        captured["case_ids"] = [case.case_id for case in golden_set.cases]
+        captured["run_kwargs"] = kwargs
+        return SimpleNamespace(
+            run_id="fake-selected-case-test",
+            summary=SimpleNamespace(
+                succeeded_cases=1,
+                total_cases=1,
+                automatic_passed_cases=1,
+                human_review_required_cases=1,
+                input_tokens=0,
+                output_tokens=0,
+                failed_cases=0,
+            ),
+        )
+
+    monkeypatch.setattr(cli, "run_golden_evaluation", stub_run)
+    monkeypatch.setattr(cli, "save_evaluation_run", lambda _run, _output: None)
+
+    exit_code = main(
+        [
+            "--provider",
+            "fake",
+            "--case-id",
+            "hm-lhopital-strong",
+        ]
+    )
+
+    assert exit_code == 0
+    assert captured["case_ids"][0] == "hm-lhopital-strong"
+    assert captured["run_kwargs"]["max_cases"] == 1

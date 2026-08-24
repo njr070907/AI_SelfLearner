@@ -115,6 +115,18 @@ uv run python scripts/run_golden_eval.py --dry-run
 uv run python scripts/run_golden_eval.py
 ```
 
+只复现指定的一个或几个案例（不会重新跑完整 20 条）：
+
+```powershell
+uv run python scripts/run_golden_eval.py --dry-run --case-id hm-lhopital-strong
+uv run python scripts/run_golden_eval.py --provider fake `
+  --case-id hm-lhopital-strong `
+  --case-id hm-definite-integral-partial
+```
+
+`--case-id` 可以重复使用，顺序就是实际运行顺序；它与 `--max-cases` 不能同时使用。案例编号和人工复核说明见
+[`evals/golden/cases.json`](evals/golden/cases.json) 与 [`evals/README.md`](evals/README.md)。
+
 结果写入被 Git 忽略的 `evals/runs/`。Fake 基线通过只表示 Schema、Mastery Engine、Learning Policy 和自动检查互相一致；每条成功结果仍标记为需要人工语义复核，不能作为真实模型质量结论。真实 Provider 模式必须显式允许付费调用，默认零重试，避免意外扩大成本。
 
 ### DeepSeek 真实评测（会产生费用）
@@ -132,7 +144,10 @@ LLM_API_KEY=<本机 API Key>
 完成费用授权后，首次只运行 1 条：
 
 ```powershell
-uv run python scripts/run_golden_eval.py --provider deepseek --confirm-paid-calls
+uv run python scripts/run_golden_eval.py `
+  --provider deepseek `
+  --case-id hm-lhopital-strong `
+  --confirm-paid-calls
 ```
 
 真实模式默认 `--max-cases 1`、每条零重试、最多输出 1200 tokens。只有显式传入 `--max-cases 2` 至 `20` 才会扩大批量。Token 用量、延迟、模型、Prompt 版本、请求 ID 和错误码会写入本地运行记录；API Key、Prompt 原文和回答原文不会进入控制台摘要。实际账单以供应商后台为准，运行器目前不猜测费用。
@@ -155,7 +170,8 @@ git commit -m "feat: describe the change"
 git push -u origin feat/short-description
 ```
 
-随后在 GitHub 创建 Pull Request，填写模板并等待 CI。详细规范见 [CONTRIBUTING.md](CONTRIBUTING.md)。当前代码所有者为 `@njr070907`。
+随后在 GitHub 创建 Pull Request，填写模板并等待 CI。详细规范见 [CONTRIBUTING.md](CONTRIBUTING.md) 和
+[协作者交接手册](docs/collaboration/HANDOFF.md)。当前代码所有者为 `@njr070907`。
 
 ## 项目结构
 
@@ -185,6 +201,7 @@ docs/mastery-protocol/         Mastery Protocol 独立协议
 - [完整文档索引](docs/51_Document_Index_and_Reading_Order.md)
 - [Mastery Protocol](docs/mastery-protocol/README.md)
 - [固定评测集与人工复核](evals/README.md)
+- [协作者交接手册](docs/collaboration/HANDOFF.md)
 - [变更记录](CHANGELOG.md)
 
 ## Sprint 0 停止条件
