@@ -17,3 +17,9 @@
 - `deepseek-v4-flash-vision-exp` 不再走 OpenAI Responses API。
 - 使用 `https://api.deepseek.com` 的 OpenAI 兼容 Chat Completions 和 `response_format={"type":"json_object"}`。
 - DeepSeek 返回的 JSON 先在本地解析，再通过 `ProviderObservation` 严格校验；结构不完整不得进入 Mastery Engine。
+
+## 2026-08-24 — 真实评估失败时停止盲目重试
+
+- 真实运行固定为单案例、零自动重试；成功结果也必须人工语义复核。
+- 一次成功调用暴露了 Prompt v0.1 的范围误判：未列入 `coverage_points` 的高级理论不能自动成为 gap；适配器增加范围约束，但暂不冒充 Prompt v0.2。
+- 连续两次后续调用返回 `LLM_OUTPUT_INVALID` 且 0/0 tokens。已经完成受限 JSON 恢复与离线验证后仍失败，因此停止更多付费调用，等待模型/账号/接口稳定性确认。
