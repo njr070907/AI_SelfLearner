@@ -5,6 +5,7 @@
 ## P0 — 当前里程碑
 
 - [x] OpenAI Responses API 结构化输出适配器。
+- [x] DeepSeek `deepseek-v4-flash-vision-exp` Chat Completions JSON Output 适配器。
 - [x] 真实评测 CLI：显式 Provider、显式付费确认、默认 1 条、零重试。
 - [x] Mock 覆盖成功、超时、限流/不可用、拒绝和无结构化输出。
 - [x] 更新使用文档、环境变量示例和安全边界。
