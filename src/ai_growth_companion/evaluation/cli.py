@@ -52,6 +52,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--output", type=Path)
     parser.add_argument("--max-cases", type=int, choices=range(1, 21))
     parser.add_argument(
+        "--case-id",
+        action="append",
+        dest="case_ids",
+        help="Run one or more exact golden case IDs; repeat the option to select multiple cases.",
+    )
+    parser.add_argument(
         "--provider",
         choices=("fake", "openai", "deepseek"),
         default="fake",
@@ -84,7 +90,21 @@ def main(argv: list[str] | None = None) -> int:
     """Execute a zero-cost preview, Fake baseline, or explicitly approved real run."""
     args = parse_args(argv)
     golden_set = load_golden_set(args.dataset)
-    max_cases = args.max_cases or (1 if args.provider in {"openai", "deepseek"} else 20)
+    if args.case_ids:
+        if args.max_cases is not None:
+            raise SystemExit("Use either --case-id or --max-cases, not both.")
+        if len(args.case_ids) != len(set(args.case_ids)):
+            raise SystemExit("Duplicate --case-id values are not allowed.")
+        case_map = {case.case_id: case for case in golden_set.cases}
+        missing = [case_id for case_id in args.case_ids if case_id not in case_map]
+        if missing:
+            raise SystemExit(f"Unknown --case-id: {', '.join(missing)}")
+        selected = [case_map[case_id] for case_id in args.case_ids]
+        remaining = [case for case in golden_set.cases if case.case_id not in args.case_ids]
+        golden_set = golden_set.model_copy(update={"cases": selected + remaining})
+        max_cases = len(args.case_ids)
+    else:
+        max_cases = args.max_cases or (1 if args.provider in {"openai", "deepseek"} else 20)
     if args.dry_run:
         registry = PromptRegistry()
         rendered_characters = 0
@@ -151,7 +171,9 @@ def main(argv: list[str] | None = None) -> int:
         output = args.output or Path(f"evals/runs/{run_id}.json")
     else:
         if args.confirm_paid_calls:
-            raise SystemExit("--confirm-paid-calls is only valid with --provider openai.")
+            raise SystemExit(
+                "--confirm-paid-calls is only valid with --provider openai or deepseek."
+            )
         provider_factory = fake_provider_for_case
         mode = EvaluationMode.FAKE_PIPELINE
         paid_calls_allowed = False

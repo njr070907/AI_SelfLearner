@@ -1,0 +1,43 @@
+name: Prompt 实验
+description: 设计一个可比较、可停止的 Prompt 或评测实验
+title: "experiment: prompt v"
+labels: ["type:experiment", "status:needs-evidence"]
+body:
+  - type: markdown
+    attributes:
+      value: 请先阅读 docs/collaboration/HANDOFF.md。不要在 Issue 中粘贴 API Key、真实回答原文或原始评测文件。
+  - type: textarea
+    id: hypothesis
+    attributes:
+      label: 可证伪假设
+      description: Prompt 改变什么，哪个可观察指标会如何变化？
+    validations:
+      required: true
+  - type: textarea
+    id: cases
+    attributes:
+      label: 案例范围与基线
+      description: 写出 case_id、当前 Prompt 版本、模型和已有运行 ID；优先使用 --case-id 做小范围实验。
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 指标、验收与停止条件
+      description: 区分结构成功、自动通过、人工语义通过和需要复核。
+    validations:
+      required: true
+  - type: textarea
+    id: cost
+    attributes:
+      label: 费用与安全边界
+      description: 说明是否需要真实调用；若需要，确认使用 deepseek-v4-flash-vision-exp、--confirm-paid-calls、零重试和最小案例范围。
+    validations:
+      required: true
+  - type: textarea
+    id: non_goals
+    attributes:
+      label: 非目标与回滚
+      description: 明确这次不修改什么，以及如何恢复。
+    validations:
+      required: true
