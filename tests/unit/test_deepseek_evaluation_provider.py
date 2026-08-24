@@ -141,6 +141,7 @@ def test_json_mode_response_is_parsed_and_metadata_is_recorded() -> None:
     assert (
         "do not treat an isolated operation as positive evidence" in call["messages"][0]["content"]
     )
+    assert "only vaguely remember a formula" in call["messages"][0]["content"]
     assert "limitations must always be an array" in call["messages"][0]["content"]
     assert "confidence must always be a number from 0 to 1" in call["messages"][0]["content"]
     assert "左右极限都存在且相等。" in call["messages"][1]["content"]
