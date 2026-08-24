@@ -106,12 +106,18 @@ def _run_case(
     request_id = f"{run_id}:{case.case_id}"
     try:
         response = provider.evaluate(request, request_id=request_id)
-        observation = ProviderObservation.model_validate(response.content)
-        validate_answer_excerpts(observation, request.answer_text)
     except ProviderError as error:
         return _failed_result(case, configuration, error.code)
-    except (ValidationError, ValueError):
-        return _failed_result(case, configuration, "LLM_OUTPUT_INVALID")
+
+    try:
+        observation = ProviderObservation.model_validate(response.content)
+    except ValidationError:
+        return _failed_result(case, configuration, "LLM_OUTPUT_SCHEMA_INVALID")
+
+    try:
+        validate_answer_excerpts(observation, request.answer_text)
+    except ValueError:
+        return _failed_result(case, configuration, "LLM_OUTPUT_EVIDENCE_INVALID")
 
     decision = DemoMasteryEngine().decide(
         observation,

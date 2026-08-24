@@ -9,6 +9,7 @@ from pydantic import ValidationError
 from ai_growth_companion.evaluation.golden_set import GoldenCase, load_golden_set
 from ai_growth_companion.evaluation.run_models import EvaluationMode
 from ai_growth_companion.evaluation.runner import run_golden_evaluation, save_evaluation_run
+from ai_growth_companion.providers.base import ProviderResponse
 from ai_growth_companion.providers.fake import FakeLLMProvider, FakeScenario
 
 GOLDEN_SET_PATH = Path("evals/golden/high_math_v0.1.json")
@@ -63,6 +64,82 @@ def test_provider_failure_is_retained_without_stopping_the_batch() -> None:
     assert run.summary.succeeded_cases == 0
     assert run.cases[0].error_code == "LLM_UNAVAILABLE"
     assert run.cases[0].requires_human_semantic_review is False
+
+
+def _raw_response(content: object) -> ProviderResponse:
+    from ai_growth_companion.providers.base import ProviderMetadata
+
+    return ProviderResponse(
+        content=content,
+        metadata=ProviderMetadata(
+            provider="test",
+            model="test-model",
+            model_revision=None,
+            prompt_version="test",
+            schema_version="provider-observation-v0.1",
+            latency_ms=1,
+            usage={"input_tokens": 0, "output_tokens": 0, "total_tokens": 0},
+            finish_reason="stop",
+            request_id="test-request",
+        ),
+    )
+
+
+class RawResponseProvider:
+    provider_name = "test"
+    model_name = "test-model"
+    model_revision = None
+
+    def __init__(self, content: object) -> None:
+        self.content = content
+
+    def evaluate(self, _request: object, *, request_id: str) -> ProviderResponse:
+        return _raw_response(self.content)
+
+
+def test_invalid_provider_shape_is_distinguished_from_invalid_json() -> None:
+    golden_set = load_golden_set(GOLDEN_SET_PATH)
+
+    run = run_golden_evaluation(
+        golden_set,
+        provider_factory=lambda _case: RawResponseProvider({"unexpected": True}),
+        mode=EvaluationMode.REAL_PROVIDER,
+        max_cases=1,
+        paid_calls_allowed=True,
+        run_id="test-schema-failure-run",
+    )
+
+    assert run.cases[0].error_code == "LLM_OUTPUT_SCHEMA_INVALID"
+
+
+def test_invalid_evidence_is_distinguished_from_invalid_schema() -> None:
+    golden_set = load_golden_set(GOLDEN_SET_PATH)
+    content = {
+        "schema_version": "provider-observation-v0.1",
+        "evidence": [
+            {
+                "evidence_id": "e1",
+                "claim": "test",
+                "answer_excerpt": "not in answer",
+                "strength": "medium",
+            }
+        ],
+        "gaps": [],
+        "possible_misconceptions": [],
+        "observation_confidence": 0.8,
+        "limitations": [],
+    }
+
+    run = run_golden_evaluation(
+        golden_set,
+        provider_factory=lambda _case: RawResponseProvider(content),
+        mode=EvaluationMode.REAL_PROVIDER,
+        max_cases=1,
+        paid_calls_allowed=True,
+        run_id="test-evidence-failure-run",
+    )
+
+    assert run.cases[0].error_code == "LLM_OUTPUT_EVIDENCE_INVALID"
 
 
 def test_real_provider_mode_requires_explicit_paid_call_permission() -> None:

@@ -192,7 +192,7 @@ class DeepSeekEvaluationProvider:
         except json.JSONDecodeError as error:
             raise ProviderError(
                 "The provider returned invalid JSON",
-                code="LLM_OUTPUT_INVALID",
+                code="LLM_OUTPUT_INVALID_JSON",
                 retryable=False,
             ) from error
 

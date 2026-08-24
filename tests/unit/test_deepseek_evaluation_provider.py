@@ -137,7 +137,7 @@ def test_invalid_json_is_rejected_without_falling_back_to_text() -> None:
     with pytest.raises(ProviderError) as captured:
         provider.evaluate(evaluation_request(), request_id="local-request-2")
 
-    assert captured.value.code == "LLM_OUTPUT_INVALID"
+    assert captured.value.code == "LLM_OUTPUT_INVALID_JSON"
     assert captured.value.retryable is False
 
 

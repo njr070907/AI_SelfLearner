@@ -22,9 +22,12 @@ SCENARIO_LABELS: dict[FakeScenario, str] = {
 }
 
 ERROR_MESSAGES = {
-    "LLM_TIMEOUT": "Fake Provider 模拟了响应超时。",
-    "LLM_UNAVAILABLE": "Fake Provider 模拟了服务不可用。",
-    "LLM_OUTPUT_INVALID": "Fake Provider 返回的内容未通过结构化格式检查。",
+    "LLM_TIMEOUT": "模型响应超时。",
+    "LLM_UNAVAILABLE": "模型服务暂时不可用。",
+    "LLM_OUTPUT_INVALID": "模型返回的内容未通过结构化格式检查。",
+    "LLM_OUTPUT_INVALID_JSON": "模型没有返回可解析的 JSON。",
+    "LLM_OUTPUT_SCHEMA_INVALID": "模型返回了 JSON，但字段不符合诊断协议。",
+    "LLM_OUTPUT_EVIDENCE_INVALID": "模型返回的证据没有出现在本次回答中。",
 }
 
 
