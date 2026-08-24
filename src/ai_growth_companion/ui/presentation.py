@@ -1,8 +1,10 @@
 """Chinese-first presentation mappings for the Streamlit product layer."""
 
+from collections.abc import Iterable
 from datetime import datetime
 from enum import Enum
 
+from ai_growth_companion.application.models import HistoryItem
 from ai_growth_companion.providers.fake import FakeScenario
 
 MASTERY_LABELS = {
@@ -112,3 +114,24 @@ def error_message(error_code: str | None) -> str:
 
 def local_datetime(value: datetime) -> str:
     return value.astimezone().strftime("%Y年%m月%d日 %H:%M")
+
+
+def filter_history(items: Iterable[HistoryItem], query: str) -> tuple[HistoryItem, ...]:
+    """Safely filter existing history without searching private answer content."""
+    normalized = query.strip().casefold()
+    if not normalized:
+        return ()
+
+    matches = []
+    for item in items:
+        searchable = " ".join(
+            (
+                item.concept,
+                status_label(item.status),
+                mastery_label(item.mastery_level),
+                local_datetime(item.started_at),
+            )
+        ).casefold()
+        if normalized in searchable:
+            matches.append(item)
+    return tuple(matches)

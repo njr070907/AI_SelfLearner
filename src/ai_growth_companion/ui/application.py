@@ -21,9 +21,13 @@ from ai_growth_companion.ui.presentation import (
     severity_label,
     status_label,
 )
+from ai_growth_companion.ui.shell import (
+    render_search_results,
+    render_sidebar,
+    render_top_toolbar,
+)
+from ai_growth_companion.ui.state import current_preferences, initialize_ui_state
 from ai_growth_companion.ui.theme import apply_design_system
-
-PAGES = ("今日", "学习", "进度", "系统")
 
 
 def render_application(
@@ -33,26 +37,17 @@ def render_application(
     health_report: HealthReport,
 ) -> None:
     """Render product navigation while keeping business behavior in the service."""
-    apply_design_system()
-    if "active_page" not in st.session_state:
-        st.session_state.active_page = "今日"
-
-    with st.sidebar:
-        st.markdown(
-            '<div class="brand"><span class="brand-mark">S</span><span>AI SelfLearner</span></div>',
-            unsafe_allow_html=True,
-        )
-        page = st.radio(
-            "主导航",
-            PAGES,
-            label_visibility="collapsed",
-            key="active_page",
-        )
-        st.markdown(
-            '<div class="sidebar-status"><span class="status-dot"></span>'
-            "Fake Provider 已就绪<br>本地模式 · 零 API 费用</div>",
-            unsafe_allow_html=True,
-        )
+    initialize_ui_state()
+    preferences = current_preferences()
+    apply_design_system(preferences)
+    page = str(st.session_state.active_page)
+    render_sidebar(preferences=preferences, active_page=page, navigate=_navigate)
+    search_query = render_top_toolbar(active_page=page, preferences=preferences)
+    render_search_results(
+        history=service.list_history(),
+        query=search_query,
+        open_result=_open_search_result,
+    )
 
     if page == "今日":
         _render_today(service)
@@ -393,7 +388,16 @@ def _render_progress(service: LearningService) -> None:
         )
 
     st.markdown('<div class="rule"></div>', unsafe_allow_html=True)
-    selected_concept = st.selectbox("查看主题时间线", options=list(grouped))
+    concept_options = list(grouped)
+    requested_concept = st.session_state.pop("progress_concept", None)
+    concept_index = (
+        concept_options.index(requested_concept) if requested_concept in concept_options else 0
+    )
+    selected_concept = st.selectbox(
+        "查看主题时间线",
+        options=concept_options,
+        index=concept_index,
+    )
     records = grouped[selected_concept]
     labels = {
         item.session_id: (
@@ -401,13 +405,17 @@ def _render_progress(service: LearningService) -> None:
         )
         for item in records
     }
+    requested_session = st.session_state.pop("progress_session_id", None)
     selected_index = next(
-        (
-            index
-            for index, item in enumerate(records)
-            if item.status in {"diagnosed", "diagnosis_failed"}
+        (index for index, item in enumerate(records) if item.session_id == requested_session),
+        next(
+            (
+                index
+                for index, item in enumerate(records)
+                if item.status in {"diagnosed", "diagnosis_failed"}
+            ),
+            0,
         ),
-        0,
     )
     selected_session = st.selectbox(
         "选择一次解释",
@@ -483,6 +491,13 @@ def _history_row(item: HistoryItem) -> None:
 
 def _navigate(page: str) -> None:
     st.session_state.active_page = page
+
+
+def _open_search_result(session_id: str, concept: str) -> None:
+    st.session_state.progress_session_id = session_id
+    st.session_state.progress_concept = concept
+    st.session_state.ui_search_query = ""
+    _navigate("进度")
 
 
 def _set_current_session(session_id: str) -> None:
