@@ -2,6 +2,8 @@
 
 ## 2026-08-24
 
+- 合并 PR #23：增加 GitHub 协作者交接手册、按 `--case-id` 的低成本案例复现、Prompt 实验/人工复核 Issue 模板，并通过 82 tests、Ruff、format、Mypy 和 Secret Scan。
+- 创建 GitHub Issue #24（Prompt v0.2 实验）、#25（20 条黄金案例人工复核）和 #26（评测校准报告），作为下一阶段可领取工作。
 - 合并 PR #3：Prompt v0.1 评估 Runner 与 Mastery Protocol v0.2 基线。
 - 创建 `feature/sprint1-openai-provider`。
 - 依据 OpenAI 官方结构化输出文档，开始实现 Responses API + Pydantic 适配器。
