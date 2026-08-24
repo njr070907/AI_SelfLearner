@@ -126,6 +126,7 @@ def test_json_mode_response_is_parsed_and_metadata_is_recorded() -> None:
     assert call["extra_body"] == {"thinking": {"type": "disabled"}}
     assert call["messages"][0]["role"] == "system"
     assert "Return valid json only" in call["messages"][0]["content"]
+    assert "Treat coverage_points as the required scope" in call["messages"][0]["content"]
     assert "左右极限都存在且相等。" in call["messages"][1]["content"]
     assert result.metadata.prompt_version == "evaluator-v0.1+deepseek-json"
 

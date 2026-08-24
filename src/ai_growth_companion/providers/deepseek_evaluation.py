@@ -110,7 +110,12 @@ class DeepSeekEvaluationProvider:
         rendered = self._prompt_registry.render_evaluation(request)
         system_message = (
             f"{rendered.system_message}\n\n"
-            "Return valid json only. Do not use Markdown fences or explanatory text."
+            "Return valid json only. Do not use Markdown fences or explanatory text.\n"
+            "Treat coverage_points as the required scope: do not invent gaps for "
+            "advanced prerequisites or deeper theories that are not listed there. "
+            "When every listed point is explicitly and correctly established, leave "
+            "gaps empty unless the answer contains a real contradiction or an "
+            "explicitly requested part is missing."
         )
         started = perf_counter()
         try:
