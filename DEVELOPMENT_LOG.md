@@ -10,4 +10,7 @@
 - PR #3 合并后的 `main` CI 已成功。
 - PR #4 CI 成功并已 squash 合并到 `main`；真实付费评测尚未启动。
 - 状态更新 PR #5 及合并后的 `main` CI 成功；修正操作 Backlog 指向完整需求文件的链接。
+- 首条真实调用使用了错误的 Responses API，结果为 `LLM_REQUEST_REJECTED`、Token 0；没有自动重试。
+- 依据 DeepSeek 官方 JSON Output/兼容接口说明，开始改为 Chat Completions 适配器，固定 `deepseek-v4-flash-vision-exp`。
+- DeepSeek 适配器离线回归完成：77 tests、86% coverage、lint、format、mypy、migration、启动、Secret Scan 和依赖审计通过。
 - 额度状态：`UNKNOWN`，环境没有提供可靠 remaining quota 信息。

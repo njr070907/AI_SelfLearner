@@ -24,6 +24,7 @@
 - 增加 OpenAI Responses API 结构化输出适配器，并保持 Provider 只负责证据提取。
 - 增加真实评测 CLI 安全门：显式付费确认、默认 1 条、零重试、输出 token 上限和本地运行记录。
 - 增加真实 Provider 的全离线 Mock 测试，覆盖成功、超时、连接失败、限流、请求拒绝和结构化输出缺失。
+- 增加 DeepSeek `deepseek-v4-flash-vision-exp` Chat Completions JSON Output 适配器，固定模型 ID 并在本地严格校验结果。
 
 ### 数据与协议
 
@@ -34,15 +35,15 @@
 
 ### 验证
 
-- 69 项自动测试通过。
-- 分支覆盖率为 87%；新增 OpenAI 适配器本身为 86%。
+- 77 项自动测试通过。
+- 分支覆盖率为 86%；DeepSeek 适配器本身为 81%。
 - 数据库迁移、健康检查和真实 Streamlit 启动通过。
 - Secret Scan、Ruff、Mypy 和依赖漏洞审计通过。
 - GitHub Actions 的 Sprint 0 CI 已通过。
 
 ### 已知限制
 
-- OpenAI 适配器已实现但尚未进行获授权的真实付费基线运行，因此不能声称真实诊断效果已经验证。
+- DeepSeek 真实首条调用曾因错误使用 Responses API 被拒绝；已改为 Chat Completions，尚未重新运行修复后的首条基线。
 - 当前只支持本地单用户 SQLite 数据。
 - 私有仓库在现有 GitHub 套餐下无法启用分支保护，暂以 PR、CI 和协作约定保护 `main`。
 - 尚未实现登录、同步、导出、删除、真实模型和正式部署。

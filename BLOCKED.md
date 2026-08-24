@@ -1,8 +1,8 @@
 # Blocked
 
-## 真实付费评测
+## DeepSeek 真实首条复核
 
-- 状态：仅实际网络调用被阻塞；适配器、CLI 和 Mock 测试可继续。
-- 原因：尚未获得本次运行可用的 OpenAI API Key，也没有针对实际 API 费用的明确授权。
-- 解除条件：用户通过本机 `.env` 或环境变量提供 Key、指定可用的精确模型，并明确批准最多 1 个案例的真实调用费用。
+- 状态：第一次调用已执行但被供应商拒绝；修复后的 Chat Completions 适配器已通过离线测试，尚未重新调用。
+- 原因：旧实现把 DeepSeek 模型发送到了 OpenAI Responses API；结果记录为 `LLM_REQUEST_REJECTED`，Token 为 0。
+- 解除条件：使用 `--provider deepseek` 重新运行固定模型 `deepseek-v4-flash-vision-exp`，并继续遵守最多 1 个案例、零自动重试。
 - 安全边界：Key 不写入仓库、日志或运行产物；首次最多运行 1 个案例；零自动重试。

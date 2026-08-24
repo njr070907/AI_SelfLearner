@@ -14,7 +14,11 @@ from ai_growth_companion.evaluation.runner import (
     save_evaluation_run,
 )
 from ai_growth_companion.prompts.registry import PromptRegistry
-from ai_growth_companion.providers.base import EvaluationRequest
+from ai_growth_companion.providers.base import EvaluationProvider, EvaluationRequest
+from ai_growth_companion.providers.deepseek_evaluation import (
+    DEEPSEEK_MODEL,
+    DeepSeekEvaluationProvider,
+)
 from ai_growth_companion.providers.fake import FakeLLMProvider, FakeScenario
 from ai_growth_companion.providers.openai_evaluation import OpenAIEvaluationProvider
 
@@ -49,9 +53,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--max-cases", type=int, choices=range(1, 21))
     parser.add_argument(
         "--provider",
-        choices=("fake", "openai"),
+        choices=("fake", "openai", "deepseek"),
         default="fake",
-        help="Fake is free and default; openai performs real paid network calls.",
+        help="Fake is free and default; openai/deepseek perform real paid network calls.",
     )
     parser.add_argument(
         "--model",
@@ -80,7 +84,7 @@ def main(argv: list[str] | None = None) -> int:
     """Execute a zero-cost preview, Fake baseline, or explicitly approved real run."""
     args = parse_args(argv)
     golden_set = load_golden_set(args.dataset)
-    max_cases = args.max_cases or (1 if args.provider == "openai" else 20)
+    max_cases = args.max_cases or (1 if args.provider in {"openai", "deepseek"} else 20)
     if args.dry_run:
         registry = PromptRegistry()
         rendered_characters = 0
@@ -99,7 +103,7 @@ def main(argv: list[str] | None = None) -> int:
         print("Provider calls: 0; estimated cost: $0")
         return 0
 
-    if args.provider == "openai":
+    if args.provider in {"openai", "deepseek"}:
         if not args.confirm_paid_calls:
             raise SystemExit(
                 "Real Provider run blocked: pass --confirm-paid-calls after approving API fees."
@@ -108,22 +112,37 @@ def main(argv: list[str] | None = None) -> int:
         api_key = settings.llm_api_key.get_secret_value().strip() if settings.llm_api_key else ""
         if not api_key:
             raise SystemExit("Real Provider run blocked: set LLM_API_KEY in the environment.")
-        model = (args.model or settings.llm_model).strip()
+        model = (
+            (args.model or DEEPSEEK_MODEL)
+            if args.provider == "deepseek"
+            else (args.model or settings.llm_model)
+        ).strip()
         if not model or model.lower().startswith("fake"):
             raise SystemExit(
                 "Real Provider run blocked: pass --model with an exact non-Fake model name."
             )
-        provider = OpenAIEvaluationProvider(
-            api_key=api_key,
-            model=model,
-            timeout_seconds=args.timeout_seconds,
-            max_output_tokens=args.max_output_tokens,
-        )
+        provider: OpenAIEvaluationProvider | DeepSeekEvaluationProvider
+        if args.provider == "deepseek":
+            if model != DEEPSEEK_MODEL:
+                raise SystemExit(f"DeepSeek run requires model {DEEPSEEK_MODEL}.")
+            provider = DeepSeekEvaluationProvider(
+                api_key=api_key,
+                model=model,
+                timeout_seconds=args.timeout_seconds,
+                max_output_tokens=args.max_output_tokens,
+            )
+        else:
+            provider = OpenAIEvaluationProvider(
+                api_key=api_key,
+                model=model,
+                timeout_seconds=args.timeout_seconds,
+                max_output_tokens=args.max_output_tokens,
+            )
 
-        def openai_provider_for_case(_case: GoldenCase) -> OpenAIEvaluationProvider:
+        def real_provider_for_case(_case: GoldenCase) -> EvaluationProvider:
             return provider
 
-        provider_factory: ProviderFactory = openai_provider_for_case
+        provider_factory: ProviderFactory = real_provider_for_case
         mode = EvaluationMode.REAL_PROVIDER
         paid_calls_allowed = True
         timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")

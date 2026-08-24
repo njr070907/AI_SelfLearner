@@ -11,3 +11,9 @@
 - Fake 是默认运行模式。
 - 真实模式需要显式 Provider、API Key、非 Fake 模型名和付费确认标志。
 - 单案例零重试，首轮默认 1 条，避免网络波动造成隐性费用。
+
+## 2026-08-24 — DeepSeek 使用 Chat Completions JSON Output
+
+- `deepseek-v4-flash-vision-exp` 不再走 OpenAI Responses API。
+- 使用 `https://api.deepseek.com` 的 OpenAI 兼容 Chat Completions 和 `response_format={"type":"json_object"}`。
+- DeepSeek 返回的 JSON 先在本地解析，再通过 `ProviderObservation` 严格校验；结构不完整不得进入 Mastery Engine。
