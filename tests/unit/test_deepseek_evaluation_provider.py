@@ -132,6 +132,10 @@ def test_json_mode_response_is_parsed_and_metadata_is_recorded() -> None:
         "Uncertainty about optional details belongs in limitations"
         in call["messages"][0]["content"]
     )
+    assert (
+        "Never create a gap merely because an evidence claim could be expanded"
+        in call["messages"][0]["content"]
+    )
     assert "exact contiguous substring" in call["messages"][0]["content"]
     assert "keep observation_confidence at or below 0.90" in call["messages"][0]["content"]
     assert (
