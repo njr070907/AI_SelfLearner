@@ -125,7 +125,9 @@ def test_json_mode_response_is_parsed_and_metadata_is_recorded() -> None:
     assert call["stream"] is False
     assert call["extra_body"] == {"thinking": {"type": "disabled"}}
     assert call["messages"][0]["role"] == "system"
+    assert "Return valid json only" in call["messages"][0]["content"]
     assert "左右极限都存在且相等。" in call["messages"][1]["content"]
+    assert result.metadata.prompt_version == "evaluator-v0.1+deepseek-json"
 
 
 def test_invalid_json_is_rejected_without_falling_back_to_text() -> None:
@@ -136,6 +138,15 @@ def test_invalid_json_is_rejected_without_falling_back_to_text() -> None:
 
     assert captured.value.code == "LLM_OUTPUT_INVALID"
     assert captured.value.retryable is False
+
+
+def test_outer_json_markdown_fence_is_removed_before_schema_validation() -> None:
+    fenced = f"```json\n{observation().model_dump_json()}\n```"
+    provider, _client = provider_for(StubCompletion(choices=[StubChoice(StubMessage(fenced))]))
+
+    result = provider.evaluate(evaluation_request(), request_id="local-request-fenced")
+
+    assert ProviderObservation.model_validate(result.content) == observation()
 
 
 def test_model_not_found_is_reported_without_provider_details() -> None:

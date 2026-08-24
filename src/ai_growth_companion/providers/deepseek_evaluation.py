@@ -108,12 +108,16 @@ class DeepSeekEvaluationProvider:
     def evaluate(self, request: EvaluationRequest, *, request_id: str) -> ProviderResponse:
         """Call DeepSeek Chat Completions with JSON mode and no automatic retry."""
         rendered = self._prompt_registry.render_evaluation(request)
+        system_message = (
+            f"{rendered.system_message}\n\n"
+            "Return valid json only. Do not use Markdown fences or explanatory text."
+        )
         started = perf_counter()
         try:
             response = self._client.chat.completions.create(
                 model=self.model_name,
                 messages=[
-                    {"role": "system", "content": rendered.system_message},
+                    {"role": "system", "content": system_message},
                     {"role": "user", "content": rendered.user_message},
                 ],
                 response_format={"type": "json_object"},
@@ -179,7 +183,7 @@ class DeepSeekEvaluationProvider:
                 retryable=False,
             )
         try:
-            content = json.loads(choice.message.content)
+            content = json.loads(self._strip_json_fence(choice.message.content))
         except json.JSONDecodeError as error:
             raise ProviderError(
                 "The provider returned invalid JSON",
@@ -200,7 +204,7 @@ class DeepSeekEvaluationProvider:
                 provider=self.provider_name,
                 model=self.model_name,
                 model_revision=(returned_model if returned_model != self.model_name else None),
-                prompt_version=rendered.prompt_version,
+                prompt_version=f"{rendered.prompt_version}+deepseek-json",
                 schema_version="provider-observation-v0.1",
                 latency_ms=latency_ms,
                 usage=usage_snapshot,
@@ -208,3 +212,16 @@ class DeepSeekEvaluationProvider:
                 request_id=response.id or request_id,
             ),
         )
+
+    @staticmethod
+    def _strip_json_fence(content: str) -> str:
+        """Remove only an outer Markdown JSON fence; schema validation remains mandatory."""
+        stripped = content.strip()
+        if not stripped.startswith("```"):
+            return stripped
+        lines = stripped.splitlines()
+        if lines and lines[0].strip().lower() in {"```", "```json"}:
+            lines = lines[1:]
+        if lines and lines[-1].strip() == "```":
+            lines = lines[:-1]
+        return "\n".join(lines).strip()
