@@ -123,6 +123,7 @@ def test_json_mode_response_is_parsed_and_metadata_is_recorded() -> None:
     assert call["response_format"] == {"type": "json_object"}
     assert call["max_tokens"] == 1200
     assert call["stream"] is False
+    assert call["extra_body"] == {"thinking": {"type": "disabled"}}
     assert call["messages"][0]["role"] == "system"
     assert "左右极限都存在且相等。" in call["messages"][1]["content"]
 

@@ -55,6 +55,7 @@ class _ChatCompletionsLike(Protocol):
         response_format: dict[str, str],
         max_tokens: int,
         stream: bool,
+        extra_body: dict[str, object],
     ) -> _ChatCompletionLike: ...
 
 
@@ -118,6 +119,7 @@ class DeepSeekEvaluationProvider:
                 response_format={"type": "json_object"},
                 max_tokens=self._max_output_tokens,
                 stream=False,
+                extra_body={"thinking": {"type": "disabled"}},
             )
         except openai.APITimeoutError as error:
             raise ProviderTimeoutError from error

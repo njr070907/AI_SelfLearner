@@ -146,7 +146,8 @@ def main(argv: list[str] | None = None) -> int:
         mode = EvaluationMode.REAL_PROVIDER
         paid_calls_allowed = True
         timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
-        run_id = f"openai-evaluator-v0.1-{timestamp}"
+        provider_prefix = "deepseek" if args.provider == "deepseek" else "openai"
+        run_id = f"{provider_prefix}-evaluator-v0.1-{timestamp}"
         output = args.output or Path(f"evals/runs/{run_id}.json")
     else:
         if args.confirm_paid_calls:
