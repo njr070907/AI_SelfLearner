@@ -20,4 +20,9 @@
 - 为修复该误判，加入 coverage scope guard；为处理协议外包裹文字，加入单 JSON 对象恢复；PR #10/#11 及合并后 CI 均通过。
 - 两次修复后的真实调用 `deepseek-evaluator-v0.1-20260824T005050Z`、`deepseek-evaluator-v0.1-20260824T005448Z` 仍为 `LLM_OUTPUT_INVALID`、0/0 tokens；按安全边界停止付费重试。
 - 完整离线回归：79 tests、Ruff、format、Mypy 全部通过。
+- 诊断运行 `20260824T010509Z` 将失败精确分类为 `LLM_OUTPUT_SCHEMA_INVALID`；安全摘要显示 `limitations:list_type`，误区案例另有 `confidence:float_parsing`。
+- PR #13–#15 已 squash 合并；增加字段路径/错误类型诊断，并在 DeepSeek 指令中明确数组与 0–1 数值类型。
+- 类型修复后的单条 strong 运行 `20260824T011333Z` 自动检查通过；4 场景运行 `20260824T011349Z` 四案全部成功、自动检查 4/4 通过，3936/1233 tokens。
+- 4 场景初步语义复核与黄金标准一致：strong→solid/practice，partial→fragile/re_explain，misconception→fragile/review，insufficient→not_evident/re_explain；仍保留人工复核标记。
+- 完整离线回归更新为 81 tests、Ruff、format、Mypy 全部通过。
 - 额度状态：`UNKNOWN`，环境没有提供可靠 remaining quota 信息。
