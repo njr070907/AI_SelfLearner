@@ -26,6 +26,7 @@
 - 增加真实 Provider 的全离线 Mock 测试，覆盖成功、超时、连接失败、限流、请求拒绝和结构化输出缺失。
 - 增加 DeepSeek `deepseek-v4-flash-vision-exp` Chat Completions JSON Output 适配器，固定模型 ID 并在本地严格校验结果。
 - 增加 DeepSeek 的 coverage scope guard、关闭思考模式、JSON 围栏/包裹文字恢复和零重试真实评测安全边界。
+- 增加结构化失败分类、字段级安全诊断和 DeepSeek JSON 值类型约束；完成 4 场景真实基线。
 
 ### 数据与协议
 
@@ -36,7 +37,7 @@
 
 ### 验证
 
-- 79 项自动测试通过。
+- 81 项自动测试通过。
 - 分支覆盖率为 86%；DeepSeek 适配器本身为 81%。
 - 数据库迁移、健康检查和真实 Streamlit 启动通过。
 - Secret Scan、Ruff、Mypy 和依赖漏洞审计通过。
@@ -44,7 +45,7 @@
 
 ### 已知限制
 
-- DeepSeek 真实单案例曾成功返回但自动检查未通过；随后两次调用返回 `LLM_OUTPUT_INVALID`、0/0 tokens。已停止盲目付费重试，等待模型/账号/接口稳定性确认。
+- DeepSeek 4 场景真实基线已自动检查 4/4 通过；完整 20 条仍需额外付费批准和人工复核。
 - 当前只支持本地单用户 SQLite 数据。
 - 私有仓库在现有 GitHub 套餐下无法启用分支保护，暂以 PR、CI 和协作约定保护 `main`。
 - 尚未实现登录、同步、导出、删除、真实模型和正式部署。
