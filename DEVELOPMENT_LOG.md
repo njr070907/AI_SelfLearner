@@ -25,4 +25,8 @@
 - 类型修复后的单条 strong 运行 `20260824T011333Z` 自动检查通过；4 场景运行 `20260824T011349Z` 四案全部成功、自动检查 4/4 通过，3936/1233 tokens。
 - 4 场景初步语义复核与黄金标准一致：strong→solid/practice，partial→fragile/re_explain，misconception→fragile/review，insufficient→not_evident/re_explain；仍保留人工复核标记。
 - 完整离线回归更新为 81 tests、Ruff、format、Mypy 全部通过。
+- PR #17–#21 已 squash 合并；补充 gap 去重、置信度边界和不确定孤立公式不计证据的规则。
+- 完整 20 案例多轮真实回归均为 20/20 结构成功；自动检查分别为 16/20、17/20、18/20、19/20、17/20，说明剩余是实验模型的语义随机性。
+- 最新运行 `deepseek-evaluator-v0.1-20260824T015320Z`：20/20 成功、17/20 自动通过、25274/7049 tokens；没有新的接口或结构化输出故障。
+- 按安全边界停止继续完整付费重试，下一恢复点是 Prompt v0.2 稳定性实验和 20 条人工语义复核。
 - 额度状态：`UNKNOWN`，环境没有提供可靠 remaining quota 信息。
