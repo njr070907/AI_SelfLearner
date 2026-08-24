@@ -111,13 +111,27 @@ def _run_case(
 
     try:
         observation = ProviderObservation.model_validate(response.content)
-    except ValidationError:
-        return _failed_result(case, configuration, "LLM_OUTPUT_SCHEMA_INVALID")
+    except ValidationError as error:
+        details = [
+            f"{'.'.join(str(item) for item in issue['loc']) or '<root>'}:{issue['type']}"
+            for issue in error.errors()
+        ]
+        return _failed_result(
+            case,
+            configuration,
+            "LLM_OUTPUT_SCHEMA_INVALID",
+            failure_details=details,
+        )
 
     try:
         validate_answer_excerpts(observation, request.answer_text)
     except ValueError:
-        return _failed_result(case, configuration, "LLM_OUTPUT_EVIDENCE_INVALID")
+        return _failed_result(
+            case,
+            configuration,
+            "LLM_OUTPUT_EVIDENCE_INVALID",
+            failure_details=["answer_excerpt_not_found"],
+        )
 
     decision = DemoMasteryEngine().decide(
         observation,
@@ -154,6 +168,8 @@ def _failed_result(
     case: GoldenCase,
     configuration: RunConfiguration,
     error_code: str,
+    *,
+    failure_details: list[str] | None = None,
 ) -> CaseEvaluationResult:
     return CaseEvaluationResult(
         case_id=case.case_id,
@@ -162,6 +178,7 @@ def _failed_result(
         prompt_applied_to_provider=configuration.prompt_applied_to_provider,
         requires_human_semantic_review=False,
         error_code=error_code,
+        failure_details=failure_details or [],
     )
 
 

@@ -101,6 +101,7 @@ class CaseEvaluationResult(StrictSchema):
     automatic_checks: AutomaticChecks | None = None
     requires_human_semantic_review: bool
     error_code: str | None = None
+    failure_details: list[str] = Field(default_factory=list, max_length=20)
 
     @model_validator(mode="after")
     def terminal_state_must_be_complete(self) -> Self:

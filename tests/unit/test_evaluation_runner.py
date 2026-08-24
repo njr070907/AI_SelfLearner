@@ -110,6 +110,7 @@ def test_invalid_provider_shape_is_distinguished_from_invalid_json() -> None:
     )
 
     assert run.cases[0].error_code == "LLM_OUTPUT_SCHEMA_INVALID"
+    assert run.cases[0].failure_details
 
 
 def test_invalid_evidence_is_distinguished_from_invalid_schema() -> None:
@@ -140,6 +141,7 @@ def test_invalid_evidence_is_distinguished_from_invalid_schema() -> None:
     )
 
     assert run.cases[0].error_code == "LLM_OUTPUT_EVIDENCE_INVALID"
+    assert run.cases[0].failure_details == ["answer_excerpt_not_found"]
 
 
 def test_real_provider_mode_requires_explicit_paid_call_permission() -> None:
