@@ -115,7 +115,10 @@ class DeepSeekEvaluationProvider:
             "advanced prerequisites or deeper theories that are not listed there. "
             "When every listed point is explicitly and correctly established, leave "
             "gaps empty unless the answer contains a real contradiction or an "
-            "explicitly requested part is missing."
+            "explicitly requested part is missing.\n"
+            "JSON types are mandatory: limitations must always be an array of "
+            "strings, and possible_misconceptions[].confidence must always be a "
+            "number from 0 to 1, never a label such as high, medium, or low."
         )
         started = perf_counter()
         try:
