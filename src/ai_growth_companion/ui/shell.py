@@ -67,7 +67,6 @@ def render_sidebar(
                 key=key,
                 type="primary" if page == active_page else "tertiary",
                 icon=f":material/{icon}:",
-                help=f"前往{page}",
                 on_click=navigate,
                 args=(page,),
                 use_container_width=True,
