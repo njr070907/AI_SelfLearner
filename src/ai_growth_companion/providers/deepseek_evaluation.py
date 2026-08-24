@@ -188,7 +188,7 @@ class DeepSeekEvaluationProvider:
                 retryable=False,
             )
         try:
-            content = json.loads(self._strip_json_fence(choice.message.content))
+            content = self._parse_json_object(choice.message.content)
         except json.JSONDecodeError as error:
             raise ProviderError(
                 "The provider returned invalid JSON",
@@ -230,3 +230,22 @@ class DeepSeekEvaluationProvider:
         if lines and lines[-1].strip() == "```":
             lines = lines[:-1]
         return "\n".join(lines).strip()
+
+    @classmethod
+    def _parse_json_object(cls, content: str) -> object:
+        """Parse JSON directly or recover one object wrapped in harmless prose."""
+        stripped = cls._strip_json_fence(content)
+        try:
+            return json.loads(stripped)
+        except json.JSONDecodeError as original_error:
+            decoder = json.JSONDecoder()
+            for index, character in enumerate(stripped):
+                if character != "{":
+                    continue
+                try:
+                    candidate, _end = decoder.raw_decode(stripped[index:])
+                except json.JSONDecodeError:
+                    continue
+                if isinstance(candidate, dict):
+                    return candidate
+            raise original_error

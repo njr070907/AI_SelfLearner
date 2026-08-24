@@ -150,6 +150,15 @@ def test_outer_json_markdown_fence_is_removed_before_schema_validation() -> None
     assert ProviderObservation.model_validate(result.content) == observation()
 
 
+def test_json_object_wrapped_in_prose_is_recovered_before_schema_validation() -> None:
+    wrapped = f"Here is the observation:\n{observation().model_dump_json()}\nDone."
+    provider, _client = provider_for(StubCompletion(choices=[StubChoice(StubMessage(wrapped))]))
+
+    result = provider.evaluate(evaluation_request(), request_id="local-request-wrapped")
+
+    assert ProviderObservation.model_validate(result.content) == observation()
+
+
 def test_model_not_found_is_reported_without_provider_details() -> None:
     error = openai.APIStatusError(
         "model not found",
