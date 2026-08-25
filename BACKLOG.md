@@ -18,6 +18,22 @@
 - [x] 完成 Liquid Glass 学习工作区、主题/状态/展示层和 UI E2E 覆盖（PR #28）。
 - [x] 完成 UI 动效、光效、导航指示器、下拉定位和深色主题对比度修复（PR #29）。
 
+## P0 — 完整自学 MVP
+
+这是当前从“工程底座”走向“可用自学产品”的主队列。完整阶段、时间估算、接口边界和停止条件见 [`docs/roadmap/FULL_SELF_STUDY_MVP_PLAN.md`](docs/roadmap/FULL_SELF_STUDY_MVP_PLAN.md)。
+
+- [ ] [#31](https://github.com/njr070907/AI_SelfLearner/issues/31) 锁定完整自学 MVP 范围与数据/服务契约。
+- [ ] [#32](https://github.com/njr070907/AI_SelfLearner/issues/32) 后端：实现完整教学闭环 API 与领域模型。
+- [ ] [#33](https://github.com/njr070907/AI_SelfLearner/issues/33) 前端：实现学习教学流程页面。
+- [ ] [#34](https://github.com/njr070907/AI_SelfLearner/issues/34) 后端：实现错题本数据模型与服务。
+- [ ] [#35](https://github.com/njr070907/AI_SelfLearner/issues/35) 前端：实现错题本页面。
+- [ ] [#36](https://github.com/njr070907/AI_SelfLearner/issues/36) 后端：实现复习调度与复测。
+- [ ] [#37](https://github.com/njr070907/AI_SelfLearner/issues/37) 前端：实现复习队列与复测页面。
+- [ ] [#38](https://github.com/njr070907/AI_SelfLearner/issues/38) 后端：实现反馈、长期状态与趋势。
+- [ ] [#39](https://github.com/njr070907/AI_SelfLearner/issues/39) 集成教学、错题、复习、进度并完成 7 天试用。
+
+分工：当前 Codex 负责后端与学习核心；GitHub 合作者主要负责前端 UI；仓库所有者负责产品规则和最终验收。前端必须通过服务契约调用后端，不直接访问 SQL 或 Provider。
+
 ## P1 — 实验验证
 
 - [x] 逐步扩展到 4 条场景覆盖；完整 20 条等待付费批准。

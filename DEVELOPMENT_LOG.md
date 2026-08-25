@@ -40,3 +40,5 @@
 - 当前 `main` 的离线回归为 122 tests、Ruff、format、Mypy 全部通过；远程 main CI 成功。
 - 增加 `evaluator-v0.2` 候选 Prompt、版本选择参数和零成本 dry-run；默认仍使用 v0.1，尚未发起新的真实付费调用。
 - UI 代码已进入手工验收；Prompt v0.2 对照实验、20 条人工复核和校准报告仍是未完成的产品验证任务。
+- 建立完整自学 MVP 路线图：创建 GitHub Issues #31–#39，明确当前 Codex 负责后端/学习核心、GitHub 合作者主要负责前端 UI、仓库所有者负责产品规则和最终验收。
+- 将教学、错题、复习、长期状态和 7 天试用的阶段交付、服务契约、MVP 停止条件写入 `docs/roadmap/FULL_SELF_STUDY_MVP_PLAN.md`，并同步 `BACKLOG.md`、`CURRENT.md` 和 `docs/collaboration/HANDOFF.md`。
