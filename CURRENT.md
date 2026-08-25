@@ -19,7 +19,7 @@ Sprint 1：用真实 Provider 验证 `evaluator-v0.1` 能否区分充分理解�
 ## 最近验证
 
 - PR #3–#29 均已按 PR + CI 流程合并到 `main`；PR #28 建立 Liquid Glass 学习工作区，PR #29 完成动效、光效、导航指示器和下拉定位修复；两次合并后的 CI 均成功。
-- 当前离线回归：143 tests、Ruff、format、Mypy 全部通过；真实调用保持零重试。#38、#45、#48、#49 已合并；阶段 4 后端能力、阶段 5 Provider 安全边界/应用接线和 Fake 后端完整路径已计入当前进度。
+- 当前离线回归：144 tests、Ruff、format、Mypy 全部通过；真实调用保持零重试。#38、#45、#48、#49、#51 已合并；阶段 4 后端能力、阶段 5 Provider 安全边界/应用接线和 Fake 后端完整路径已计入当前进度，真实模式 UI 已不再展示 Fake 控件。
 - 真实运行 `deepseek-evaluator-v0.1-20260824T004542Z`：模型为指定实验模型，935/452 tokens，调用成功但自动检查 0/1；模型提取到 4 条证据，却额外记录了未列入覆盖点的缺口，导致 `fragile`/`re_explain`，与该 strong 黄金案例的 `solid`/`practice` 标准不符。
 - 随后的两次受控调用 `20260824T005050Z`、`20260824T005448Z` 均为 `LLM_OUTPUT_INVALID`，0/0 tokens；未自动重试。
 - 诊断后确认模型曾返回 JSON 但类型不稳定（`limitations` 字符串、置信度文字），已通过显式 JSON 类型指令修复。
