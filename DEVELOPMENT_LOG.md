@@ -42,3 +42,5 @@
 - UI 代码已进入手工验收；Prompt v0.2 对照实验、20 条人工复核和校准报告仍是未完成的产品验证任务。
 - 建立完整自学 MVP 路线图：创建 GitHub Issues #31–#39，明确当前 Codex 负责后端/学习核心、GitHub 合作者主要负责前端 UI、仓库所有者负责产品规则和最终验收。
 - 将教学、错题、复习、长期状态和 7 天试用的阶段交付、服务契约、MVP 停止条件写入 `docs/roadmap/FULL_SELF_STUDY_MVP_PLAN.md`，并同步 `BACKLOG.md`、`CURRENT.md` 和 `docs/collaboration/HANDOFF.md`。
+- 实现 #32 教学闭环后端：支持主回答与同一会话 follow-up，保存回答类型/序号、Fake 诊断、事件历史和重算状态；新增 2 个集成测试，离线回归更新为 124 tests。
+- 新增 `docs/roadmap/MVP_PROGRESS.md`，固定显示 MVP 阶段位置、总体百分比和剩余工期；当前按验收能力估算为 41%，预计还需 15–24 个有效工作日。

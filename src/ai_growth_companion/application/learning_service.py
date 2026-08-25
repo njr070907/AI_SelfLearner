@@ -2,6 +2,7 @@
 
 from collections.abc import Callable
 from datetime import datetime
+from typing import Literal
 from uuid import uuid4
 
 from pydantic import ValidationError
@@ -22,6 +23,8 @@ from ai_growth_companion.providers.base import (
 from ai_growth_companion.providers.fake import FakeLLMProvider, FakeScenario
 from ai_growth_companion.repositories.session_repository import (
     ExplanationRecord,
+    QuestionRecord,
+    SessionRecord,
     SQLiteSessionRepository,
     StoredOutcome,
 )
@@ -94,29 +97,11 @@ class LearningService:
             )
             session, _ = self.repository.get_session_with_question(session.id)
 
-        return SessionView(
-            session_id=session.id,
-            concept_id=session.concept_id,
-            concept=session.concept,
-            status=session.status,
-            question_id=question.id,
-            question_text=question.question_text,
-            coverage_points=question.coverage_points,
-            started_at=_parse_datetime(session.started_at),
-        )
+        return self._session_view(session, question)
 
     def get_session(self, session_id: str) -> SessionView:
         session, question = self.repository.get_session_with_question(session_id)
-        return SessionView(
-            session_id=session.id,
-            concept_id=session.concept_id,
-            concept=session.concept,
-            status=session.status,
-            question_id=question.id,
-            question_text=question.question_text,
-            coverage_points=question.coverage_points,
-            started_at=_parse_datetime(session.started_at),
-        )
+        return self._session_view(session, question)
 
     def submit_answer(
         self,
@@ -126,13 +111,49 @@ class LearningService:
         scenario: FakeScenario,
         request_id: str,
     ) -> DiagnosisView:
-        """Save an answer first, then evaluate it outside a database transaction."""
+        """Save the main explanation first, then evaluate it outside a transaction."""
+        return self._submit_explanation(
+            session_id=session_id,
+            answer_text=answer_text,
+            answer_type="main",
+            scenario=scenario,
+            request_id=request_id,
+        )
+
+    def submit_follow_up(
+        self,
+        *,
+        session_id: str,
+        answer_text: str,
+        scenario: FakeScenario,
+        request_id: str,
+    ) -> DiagnosisView:
+        """Submit a same-session answer to the selected next action."""
+        return self._submit_explanation(
+            session_id=session_id,
+            answer_text=answer_text,
+            answer_type="follow_up",
+            scenario=scenario,
+            request_id=request_id,
+        )
+
+    def _submit_explanation(
+        self,
+        *,
+        session_id: str,
+        answer_text: str,
+        answer_type: Literal["main", "follow_up"],
+        scenario: FakeScenario,
+        request_id: str,
+    ) -> DiagnosisView:
+        """Persist one teaching turn before evaluating it with the provider."""
         answer = validate_answer(answer_text)
         session, question = self.repository.get_session_with_question(session_id)
         explanation, created = self.repository.save_answer(
             session=session,
             question=question,
             answer_text=answer,
+            answer_type=answer_type,
             request_id=request_id,
         )
         if not created:
@@ -258,6 +279,8 @@ class LearningService:
         return DiagnosisView(
             session_id=session.id,
             explanation_id=explanation.id,
+            answer_type=explanation.answer_type,
+            sequence_no=explanation.sequence_no,
             concept=session.concept,
             question_text=question.question_text,
             answer_text=explanation.answer_text,
@@ -270,7 +293,7 @@ class LearningService:
 
     def get_session_diagnosis(self, session_id: str) -> DiagnosisView | None:
         session, question = self.repository.get_session_with_question(session_id)
-        explanation = self.repository.get_main_explanation(session_id)
+        explanation = self.repository.get_latest_explanation(session_id)
         if explanation is None:
             return None
         outcome = self.repository.load_outcome(explanation.id)
@@ -280,6 +303,21 @@ class LearningService:
 
     def list_history(self) -> tuple[HistoryItem, ...]:
         return self.repository.list_history()
+
+    def _session_view(self, session: SessionRecord, question: QuestionRecord) -> SessionView:
+        """Build the stable page contract without leaking repository records."""
+        return SessionView(
+            session_id=session.id,
+            concept_id=session.concept_id,
+            concept=session.concept,
+            status=session.status,
+            question_id=question.id,
+            question_text=question.question_text,
+            coverage_points=question.coverage_points,
+            started_at=_parse_datetime(session.started_at),
+            answer_count=self.repository.answer_count(session.id),
+            can_submit_follow_up=session.status == "diagnosed",
+        )
 
     @staticmethod
     def _view(
@@ -291,6 +329,8 @@ class LearningService:
         return DiagnosisView(
             session_id=explanation.session_id,
             explanation_id=explanation.id,
+            answer_type=explanation.answer_type,
+            sequence_no=explanation.sequence_no,
             concept=concept,
             question_text=question_text,
             answer_text=explanation.answer_text,

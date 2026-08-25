@@ -26,11 +26,15 @@ class SessionView(ViewModel):
     question_text: str
     coverage_points: tuple[str, ...]
     started_at: datetime
+    answer_count: int = 0
+    can_submit_follow_up: bool = False
 
 
 class DiagnosisView(ViewModel):
     session_id: str
     explanation_id: str
+    answer_type: Literal["main", "follow_up"]
+    sequence_no: int
     concept: str
     question_text: str
     answer_text: str
