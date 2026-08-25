@@ -537,6 +537,54 @@ def test_repeated_misconceptions_are_exposed_in_current_state(tmp_path: Path) ->
     assert state.repeated_misconceptions == ["回答中包含一个用于测试的明确错误概念"]
 
 
+def test_complete_fake_mvp_path_connects_teaching_feedback_review_and_state(
+    tmp_path: Path,
+) -> None:
+    service, _repository, _database = setup_service(tmp_path)
+    session = service.start_session(concept="完整闭环", request_id="mvp-start")
+    first = service.submit_answer(
+        session_id=session.session_id,
+        answer_text="第一次回答只覆盖了部分机制。",
+        scenario=FakeScenario.PARTIAL,
+        request_id="mvp-main-answer",
+    )
+    assert first.diagnosis_id is not None
+
+    follow_up = service.submit_follow_up(
+        session_id=session.session_id,
+        answer_text="追问后我补充了核心机制和适用边界。",
+        scenario=FakeScenario.STRONG,
+        request_id="mvp-follow-up",
+    )
+    assert follow_up.status == "succeeded"
+    assert follow_up.sequence_no == 2
+
+    correction_state = service.record_user_correction(
+        diagnosis_id=first.diagnosis_id,
+        correction="第一次诊断没有记录我对边界条件的理解。",
+        request_id="mvp-correction",
+    )
+    assert correction_state.feedback_inaccurate_count == 1
+
+    queue = service.list_review_queue()
+    assert len(queue) == 1
+    retest = service.submit_retest(
+        review_item_id=queue[0].review_item_id,
+        answer_text="复测回答覆盖了核心机制和边界。",
+        scenario=FakeScenario.STRONG,
+        request_id="mvp-retest",
+    )
+    assert retest.result is ReviewOutcome.CORRECT
+    assert retest.review_item.interval_days == 3
+
+    final_state = service.get_concept_state(session.concept_id)
+    assert final_state.evidence_count == 2
+    assert final_state.trend is ConceptTrend.IMPROVING
+    assert final_state.wrong_item_count == 1
+    assert final_state.review_attempt_count == 1
+    assert final_state.review_success_count == 1
+
+
 def test_history_can_be_reopened_by_a_new_service_instance(tmp_path: Path) -> None:
     service, repository, _database = setup_service(tmp_path)
     session = service.start_session(concept="Embedding", request_id="history-start")
