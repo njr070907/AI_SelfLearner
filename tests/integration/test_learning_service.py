@@ -583,11 +583,6 @@ def test_complete_fake_mvp_path_connects_teaching_feedback_review_and_state(
     assert final_state.wrong_item_count == 1
     assert final_state.review_attempt_count == 1
     assert final_state.review_success_count == 1
-    snapshot = service.get_workspace_snapshot()
-    assert len(snapshot.history) == 1
-    assert snapshot.concept_states[0].concept_id == session.concept_id
-    assert len(snapshot.wrong_items) == 1
-    assert len(snapshot.review_queue) == 0
 
 
 def test_history_can_be_reopened_by_a_new_service_instance(tmp_path: Path) -> None:

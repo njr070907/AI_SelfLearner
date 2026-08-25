@@ -14,7 +14,6 @@ from ai_growth_companion.application.models import (
     ReviewQueueItemView,
     ReviewResultView,
     SessionView,
-    WorkspaceSnapshot,
     WrongItemView,
 )
 from ai_growth_companion.domain.events import LOCAL_USER_ID, ConceptState
@@ -414,21 +413,6 @@ class LearningService:
     def list_concept_states(self, *, limit: int = 100) -> tuple[ConceptState, ...]:
         """Return current projections for the progress page."""
         return self.repository.list_current_states(limit=limit)
-
-    def get_workspace_snapshot(
-        self,
-        *,
-        now: datetime | None = None,
-        limit: int = 50,
-    ) -> WorkspaceSnapshot:
-        """Build one consistent read model for all MVP workspace pages."""
-        bounded_limit = max(1, min(limit, 100))
-        return WorkspaceSnapshot(
-            history=self.list_history()[:bounded_limit],
-            concept_states=self.list_concept_states(limit=bounded_limit),
-            wrong_items=self.list_wrong_items(limit=bounded_limit),
-            review_queue=self.list_review_queue(now=now, limit=bounded_limit),
-        )
 
     def list_wrong_items(
         self,

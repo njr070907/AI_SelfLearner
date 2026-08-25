@@ -103,7 +103,6 @@ record_user_correction(event_id, correction) -> ConceptState
 - `DiagnosisView.answer_type`：`main` 或 `follow_up`；
 - `DiagnosisView.sequence_no`：回答在当前会话中的顺序；
 - `submit_follow_up(...)`：保存追问/练习回答，再走同一套 Provider → Mastery Engine → Learning Policy 管道。
-- `get_workspace_snapshot(...)`：为今日、进度、错题和复习页面提供一致的组合读模型，前端不需要自行拼接 SQL 或重复业务规则。
 
 这些是协作边界，不要求前端等待最终数据库表名。表结构可以演进，但不能绕过事件历史和服务层。
 

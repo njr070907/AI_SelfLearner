@@ -24,8 +24,6 @@
 
 前后端以 typed service models 协作。后端先提供 Fake fixtures，前端可以无 API Key 并行开发；需要增加字段时，先改服务契约和测试，再改页面。Provider 只是证据传感器，长期状态只能由 Mastery Engine 和 Learning Policy 计算。完整分阶段计划见 [完整自学 MVP 开发计划](../roadmap/FULL_SELF_STUDY_MVP_PLAN.md)。
 
-前端页面可优先调用 `LearningService.get_workspace_snapshot()` 获取一致的 `history`、`concept_states`、`wrong_items` 和 `review_queue`；它只负责组合后端结果，不应在 UI 中重新计算掌握等级、错误分类或复习间隔。
-
 ## 新成员首次操作
 
 ```powershell
