@@ -19,7 +19,7 @@ Sprint 1：用真实 Provider 验证 `evaluator-v0.1` 能否区分充分理解�
 ## 最近验证
 
 - PR #3–#29 均已按 PR + CI 流程合并到 `main`；PR #28 建立 Liquid Glass 学习工作区，PR #29 完成动效、光效、导航指示器和下拉定位修复；两次合并后的 CI 均成功。
-- 当前离线回归：144 tests、Ruff、format、Mypy 全部通过；真实调用保持零重试。#38、#45、#48、#49、#51 已合并；阶段 4 后端能力、阶段 5 Provider 安全边界/应用接线和 Fake 后端完整路径已计入当前进度，真实模式 UI 已不再展示 Fake 控件。
+- 当前离线回归：145 tests、Ruff、format、Mypy 全部通过；真实调用保持零重试。#38、#45、#48、#49、#51、#55 已合并；阶段 4 后端能力、阶段 5 Provider 安全边界/应用接线和 Fake 后端完整路径已计入当前进度，真实模式 UI 已不再展示 Fake 控件。
 - 无费用评测验证：黄金集 20/20 案例结构有效且人工复核通过；Prompt v0.2 dry-run 渲染 20/20；Fake v0.1 全量管道 20/20 自动检查通过，未发起网络调用。
 - 真实运行 `deepseek-evaluator-v0.1-20260824T004542Z`：模型为指定实验模型，935/452 tokens，调用成功但自动检查 0/1；模型提取到 4 条证据，却额外记录了未列入覆盖点的缺口，导致 `fragile`/`re_explain`，与该 strong 黄金案例的 `solid`/`practice` 标准不符。
 - 随后的两次受控调用 `20260824T005050Z`、`20260824T005448Z` 均为 `LLM_OUTPUT_INVALID`，0/0 tokens；未自动重试。
@@ -30,7 +30,7 @@ Sprint 1：用真实 Provider 验证 `evaluator-v0.1` 能否区分充分理解�
 
 ## Resume Point
 
-当前代码链路、UI v1、#32 教学闭环后端、#34 错题本后端、#36 复习调度后端、#38 长期状态后端、#45 Provider Factory、#48 WorkspaceSnapshot 和 #49 应用组合根接线已完成；新增 Fake 完整后端路径测试覆盖“教学→追问→纠正→错题→复测→状态”。Prompt v0.2 候选版本已经可以通过 `--prompt-version v0.2` 做零成本 dry-run。完整自学 MVP 的下一步是由前端合作者接入 #33/#35/#37，再完成真实语义验收和 #39 全链路集成、7 天试用。未合并代码不计入进度。
+当前代码链路、UI v1、#32 教学闭环后端、#34 错题本后端、#36 复习调度后端、#38 长期状态后端、#45 Provider Factory、#48 WorkspaceSnapshot、#49 应用组合根接线和 #55 Fake 演示数据工具已完成；新增 Fake 完整后端路径测试覆盖“教学→追问→纠正→错题→复测→状态”。Prompt v0.2 候选版本已经可以通过 `--prompt-version v0.2` 做零成本 dry-run；前端可运行 `uv run python scripts/seed_fake_workspace.py --seed-name frontend-demo` 生成 4 条历史、3 个错题和 3 个到期复习项目。完整自学 MVP 的下一步是由前端合作者接入 #33/#35/#37，再完成真实语义验收和 #39 全链路集成、7 天试用。未合并代码不计入进度。
 
 GitHub 工作项：
 
