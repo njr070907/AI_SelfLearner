@@ -5,6 +5,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
+from ai_growth_companion.domain.wrong_items import WrongItemStatus, WrongItemType
 from ai_growth_companion.schemas.diagnosis import (
     DiagnosisEnvelope,
     LearningAction,
@@ -64,3 +65,23 @@ class HistoryItem(ViewModel):
     mastery_level: str | None
     confidence: float | None
     started_at: datetime
+
+
+class WrongItemView(ViewModel):
+    """A traceable wrong/weak answer ready for review UI consumption."""
+
+    wrong_item_id: str
+    concept_id: str
+    concept: str
+    session_id: str
+    explanation_id: str
+    question_text: str
+    answer_text: str
+    error_type: WrongItemType
+    error_summary: str
+    evidence: ProviderObservation
+    correction_text: str
+    status: WrongItemStatus
+    created_at: datetime
+    updated_at: datetime
+    resolved_at: datetime | None = None

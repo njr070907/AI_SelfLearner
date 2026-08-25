@@ -6,14 +6,14 @@ Sprint 1：用真实 Provider 验证 `evaluator-v0.1` 能否区分充分理解�
 
 ## MVP 总进度
 
-**约 41% / 100%** · **阶段 1「完整教学闭环」后端已完成**，等待前端 [Issue #33](https://github.com/njr070907/AI_SelfLearner/issues/33) 接入。预计还需 **15–24 个有效工作日**（每天 4–6 小时约 4–6 周）。
+**约 49% / 100%** · **阶段 2「错题本」后端已完成**，等待前端 [Issue #35](https://github.com/njr070907/AI_SelfLearner/issues/35) 接入。预计还需 **13–21 个有效工作日**（每天 4–6 小时约 3–5 周）。
 
 完整阶段权重和计算方式见 [`docs/roadmap/MVP_PROGRESS.md`](docs/roadmap/MVP_PROGRESS.md)。这个百分比按可验收产品能力计算，不按代码量计算。
 
 ## 当前状态
 
 - 分支：`main`
-- 任务：DeepSeek `deepseek-v4-flash-vision-exp` 的完整 20 案例真实评估基线已完成；接口适配、JSON 防护、失败诊断、GitHub 协作者交接、UI v1 和教学闭环后端已完成。完整自学 MVP 计划已写入 `docs/roadmap/FULL_SELF_STUDY_MVP_PLAN.md`，GitHub Issues #31–#39 已建立；当前由前端接入 #33，后端进入 #34 错题本服务。
+- 任务：DeepSeek `deepseek-v4-flash-vision-exp` 的完整 20 案例真实评估基线已完成；接口适配、JSON 防护、失败诊断、GitHub 协作者交接、UI v1、教学闭环后端和错题本后端已完成。完整自学 MVP 计划已写入 `docs/roadmap/FULL_SELF_STUDY_MVP_PLAN.md`，GitHub Issues #31–#39 已建立；当前由前端接入 #35，后端进入 #36 复习调度服务。
 - 约束：默认 Fake；真实运行必须显式确认；每个案例零重试；任何成功结果仍需人工语义复核。
 
 ## 最近验证
@@ -29,7 +29,7 @@ Sprint 1：用真实 Provider 验证 `evaluator-v0.1` 能否区分充分理解�
 
 ## Resume Point
 
-当前代码链路、UI v1 和 #32 教学闭环后端已完成；Prompt v0.2 候选版本已经可以通过 `--prompt-version v0.2` 做零成本 dry-run。完整自学 MVP 的下一步是前端 #33 学习页和后端 #34 错题本服务；Prompt 实验与 UI 手工验收并行推进，在新实验方案确定前不再重复完整付费回归。
+当前代码链路、UI v1、#32 教学闭环后端和 #34 错题本后端已完成；Prompt v0.2 候选版本已经可以通过 `--prompt-version v0.2` 做零成本 dry-run。完整自学 MVP 的下一步是前端 #33/#35 页面接入和后端 #36 复习调度服务；Prompt 实验与 UI 手工验收并行推进，在新实验方案确定前不再重复完整付费回归。
 
 GitHub 工作项：
 

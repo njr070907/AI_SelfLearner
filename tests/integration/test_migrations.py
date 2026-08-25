@@ -25,11 +25,11 @@ def test_empty_database_migrates_to_latest_and_is_repeatable(tmp_path: Path) -> 
     second = run_migrations(database)
 
     assert first.previous_version == 0
-    assert first.current_version == 1
-    assert first.applied_versions == (1,)
-    assert second.previous_version == 1
+    assert first.current_version == len(discover_migrations())
+    assert first.applied_versions == tuple(range(1, first.current_version + 1))
+    assert second.previous_version == first.current_version
     assert second.applied_versions == ()
-    assert migration_status(database) == (1, 1)
+    assert migration_status(database) == (first.current_version, first.current_version)
 
 
 def test_initial_migration_creates_event_and_projection_tables(tmp_path: Path) -> None:
@@ -45,7 +45,7 @@ def test_initial_migration_creates_event_and_projection_tables(tmp_path: Path) -
         }
         foreign_keys_enabled = connection.execute("PRAGMA foreign_keys").fetchone()[0]
 
-    assert {"learning_events", "concept_states", "provider_observations"} <= tables
+    assert {"learning_events", "concept_states", "provider_observations", "wrong_items"} <= tables
     assert foreign_keys_enabled == 1
 
 

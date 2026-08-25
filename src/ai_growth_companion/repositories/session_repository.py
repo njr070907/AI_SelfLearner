@@ -516,7 +516,7 @@ class SQLiteSessionRepository:
         decision: MasteryDecision,
         action: LearningAction,
         metadata: ProviderMetadata,
-    ) -> None:
+    ) -> str:
         """Atomically save validated observation, decision, action, events, and projection."""
         with self.database.connect() as connection, connection:
             connection.execute(
@@ -625,6 +625,7 @@ class SQLiteSessionRepository:
                 concept_id=session.concept_id,
                 latest_event_id=decision_event_id,
             )
+            return decision_event_id
 
     def _rebuild_state_in_transaction(
         self,
