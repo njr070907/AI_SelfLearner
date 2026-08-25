@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     llm_provider: str = "fake"
     llm_model: str = "fake-mastery-v0.1"
     llm_api_key: SecretStr | None = None
+    llm_paid_calls_allowed: bool = False
     llm_timeout_seconds: int = Field(default=30, ge=1, le=120)
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
     log_content_enabled: bool = False

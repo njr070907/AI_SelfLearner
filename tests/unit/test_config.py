@@ -11,6 +11,7 @@ def test_default_configuration_uses_fake_provider_without_key() -> None:
 
     assert settings.is_fake_mode is True
     assert settings.llm_api_key is None
+    assert settings.llm_paid_calls_allowed is False
     assert settings.log_content_enabled is False
 
 
