@@ -1,20 +1,19 @@
 """Seed a repeatable local Fake workspace for frontend development."""
 
 import argparse
+from os import environ
 
 from ai_growth_companion.application.demo_workspace import seed_fake_workspace
-from ai_growth_companion.config import load_settings
 
 
 def main() -> int:
     """Seed demo data without network access, paid calls, or destructive resets."""
-    settings = load_settings()
     parser = argparse.ArgumentParser(
         description="Create repeatable Fake learning data for local UI development."
     )
     parser.add_argument(
         "--database",
-        default=settings.database_url,
+        default=environ.get("DATABASE_URL", "sqlite:///data/companion.db"),
         help="SQLite URL; defaults to DATABASE_URL from the local environment.",
     )
     parser.add_argument(
