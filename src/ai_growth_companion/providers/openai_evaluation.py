@@ -64,6 +64,7 @@ class OpenAIEvaluationProvider:
         model: str,
         timeout_seconds: int = 30,
         max_output_tokens: int = 1200,
+        prompt_version: str = "v0.1",
         prompt_registry: PromptRegistry | None = None,
         client: _OpenAIClientLike | None = None,
     ) -> None:
@@ -78,6 +79,7 @@ class OpenAIEvaluationProvider:
 
         self.model_name = model
         self._max_output_tokens = max_output_tokens
+        self._prompt_version = prompt_version
         self._prompt_registry = prompt_registry or PromptRegistry()
         self._client = client or cast(
             _OpenAIClientLike,
@@ -90,7 +92,7 @@ class OpenAIEvaluationProvider:
 
     def evaluate(self, request: EvaluationRequest, *, request_id: str) -> ProviderResponse:
         """Call OpenAI once, returning only validated structured evidence and safe metadata."""
-        rendered = self._prompt_registry.render_evaluation(request)
+        rendered = self._prompt_registry.render_evaluation(request, version=self._prompt_version)
         started = perf_counter()
         try:
             response = self._client.responses.parse(

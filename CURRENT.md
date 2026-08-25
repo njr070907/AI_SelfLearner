@@ -2,18 +2,18 @@
 
 ## 当前里程碑
 
-Sprint 1：用真实 Provider 验证 `evaluator-v0.1` 能否区分充分理解、部分理解、明确误区和证据不足。
+Sprint 1：用真实 Provider 验证 `evaluator-v0.1` 能否区分充分理解、部分理解、明确误区和证据不足；并行完善可验证的学习工作区 UI。
 
 ## 当前状态
 
 - 分支：`main`
-- 任务：完成 DeepSeek `deepseek-v4-flash-vision-exp` 的完整 20 案例真实评估基线；接口适配、JSON 防护、失败诊断和 GitHub 协作者交接已完成，当前进入 Prompt v0.2 语义稳定性实验。
+- 任务：DeepSeek `deepseek-v4-flash-vision-exp` 的完整 20 案例真实评估基线已完成；接口适配、JSON 防护、失败诊断、GitHub 协作者交接和 UI v1 已完成，当前进入 Prompt v0.2 语义稳定性实验与 UI 手工验收。
 - 约束：默认 Fake；真实运行必须显式确认；每个案例零重试；任何成功结果仍需人工语义复核。
 
 ## 最近验证
 
-- PR #3–#23 均已按 PR + CI 流程合并到 `main`；PR #23 的协作者交接包 CI 成功。
-- 当前离线回归：82 tests、Ruff、format、Mypy、Secret Scan 全部通过；真实调用保持零重试。
+- PR #3–#29 均已按 PR + CI 流程合并到 `main`；PR #28 建立 Liquid Glass 学习工作区，PR #29 完成动效、光效、导航指示器和下拉定位修复；两次合并后的 CI 均成功。
+- 当前离线回归：122 tests、Ruff、format、Mypy 全部通过；真实调用保持零重试。
 - 真实运行 `deepseek-evaluator-v0.1-20260824T004542Z`：模型为指定实验模型，935/452 tokens，调用成功但自动检查 0/1；模型提取到 4 条证据，却额外记录了未列入覆盖点的缺口，导致 `fragile`/`re_explain`，与该 strong 黄金案例的 `solid`/`practice` 标准不符。
 - 随后的两次受控调用 `20260824T005050Z`、`20260824T005448Z` 均为 `LLM_OUTPUT_INVALID`，0/0 tokens；未自动重试。
 - 诊断后确认模型曾返回 JSON 但类型不稳定（`limitations` 字符串、置信度文字），已通过显式 JSON 类型指令修复。
@@ -23,7 +23,7 @@ Sprint 1：用真实 Provider 验证 `evaluator-v0.1` 能否区分充分理解�
 
 ## Resume Point
 
-当前代码链路已解决。下一步是负责人逐条复核 20 条语义结果，并设计 Prompt v0.2 的稳定性实验；在新实验方案确定前不再重复完整付费回归。
+当前代码链路和 UI v1 已合并；Prompt v0.2 候选版本已经可以通过 `--prompt-version v0.2` 做零成本 dry-run。下一步是完成 UI 手工验收、逐条复核 20 条语义结果，并用固定案例设计 v0.1/v0.2 对照实验；在新实验方案确定前不再重复完整付费回归。
 
 GitHub 工作项：
 

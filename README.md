@@ -6,7 +6,7 @@ AI Growth Companion 是一个以费曼学习法为核心的学习诊断实验。
 
 Sprint 1 已开始建立 Mastery Protocol 的真实评测基线。第一批 20 个高等数学案例已经由产品负责人逐项完成人工复核，可以作为第一版回归基线；在真实模型实验通过前，项目仍不会声称能够可靠诊断学习掌握度。
 
-`evaluator-v0.1` 已作为独立、可哈希的 Prompt 版本加入工程，并提供 20 案例批量运行器。当前运行器支持零调用 dry-run、免费确定性的 Fake 管道基线和默认关闭的 DeepSeek 适配器；真实 Provider 只有在明确选择供应商、模型并确认付费后才会启用。
+`evaluator-v0.1` 已作为独立、可哈希的 Prompt 版本加入工程；`evaluator-v0.2` 现作为候选实验版本提供，但默认不会启用。运行器支持零调用 dry-run、免费确定性的 Fake 管道基线和默认关闭的 DeepSeek 适配器；真实 Provider 只有在明确选择供应商、Prompt 版本、模型并确认付费后才会启用。
 
 ## Sprint 0 已经能做什么
 
@@ -108,6 +108,17 @@ CI 中必须通过的项目包括 Secret Scan、基础 lint、格式、数据库
 ```powershell
 uv run python scripts/run_golden_eval.py --dry-run
 ```
+
+验证 Prompt v0.2 候选版本（仍然零调用）：
+
+```powershell
+uv run python scripts/run_golden_eval.py `
+  --prompt-version v0.2 `
+  --case-id hm-lhopital-strong `
+  --dry-run
+```
+
+默认仍使用 `v0.1`。Prompt v0.2 只改变证据观察指令，继续输出 `provider-observation-v0.1`，并通过运行记录保存版本和哈希。在 Prompt v0.2 完成小范围对照实验前，不要直接扩大真实付费批量。
 
 运行确定性的 Fake 管道基线：
 

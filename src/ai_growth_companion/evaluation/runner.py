@@ -45,6 +45,7 @@ def run_golden_evaluation(
     mode: EvaluationMode,
     max_cases: int = 20,
     paid_calls_allowed: bool = False,
+    prompt_version: str = "v0.1",
     prompt_registry: PromptRegistry | None = None,
     run_id: str | None = None,
 ) -> GoldenEvaluationRun:
@@ -56,7 +57,7 @@ def run_golden_evaluation(
         prompt_applied_to_provider=mode is EvaluationMode.REAL_PROVIDER,
     )
     registry = prompt_registry or PromptRegistry()
-    prompt_bundle = registry.load_evaluation()
+    prompt_bundle = registry.load_evaluation(prompt_version)
     selected_cases = golden_set.cases[: configuration.requested_cases]
     actual_run_id = run_id or f"golden-{uuid4()}"
     started_at = datetime.now(UTC)
@@ -67,6 +68,7 @@ def run_golden_evaluation(
             configuration=configuration,
             run_id=actual_run_id,
             prompt_registry=registry,
+            prompt_version=prompt_version,
         )
         for case in selected_cases
     ]
@@ -94,6 +96,7 @@ def _run_case(
     configuration: RunConfiguration,
     run_id: str,
     prompt_registry: PromptRegistry,
+    prompt_version: str,
 ) -> CaseEvaluationResult:
     request = EvaluationRequest(
         concept=case.concept,
@@ -101,7 +104,7 @@ def _run_case(
         coverage_points=tuple(case.coverage_points),
         answer_text=case.learner_answer,
     )
-    prompt_registry.render_evaluation(request)
+    prompt_registry.render_evaluation(request, version=prompt_version)
     provider = provider_factory(case)
     request_id = f"{run_id}:{case.case_id}"
     try:

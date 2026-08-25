@@ -11,12 +11,14 @@ from pydantic import Field, model_validator
 from ai_growth_companion.providers.base import EvaluationRequest
 from ai_growth_companion.schemas.diagnosis import StrictSchema
 
+PromptVersion = Literal["evaluator-v0.1", "evaluator-v0.2"]
+
 
 class PromptManifest(StrictSchema):
     """Metadata required for a reproducible Prompt release."""
 
     prompt_id: Literal["evaluation"]
-    version: Literal["evaluator-v0.1"]
+    version: PromptVersion
     purpose: str = Field(min_length=1, max_length=500)
     input_schema: Literal["evaluation-request-v0.1"]
     output_schema: Literal["provider-observation-v0.1"]
@@ -46,7 +48,7 @@ class PromptBundle(StrictSchema):
 class RenderedPrompt(StrictSchema):
     """Messages ready for a Provider adapter without exposing supplier SDK types."""
 
-    prompt_version: Literal["evaluator-v0.1"]
+    prompt_version: PromptVersion
     prompt_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
     system_message: str = Field(min_length=1)
     user_message: str = Field(min_length=1)
@@ -59,8 +61,8 @@ class PromptRegistry:
         self.root = root or Path(__file__).parent / "templates"
 
     def load_evaluation(self, version: str = "v0.1") -> PromptBundle:
-        """Load the only approved evaluation Prompt version."""
-        if version != "v0.1":
+        """Load a versioned evaluation Prompt bundle."""
+        if version not in {"v0.1", "v0.2"}:
             raise ValueError(f"Unknown evaluation Prompt version: {version}")
 
         bundle_path = self.root / "evaluation" / version

@@ -51,13 +51,22 @@ uv run pytest tests/unit/test_golden_set.py
 uv run python scripts/run_golden_eval.py --dry-run
 ```
 
+Prompt v0.2 是当前候选实验版本，默认不会替换 v0.1。先用一个或几个固定 `case_id` 做零成本渲染检查：
+
+```powershell
+uv run python scripts/run_golden_eval.py `
+  --prompt-version v0.2 `
+  --case-id hm-lhopital-strong `
+  --dry-run
+```
+
 运行免费的确定性 Fake 管道基线：
 
 ```powershell
 uv run python scripts/run_golden_eval.py
 ```
 
-在 API Key 和费用得到明确授权后，可以运行 DeepSeek JSON Output 适配器。模型固定为 `deepseek-v4-flash-vision-exp`，真实模式默认只跑 1 条、每条零重试：
+在 API Key 和费用得到明确授权、且完成小范围实验设计后，才可以运行 DeepSeek JSON Output 适配器。模型固定为 `deepseek-v4-flash-vision-exp`，真实模式默认只跑 1 条、每条零重试：
 
 ```powershell
 uv run python scripts/run_golden_eval.py --provider deepseek --confirm-paid-calls

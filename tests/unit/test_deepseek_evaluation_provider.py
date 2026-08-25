@@ -94,9 +94,15 @@ def observation() -> ProviderObservation:
 
 def provider_for(
     response: StubCompletion | Exception,
+    *,
+    prompt_version: str = "v0.1",
 ) -> tuple[DeepSeekEvaluationProvider, StubClient]:
     client = StubClient(response)
-    provider = DeepSeekEvaluationProvider(api_key="test-key", client=client)
+    provider = DeepSeekEvaluationProvider(
+        api_key="test-key",
+        prompt_version=prompt_version,
+        client=client,
+    )
     return provider, client
 
 
@@ -146,6 +152,21 @@ def test_json_mode_response_is_parsed_and_metadata_is_recorded() -> None:
     assert "confidence must always be a number from 0 to 1" in call["messages"][0]["content"]
     assert "左右极限都存在且相等。" in call["messages"][1]["content"]
     assert result.metadata.prompt_version == "evaluator-v0.1+deepseek-json"
+
+
+def test_experimental_prompt_version_is_sent_and_recorded() -> None:
+    response = StubCompletion(
+        choices=[StubChoice(StubMessage(observation().model_dump_json()))],
+        usage=StubUsage(),
+    )
+    provider, client = provider_for(response, prompt_version="v0.2")
+
+    result = provider.evaluate(evaluation_request(), request_id="local-request-v02")
+
+    assert result.metadata.prompt_version == "evaluator-v0.2+deepseek-json"
+    assert (
+        "Private coverage checklist" in client.chat.completions.calls[0]["messages"][0]["content"]
+    )
 
 
 def test_invalid_json_is_rejected_without_falling_back_to_text() -> None:
