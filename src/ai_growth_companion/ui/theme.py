@@ -612,6 +612,14 @@ p, li { color: var(--ink-soft); }
 .diagnosis-cell h3 { margin: 0 0 .8rem; font-size: .98rem; letter-spacing: -.01em; }
 .diagnosis-cell ul { margin: 0; padding-left: 1.1rem; }
 .diagnosis-cell li { margin: .48rem 0; line-height: 1.55; }
+.misconception-band {
+  padding: 1.35rem 1.85rem;
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--surface-solid) 92%, var(--warning-soft));
+}
+.misconception-band h3 { margin: 0 0 .7rem; font-size: .98rem; letter-spacing: -.01em; }
+.misconception-band ul { margin: 0; padding-left: 1.1rem; }
+.misconception-band li { margin: .42rem 0; line-height: 1.55; }
 .next-step { padding: 1.55rem 1.85rem 1.7rem; background: var(--accent-soft); }
 .next-step strong { color: var(--ink); font-size: 1rem; }
 .next-step p { margin: .35rem 0 0; color: var(--ink-soft); }
@@ -846,7 +854,8 @@ input::placeholder, textarea::placeholder {
   .st-key-app_toolbar [data-testid="stColumn"]:nth-child(4) { flex: 1 1 58%; width: auto; }
   .hero-title { font-size: clamp(2.15rem, 11vw, 3rem); line-height: 1.05; }
   .hero-copy { margin-bottom: 1.8rem; font-size: .97rem; line-height: 1.7; }
-  .empty-state, .question-panel, .diagnosis-head, .diagnosis-cell, .next-step {
+  .empty-state, .question-panel, .diagnosis-head, .diagnosis-cell,
+  .misconception-band, .next-step {
     padding-left: 1.25rem;
     padding-right: 1.25rem;
   }
