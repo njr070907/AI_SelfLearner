@@ -131,8 +131,27 @@ APP_CSS = """
   --radius-panel: 20px;
   --radius-control: 12px;
   --radius-small: 9px;
-  --ease: cubic-bezier(.22, .8, .25, 1);
+  --motion-fast: 140ms;
+  --motion-normal: 200ms;
+  --motion-page: 300ms;
+  --motion-press: 90ms;
+  --ease-standard: cubic-bezier(.22, .8, .25, 1);
+  --ease-emphasized: cubic-bezier(.16, 1, .3, 1);
+  --ease: var(--ease-standard);
   --sidebar-width: 268px;
+}
+
+/* One shared motion language: views fade in and rise gently, never flash. */
+@keyframes view-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes view-enter-soft {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+[class*="st-key-view-"] {
+  animation: view-enter var(--motion-page) var(--ease-emphasized) both;
 }
 
 html, body, [class*="css"] {
@@ -141,13 +160,26 @@ html, body, [class*="css"] {
 }
 html { background: var(--canvas); color-scheme: var(--color-scheme); }
 body { color: var(--ink); }
+html { scrollbar-color: color-mix(in srgb, var(--ink-muted) 38%, transparent) transparent; }
+[data-testid="stAppViewContainer"] ::-webkit-scrollbar { width: 10px; height: 10px; }
+[data-testid="stAppViewContainer"] ::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--ink-muted) 34%, transparent);
+  background-clip: padding-box;
+}
+[data-testid="stAppViewContainer"] ::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--ink-muted) 55%, transparent);
+  background-clip: padding-box;
+}
+[data-testid="stAppViewContainer"] ::-webkit-scrollbar-track { background: transparent; }
 [data-testid="stAppViewContainer"] {
   background-color: var(--canvas);
   background-image:
     radial-gradient(ellipse 58% 46% at -10% -8%, var(--ambient-primary), transparent 72%),
     radial-gradient(ellipse 46% 42% at 108% 22%, var(--ambient-secondary), transparent 75%);
   background-attachment: fixed;
-  transition: background-color 180ms var(--ease);
+  transition: background-color var(--motion-normal) var(--ease);
 }
 [data-testid="stHeader"] { background: transparent; pointer-events: none; }
 [data-testid="stToolbar"] { display: none; }
@@ -173,8 +205,9 @@ body { color: var(--ink); }
   -webkit-backdrop-filter: saturate(1.18) blur(24px);
   backdrop-filter: saturate(1.18) blur(24px);
   overflow: hidden;
-  transition: width 180ms var(--ease), min-width 180ms var(--ease),
-    background-color 180ms var(--ease), border-color 180ms var(--ease);
+  transition: width var(--motion-normal) var(--ease), min-width var(--motion-normal) var(--ease),
+    background-color var(--motion-normal) var(--ease),
+    border-color var(--motion-normal) var(--ease);
 }
 [data-testid="stSidebarContent"] { padding: 1.2rem 1rem 1rem; }
 [data-testid="stSidebarCollapseButton"] { display: none; }
@@ -223,8 +256,9 @@ body { color: var(--ink); }
   background: transparent;
   color: var(--ink-soft);
   box-shadow: none;
-  transition: background-color 145ms var(--ease), border-color 145ms var(--ease),
-    box-shadow 160ms var(--ease), transform 90ms ease-out;
+  transition: background-color var(--motion-fast) var(--ease),
+    border-color var(--motion-fast) var(--ease),
+    box-shadow var(--motion-normal) var(--ease), transform var(--motion-press) ease-out;
 }
 .st-key-sidebar_toggle button { color: var(--ink-muted); }
 .st-key-sidebar_toggle button:hover,
@@ -309,7 +343,8 @@ body:has(.sidebar-collapse-marker) .sidebar-status {
   box-shadow: var(--shadow-floating), inset 0 1px 0 var(--glass-highlight);
   -webkit-backdrop-filter: saturate(1.2) blur(22px);
   backdrop-filter: saturate(1.2) blur(22px);
-  transition: background-color 180ms var(--ease), border-color 180ms var(--ease);
+  transition: background-color var(--motion-normal) var(--ease),
+    border-color var(--motion-normal) var(--ease);
 }
 .st-key-app_toolbar::before {
   content: "";
@@ -320,6 +355,23 @@ body:has(.sidebar-collapse-marker) .sidebar-status {
   background: radial-gradient(circle at 68% -40%, var(--accent-soft), transparent 44%);
   pointer-events: none;
 }
+/* Pointer-aware ambient glow: follows the cursor, fades in only while hovering. */
+.st-key-app_toolbar::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: radial-gradient(
+    240px circle at var(--glow-x, 50%) var(--glow-y, -30%),
+    color-mix(in srgb, var(--glow-hover) 42%, transparent),
+    transparent 72%
+  );
+  opacity: 0;
+  transition: opacity var(--motion-normal) var(--ease);
+  pointer-events: none;
+}
+.st-key-app_toolbar:hover::after { opacity: 1; }
 .toolbar-location {
   display: flex;
   align-items: center;
@@ -346,8 +398,8 @@ body:has(.sidebar-collapse-marker) .sidebar-status {
   border-radius: var(--radius-control);
   background: color-mix(in srgb, var(--glass-strong) 84%, var(--glass-accent));
   box-shadow: inset 0 1px 0 var(--glass-highlight), 0 4px 14px rgba(50, 68, 98, .05);
-  transition: border-color 150ms var(--ease), box-shadow 170ms var(--ease),
-    background-color 150ms var(--ease);
+  transition: border-color var(--motion-fast) var(--ease),
+    box-shadow var(--motion-normal) var(--ease), background-color var(--motion-fast) var(--ease);
 }
 .st-key-app_toolbar [data-testid="stTextInputRootElement"],
 .st-key-app_toolbar [data-baseweb="select"] > div,
@@ -407,6 +459,7 @@ body:has(.sidebar-collapse-marker) .sidebar-status {
   box-shadow: var(--shadow-floating), inset 0 1px 0 var(--glass-highlight);
   -webkit-backdrop-filter: saturate(1.15) blur(18px);
   backdrop-filter: saturate(1.15) blur(18px);
+  animation: view-enter-soft var(--motion-normal) var(--ease-emphasized) both;
 }
 .search-results-title {
   margin: .1rem 0 .65rem;
@@ -460,6 +513,22 @@ p, li { color: var(--ink-soft); }
   background: var(--surface-solid);
   border: 1px solid var(--line);
   box-shadow: var(--shadow-raised);
+  transition: border-color var(--motion-fast) var(--ease),
+    box-shadow var(--motion-normal) var(--ease), transform var(--motion-fast) var(--ease);
+}
+@media (hover: hover) and (pointer: fine) {
+  /* Layered, restrained card response: border light, deeper shadow, no scale. */
+  .empty-state:hover, .question-panel:hover, .diagnosis-panel:hover, [data-testid="stForm"]:hover {
+    border-color: color-mix(in srgb, var(--accent) 15%, var(--line-strong));
+    box-shadow: var(--shadow-raised), 0 0 0 1px var(--accent-soft),
+      0 22px 52px color-mix(in srgb, var(--glow-hover) 12%, transparent);
+  }
+  .progress-row:hover, .status-row:hover {
+    transform: translateY(-1px);
+    border-color: color-mix(in srgb, var(--accent) 16%, var(--line-strong));
+    box-shadow: 0 14px 34px color-mix(in srgb, var(--glow-hover) 16%, rgba(50, 68, 98, .08)),
+      inset 0 1px 0 var(--glass-highlight);
+  }
 }
 .empty-state {
   max-width: 760px;
@@ -477,7 +546,12 @@ p, li { color: var(--ink-soft); }
 .question-panel p { margin: .7rem 0 0; color: var(--ink); font-size: 1.12rem; line-height: 1.65; }
 [data-testid="stForm"] { padding: 1.55rem; border-radius: var(--radius-panel); }
 
-.diagnosis-panel { overflow: hidden; margin: 1.2rem 0 1.5rem; border-radius: var(--radius-panel); }
+.diagnosis-panel {
+  overflow: hidden;
+  margin: 1.2rem 0 1.5rem;
+  border-radius: var(--radius-panel);
+  animation: view-enter-soft var(--motion-normal) var(--ease-emphasized) both;
+}
 .diagnosis-head { padding: 1.75rem 1.85rem 1.45rem; }
 .diagnosis-head h2 { margin: .6rem 0 .35rem; font-size: 1.7rem; }
 .diagnosis-head p { margin: 0; color: var(--ink-muted); line-height: 1.65; }
@@ -541,8 +615,9 @@ p, li { color: var(--ink-soft); }
   min-height: 44px;
   border-radius: var(--radius-control);
   font-weight: 680;
-  transition: background-color 145ms var(--ease), border-color 145ms var(--ease),
-    box-shadow 165ms var(--ease), transform 90ms ease-out;
+  transition: background-color var(--motion-fast) var(--ease),
+    border-color var(--motion-fast) var(--ease),
+    box-shadow var(--motion-normal) var(--ease), transform var(--motion-press) ease-out;
 }
 .stMain .stButton button[kind="primary"],
 .stMain .stFormSubmitButton button[kind^="primary"] {
@@ -561,6 +636,12 @@ p, li { color: var(--ink-soft); }
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, .48),
       0 11px 30px var(--glow-hover), 0 0 0 1px var(--accent-soft);
     filter: brightness(1.035) saturate(1.03);
+  }
+  .stMain .stButton button[kind="tertiary"]:not(:disabled):hover {
+    border-color: var(--line);
+    background: color-mix(in srgb, var(--glass-strong) 78%, var(--accent-soft));
+    color: var(--ink);
+    box-shadow: 0 8px 22px color-mix(in srgb, var(--glow-hover) 30%, transparent);
   }
 }
 .stMain .stButton button:active,

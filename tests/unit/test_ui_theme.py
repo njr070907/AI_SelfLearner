@@ -75,6 +75,25 @@ def test_theme_has_collapse_responsive_and_accessibility_contracts() -> None:
     assert "animation: fade" not in css
 
 
+def test_motion_system_has_tokens_view_transitions_and_pointer_glow() -> None:
+    css = design_system_css(preferences())
+
+    for token in (
+        "--motion-fast",
+        "--motion-normal",
+        "--motion-page",
+        "--motion-press",
+        "--ease-standard",
+        "--ease-emphasized",
+    ):
+        assert token in css
+    assert "@keyframes view-enter" in css
+    assert '[class*="st-key-view-"]' in css
+    assert "--glow-x" in css
+    assert ".st-key-app_toolbar:hover::after" in css
+    assert css.count("@media (hover: hover) and (pointer: fine)") >= 2
+
+
 def test_toolbar_styles_current_react_aria_select_without_streamlit_defaults() -> None:
     assert '.react-aria-ComboBox [role="group"]' in APP_CSS
     assert '.react-aria-ComboBox input[role="combobox"]' in APP_CSS

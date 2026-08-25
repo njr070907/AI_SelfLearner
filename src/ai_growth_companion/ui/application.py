@@ -11,6 +11,7 @@ from ai_growth_companion.application.learning_service import LearningService
 from ai_growth_companion.application.models import DiagnosisView, HistoryItem
 from ai_growth_companion.config import Settings
 from ai_growth_companion.domain.session import InputValidationError, InvalidSessionState
+from ai_growth_companion.ui.motion import render_pointer_glow
 from ai_growth_companion.ui.presentation import (
     SCENARIO_LABELS,
     action_heading,
@@ -49,14 +50,17 @@ def render_application(
         open_result=_open_search_result,
     )
 
-    if page == "今日":
-        _render_today(service)
-    elif page == "学习":
-        _render_learning_flow(service)
-    elif page == "进度":
-        _render_progress(service)
-    else:
-        _render_system_status(settings=settings, health_report=health_report)
+    view_slugs = {"今日": "today", "学习": "learn", "进度": "progress", "系统": "system"}
+    with st.container(key=f"view-{view_slugs.get(page, 'today')}"):
+        if page == "今日":
+            _render_today(service)
+        elif page == "学习":
+            _render_learning_flow(service)
+        elif page == "进度":
+            _render_progress(service)
+        else:
+            _render_system_status(settings=settings, health_report=health_report)
+    render_pointer_glow()
 
 
 def _render_today(service: LearningService) -> None:
