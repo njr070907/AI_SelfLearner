@@ -12,7 +12,12 @@ from ai_growth_companion.ui.application import render_application
 
 def main() -> None:
     """Validate runtime dependencies, then render the fake learning loop."""
-    st.set_page_config(page_title="AI Growth Companion", page_icon="🌱", layout="centered")
+    st.set_page_config(
+        page_title="AI SelfLearner",
+        page_icon="S",
+        layout="wide",
+        initial_sidebar_state="auto",
+    )
     settings = load_settings()
     database = Database(settings.database_url)
 
