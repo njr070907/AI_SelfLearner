@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 import pytest
 
 from ai_growth_companion.application.models import HistoryItem
+from ai_growth_companion.domain.review import ReviewAttemptStatus, ReviewOutcome
 from ai_growth_companion.domain.wrong_items import WrongItemStatus, WrongItemType
 from ai_growth_companion.schemas.diagnosis import ActionType, MasteryLevel
 from ai_growth_companion.ui.presentation import (
@@ -12,6 +13,8 @@ from ai_growth_companion.ui.presentation import (
     error_message,
     filter_history,
     mastery_label,
+    review_attempt_status_label,
+    review_outcome_label,
     status_label,
     wrong_item_status_label,
     wrong_item_type_label,
@@ -94,6 +97,26 @@ def test_wrong_item_statuses_have_chinese_labels(
     expected: str,
 ) -> None:
     assert wrong_item_status_label(value) == expected
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        (ReviewOutcome.CORRECT, "本次回答正确"),
+        (ReviewOutcome.PARTIAL, "本次回答仍不完整"),
+        (ReviewOutcome.INCORRECT, "本次回答需要纠正"),
+        (None, "尚未复测"),
+    ],
+)
+def test_review_outcomes_have_chinese_labels(
+    value: ReviewOutcome | None,
+    expected: str,
+) -> None:
+    assert review_outcome_label(value) == expected
+
+
+def test_review_failure_status_has_a_safe_label() -> None:
+    assert review_attempt_status_label(ReviewAttemptStatus.FAILED) == "复测失败"
 
 
 def history_item(

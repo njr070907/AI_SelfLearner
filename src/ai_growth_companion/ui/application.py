@@ -24,6 +24,7 @@ from ai_growth_companion.ui.presentation import (
     severity_label,
     status_label,
 )
+from ai_growth_companion.ui.review_queue import render_review_queue
 from ai_growth_companion.ui.shell import (
     render_search_results,
     render_sidebar,
@@ -83,20 +84,12 @@ def render_application(
                 resume_learning=_resume_session,
             )
         elif page == "复习":
-            _render_review_placeholder()
+            render_review_queue(service, settings=settings)
         elif page == "进度":
             _render_progress(service)
         else:
             _render_system_status(settings=settings, health_report=health_report)
     render_pointer_glow()
-
-
-def _render_review_placeholder() -> None:
-    """Keep the #35 review entry usable while the #37 page is the next checkpoint."""
-    st.markdown('<div class="eyebrow">复习 · 今日队列</div>', unsafe_allow_html=True)
-    st.markdown('<h1 class="hero-title">复习队列正在接入</h1>', unsafe_allow_html=True)
-    st.info("这条错题已经由后端加入复习队列。完整复测流程将在下一阶段接入。")
-    st.button("返回错题本", type="primary", on_click=_navigate, args=("错题",))
 
 
 def _render_today(service: LearningService) -> None:

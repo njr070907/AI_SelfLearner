@@ -8,6 +8,7 @@ from streamlit.testing.v1 import AppTest
 
 from ai_growth_companion.application.demo_workspace import seed_fake_workspace
 from ai_growth_companion.config import load_settings
+from ai_growth_companion.domain.review import ReviewAttemptStatus, ReviewOutcome
 from ai_growth_companion.repositories.database import Database, run_migrations
 from ai_growth_companion.ui.state import AccentTheme, ThemeMode
 
@@ -77,6 +78,25 @@ def open_mistakes(app: AppTest) -> AppTest:
         .click()
         .run(timeout=10)
     )
+
+
+def open_review(app: AppTest) -> AppTest:
+    return (
+        next(item for item in app.sidebar.button if item.key == "nav_review")
+        .click()
+        .run(timeout=10)
+    )
+
+
+def submit_review_scenario(
+    app: AppTest,
+    scenario: str,
+    *,
+    answer: str = "我重新说明了核心机制、适用边界和一个具体例子。",
+) -> AppTest:
+    text_area_with_label(app, "你的复测回答").input(answer)
+    select_with_label(app, "复测场景").select(scenario)
+    return button_with_label(app, "提交复测").click().run(timeout=10)
 
 
 def start_session(app: AppTest) -> AppTest:
@@ -380,8 +400,9 @@ def test_mistake_can_enter_review_and_mark_mastered(
     review_app = button_with_label(app, "安排复习").click().run(timeout=10)
     assert not review_app.exception
     assert review_app.session_state["active_page"] == "复习"
-    assert review_app.session_state["review_wrong_item_id"] == wrong_item_id
-    assert "这条错题已经由后端加入复习队列" in review_app.info[0].value
+    assert review_app.session_state["review_source_wrong_item_id"] == wrong_item_id
+    assert review_app.session_state["current_review_item_id"]
+    assert "当前复习题" in rendered_markdown(review_app)
 
     app = open_mistakes(review_app)
     app = button_with_label(app, "标记已掌握").click().run(timeout=10)
@@ -441,3 +462,144 @@ def test_mistake_page_keeps_theme_and_narrow_layout_contract(
     assert ".source-answer-grid, .mistake-evidence-grid, .mistake-correction" in page
     assert '.st-key-view-mistakes [data-testid="stHorizontalBlock"]' in page
     assert "你的原回答" in page
+
+
+def test_review_queue_has_empty_state_and_clear_core_navigation(
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    app = open_review(app_for(tmp_path, monkeypatch, "ui-review-empty.db"))
+
+    assert not app.exception
+    assert "今天没有到期的复习任务" in rendered_markdown(app)
+    assert button_with_label(app, "去学习新主题")
+
+
+def test_seeded_review_queue_shows_due_count_current_item_and_progress(
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    app = open_review(app_for_seeded(tmp_path, monkeypatch, "ui-review-queue.db"))
+    page = rendered_markdown(app)
+
+    assert not app.exception
+    assert "今日到期" in page
+    assert "本轮已完成" in page
+    assert "本轮任务总数" in page
+    assert "当前复习题" in page
+    assert "今日复习队列" in page
+    assert text_area_with_label(app, "你的复测回答")
+    assert button_with_label(app, "提交复测")
+    postpone = button_with_label(app, "延后复习")
+    assert postpone.disabled is True
+    assert "当前契约尚不支持手动延后" in app.caption[-1].value
+    queue_actions = [item for item in app.button if item.label in {"当前题", "开始这题"}]
+    assert len(queue_actions) == 3
+
+
+@pytest.mark.parametrize(
+    ("scenario", "outcome", "copy"),
+    [
+        ("strong", ReviewOutcome.CORRECT, "本次回答正确"),
+        ("partial", ReviewOutcome.PARTIAL, "本次回答仍不完整"),
+        ("misconception", ReviewOutcome.INCORRECT, "本次回答需要纠正"),
+    ],
+)
+def test_retest_outcomes_render_backend_feedback_and_reschedule(
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+    scenario: str,
+    outcome: ReviewOutcome,
+    copy: str,
+) -> None:
+    app = open_review(app_for_seeded(tmp_path, monkeypatch, f"ui-review-{scenario}.db"))
+    review_item_id = app.session_state["current_review_item_id"]
+    app = submit_review_scenario(app, scenario)
+    result = app.session_state["review_result"]
+    page = rendered_markdown(app)
+
+    assert not app.exception
+    assert result.status is ReviewAttemptStatus.SUCCEEDED
+    assert result.result is outcome
+    assert result.review_item.review_item_id == review_item_id
+    assert copy in page
+    assert "已经讲清楚" in page
+    assert "仍需补充" in page
+    assert "可能的误区" in page
+    assert "后端已重新安排下次复习" in app.success[0].value
+    assert button_with_label(app, "下一题")
+
+
+def test_successful_retest_advances_queue_and_persists_after_restart(
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    app = open_review(app_for_seeded(tmp_path, monkeypatch, "ui-review-persist.db"))
+    first_id = app.session_state["current_review_item_id"]
+    app = submit_review_scenario(app, "strong")
+
+    assert app.session_state["review_result"].review_item.interval_days == 3
+    app = button_with_label(app, "下一题").click().run(timeout=10)
+    assert not app.exception
+    assert app.session_state["current_review_item_id"] != first_id
+    assert len([item for item in app.button if item.label in {"当前题", "开始这题"}]) == 2
+
+    restarted = AppTest.from_file(APP_PATH).run(timeout=10)
+    restarted = open_review(restarted)
+    assert not restarted.exception
+    assert len([item for item in restarted.button if item.label in {"当前题", "开始这题"}]) == 2
+    assert first_id != restarted.session_state["current_review_item_id"]
+
+
+def test_failed_retest_keeps_answer_and_can_retry_without_duplicate_review(
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    answer = "这段复测回答必须在失败以后仍然完整保留。"
+    app = open_review(app_for_seeded(tmp_path, monkeypatch, "ui-review-retry.db"))
+    review_item_id = app.session_state["current_review_item_id"]
+    app = submit_review_scenario(app, "provider_timeout", answer=answer)
+
+    assert not app.exception
+    assert app.session_state["review_result"].status is ReviewAttemptStatus.FAILED
+    assert app.session_state[f"review_saved_answer_{review_item_id}"] == answer
+    assert answer in rendered_markdown(app)
+    assert "已经保存" in app.info[0].value
+    assert button_with_label(app, "使用已保存回答重试复测")
+
+    select_with_label(app, "重试复测场景").select("strong")
+    app = button_with_label(app, "使用已保存回答重试复测").click().run(timeout=10)
+    assert not app.exception
+    assert app.session_state["review_result"].status is ReviewAttemptStatus.SUCCEEDED
+    assert app.session_state["review_result"].review_item.attempt_count == 1
+    assert "后端已重新安排下次复习" in app.success[0].value
+
+    app = button_with_label(app, "下一题").click().run(timeout=10)
+    assert len([item for item in app.button if item.label in {"当前题", "开始这题"}]) == 2
+
+
+def test_review_item_can_be_marked_mastered_and_removed_from_queue(
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    app = open_review(app_for_seeded(tmp_path, monkeypatch, "ui-review-mastered.db"))
+    app = button_with_label(app, "标记已掌握").click().run(timeout=10)
+
+    assert not app.exception
+    assert "已标记为掌握" in app.success[0].value
+    assert len([item for item in app.button if item.label in {"当前题", "开始这题"}]) == 2
+
+
+def test_review_page_keeps_dark_theme_and_narrow_layout_contract(
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    app = open_review(app_for_seeded(tmp_path, monkeypatch, "ui-review-responsive.db"))
+    app = button_with_label(app, "浅色").click().run(timeout=10)
+    page = rendered_markdown(app)
+
+    assert not app.exception
+    assert app.session_state["ui_theme_mode"] is ThemeMode.DARK
+    assert ".review-result-grid { grid-template-columns: 1fr; }" in page
+    assert '.st-key-view-review [data-testid="stHorizontalBlock"]' in page
+    assert "当前复习题" in page

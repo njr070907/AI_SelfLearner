@@ -52,6 +52,18 @@ WRONG_ITEM_STATUS_LABELS = {
     "mastered": "已掌握",
 }
 
+REVIEW_OUTCOME_LABELS = {
+    "correct": "本次回答正确",
+    "partial": "本次回答仍不完整",
+    "incorrect": "本次回答需要纠正",
+}
+
+REVIEW_ATTEMPT_STATUS_LABELS = {
+    "succeeded": "复测完成",
+    "failed": "复测失败",
+    "invalid": "结果格式无效",
+}
+
 SEVERITY_LABELS = {
     "low": "轻微",
     "medium": "重要",
@@ -132,6 +144,21 @@ def wrong_item_status_label(value: str | Enum) -> str:
     normalized = _value(value)
     assert normalized is not None
     return WRONG_ITEM_STATUS_LABELS.get(normalized, normalized)
+
+
+def review_outcome_label(value: str | Enum | None) -> str:
+    """Localize the scheduling outcome returned by the review service."""
+    normalized = _value(value)
+    if normalized is None:
+        return "尚未复测"
+    return REVIEW_OUTCOME_LABELS.get(normalized, normalized)
+
+
+def review_attempt_status_label(value: str | Enum) -> str:
+    """Localize a retest attempt status without inferring success."""
+    normalized = _value(value)
+    assert normalized is not None
+    return REVIEW_ATTEMPT_STATUS_LABELS.get(normalized, normalized)
 
 
 def error_message(error_code: str | None) -> str:
