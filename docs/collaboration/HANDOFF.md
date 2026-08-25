@@ -35,6 +35,7 @@ uv sync --locked --all-groups
 uv run python -m ai_growth_companion.repositories.database migrate
 uv run python -m ai_growth_companion.application.health
 uv run pytest
+uv run python scripts/seed_fake_workspace.py --seed-name frontend-demo
 uv run python scripts/run_golden_eval.py --dry-run
 ```
 
@@ -80,6 +81,16 @@ uv run python scripts/run_golden_eval.py `
 1. 前端合作者 #33/#35/#37：接入 `SessionView`、`DiagnosisView`、`WrongItemView`、`ReviewQueueItemView` 和 `submit_follow_up`，优先使用 Fake fixtures；应用入口现在已通过组合根自动选择 Fake/固定 DeepSeek 模式。
 2. 继续现有的 #24–#26 Prompt v0.2 实验、20 条人工复核和校准报告；在 Fake 闭环稳定前不盲目扩大付费调用。
 3. 完成 #39 全链路集成、迁移/启动/错误恢复验收和至少一轮 7 天试用。
+
+### 前端本地演示数据
+
+如果需要一次性看到学习记录、知识状态、错题和到期复习项目，可以运行：
+
+```powershell
+uv run python scripts/seed_fake_workspace.py --seed-name frontend-demo
+```
+
+命令只使用 Fake Provider，不访问网络、不产生费用，也不删除已有数据。同一个 `--seed-name` 可以重复运行而不会重复创建记录；换一个名称会创建另一批演示数据。默认写入当前 `DATABASE_URL` 指向的 SQLite 数据库。
 
 ## 验收标准
 
