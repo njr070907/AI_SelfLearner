@@ -27,6 +27,9 @@ class EventType(StrEnum):
     FEEDBACK_SUBMITTED = "feedback_submitted"
     WRONG_ITEM_CREATED = "wrong_item_created"
     WRONG_ITEM_STATUS_UPDATED = "wrong_item_status_updated"
+    REVIEW_ITEM_CREATED = "review_item_created"
+    RETEST_SUBMITTED = "retest_submitted"
+    REVIEW_SCHEDULED = "review_scheduled"
 
 
 class LearningEvent(BaseModel):

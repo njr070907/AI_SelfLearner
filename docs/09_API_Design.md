@@ -167,6 +167,24 @@ Streamlit MVP 可直接调用 Application Service；本文定义稳定的应用�
 
 状态变更保留 `wrong_item_status_updated` 事件，支持幂等键；标记为 `mastered` 不删除原题、回答或诊断证据，也不直接改写 Mastery Protocol 的历史决定。
 
+## 10.2 复习与复测
+
+### `GET /api/v1/reviews/due?at=<ISO-8601>`
+
+返回到期的复习项目，默认按到期时间升序。初版调度间隔为可配置的 `1/3/7` 天；队列项目包含原错题、概念、题目、当前间隔、尝试次数和上次结果。
+
+### `POST /api/v1/reviews/{review_item_id}/retest`
+
+```json
+{
+  "answer_text": "我现在用新的情境解释……"
+}
+```
+
+成功复测按确定性规则推进间隔：正确进入下一个间隔，部分正确回到 3 天，错误回到 1 天；Provider 失败或输出无效只保留失败事件，不偷偷改变到期时间。请求必须支持幂等键。
+
+复测会保存 `retest_submitted` 和 `review_scheduled` 事件。复测结果是调度证据，不会绕过 Mastery Engine 直接把概念永久标记为掌握。
+
 ## 11. 错误格式
 
 ```json

@@ -48,3 +48,9 @@
 - GitHub 合作者主要负责前端 UI：Streamlit 页面、组件、交互、主题/响应式和页面验收；前端不直接访问 SQL 或 Provider，也不复制掌握度和复习规则。
 - 先通过 Fake fixtures 锁定 typed service models，再并行实现学习、错题、复习和进度页面；真实 `deepseek-v4-flash-vision-exp` 只在 Fake 闭环稳定后做小范围验证。
 - 完整自学 MVP 的范围、26–39 个工作日估算、GitHub Issues #31–#39 和停止条件记录在 `docs/roadmap/FULL_SELF_STUDY_MVP_PLAN.md`。
+
+## 2026-08-25 — 复习调度先采用可解释的 1/3/7 天规则
+
+- 错题成功生成后立即进入到期队列，初始间隔为 1 天；正确复测推进到下一个间隔，部分正确回到 3 天，错误回到 1 天。
+- Provider 失败或结构无效只记录复测失败，不改变原定到期时间；相同幂等键不会重复调用 Provider。
+- 复测调度是 Learning Policy 的可替换实现，不把一次正确复测等同于永久掌握；原始回答、观察和调度事件都保留。
