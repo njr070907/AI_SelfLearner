@@ -44,9 +44,35 @@ POINTER_GLOW_SNIPPET = """
         place(toolbar, lastX, lastY);
       }
       var hit = doc.elementFromPoint(lastX, lastY);
-      var button = hit ? hit.closest(".stMain button[kind='primary']") : null;
+      var button = hit ? hit.closest(".stMain button[kind^='primary']") : null;
       if (button) {
         place(button, lastX, lastY);
+      }
+      placeNavSlider();
+    };
+    var placeNavSlider = function () {
+      var list = doc.querySelector(".st-key-nav_list");
+      var slider = list ? list.querySelector(".nav-slider") : null;
+      var active = list
+        ? list.querySelector("[class*='st-key-nav_'] button[kind^='primary']")
+        : null;
+      if (!list || !slider || !active) {
+        return;
+      }
+      var listRect = list.getBoundingClientRect();
+      var activeRect = active.getBoundingClientRect();
+      var nextY = "translateY(" + (activeRect.top - listRect.top).toFixed(1) + "px)";
+      var nextH = activeRect.height.toFixed(1) + "px";
+      if (slider.style.transform !== nextY) {
+        slider.style.transform = nextY;
+      }
+      if (slider.style.height !== nextH) {
+        slider.style.height = nextH;
+      }
+      if (!list.classList.contains("nav-slider-ready")) {
+        win.requestAnimationFrame(function () {
+          list.classList.add("nav-slider-ready");
+        });
       }
     };
     var queue = function () {
@@ -63,7 +89,23 @@ POINTER_GLOW_SNIPPET = """
       },
       { passive: true }
     );
+    doc.addEventListener("pointerdown", queue, { passive: true });
+    doc.addEventListener("focusin", queue, { passive: true });
     doc.addEventListener("scroll", queue, { passive: true });
+    win.addEventListener("resize", queue, { passive: true });
+    /* Streamlit reruns flip the selected nav button without any pointer event;
+       watch the sidebar so the slider always follows the newest selection. */
+    var sidebar = doc.querySelector("[data-testid='stSidebar']") || doc.body;
+    var observer = new win.MutationObserver(function () {
+      queue();
+    });
+    observer.observe(sidebar, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["kind", "class", "style"],
+    });
+    queue();
   } catch (err) {
     /* The glow is decorative; any failure keeps the default static chrome. */
   }

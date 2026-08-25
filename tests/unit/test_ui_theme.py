@@ -2,6 +2,7 @@
 
 import pytest
 
+from ai_growth_companion.ui.motion import POINTER_GLOW_SNIPPET
 from ai_growth_companion.ui.state import AccentTheme, ThemeMode, UiPreferences
 from ai_growth_companion.ui.theme import APP_CSS, design_system_css, token_css
 
@@ -110,6 +111,35 @@ def test_motion_language_covers_stagger_expand_and_glow_contracts() -> None:
     assert "transition-all" not in css
     assert "animation: fade" not in css
     assert "@keyframes view-enter " not in css
+
+
+def test_popover_animation_never_touches_the_positioning_transform() -> None:
+    css = design_system_css(preferences())
+
+    assert "translate: 0 -4px" in css
+    assert "translate: 0 0" in css
+    assert "scale: .985" in css
+    # view-pop must not end at transform: none, which would wipe the
+    # inline transform react-aria uses to anchor the dropdown.
+    assert "to { opacity: 1; transform: none; }" not in css.split("view-pop")[1][:200]
+
+
+def test_navigation_slider_and_dark_contrast_contracts() -> None:
+    css = design_system_css(preferences())
+
+    assert ".st-key-nav_list" in css
+    assert ".nav-slider" in css
+    assert "nav-slider-ready" in css
+    assert "input::placeholder" in css
+    assert ".st-key-app_toolbar svg" in css
+    assert "transition: color var(--motion-normal) var(--ease)" in css
+
+
+def test_pointer_glow_covers_form_submits_and_nav_slider() -> None:
+    assert "button[kind^='primary']" in POINTER_GLOW_SNIPPET
+    assert "placeNavSlider" in POINTER_GLOW_SNIPPET
+    assert "nav-slider-ready" in POINTER_GLOW_SNIPPET
+    assert "MutationObserver" in POINTER_GLOW_SNIPPET
 
 
 def test_toolbar_styles_current_react_aria_select_without_streamlit_defaults() -> None:

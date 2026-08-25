@@ -154,8 +154,9 @@ APP_CSS = """
   to { opacity: 1; transform: none; }
 }
 @keyframes view-pop {
-  from { opacity: 0; transform: translateY(-4px) scale(.985); }
-  to { opacity: 1; transform: none; }
+  /* Individual translate/scale keep react-aria's inline transform positioning intact. */
+  from { opacity: 0; translate: 0 -4px; scale: .985; }
+  to { opacity: 1; translate: 0 0; scale: 1; }
 }
 [class*="st-key-view-"] > * {
   animation: view-rise var(--motion-page) var(--ease-emphasized) both;
@@ -171,7 +172,10 @@ html, body, [class*="css"] {
     "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
 }
 html { background: var(--canvas); color-scheme: var(--color-scheme); }
-body { color: var(--ink); }
+body { color: var(--ink); transition: color var(--motion-normal) var(--ease); }
+/* Toolbar icons follow the semantic ink tokens instead of hardcoded grays,
+   keeping them readable in both themes. */
+.st-key-app_toolbar svg { color: var(--ink-soft); fill: currentColor; }
 html { scrollbar-color: color-mix(in srgb, var(--ink-muted) 38%, transparent) transparent; }
 [data-testid="stAppViewContainer"] ::-webkit-scrollbar { width: 10px; height: 10px; }
 [data-testid="stAppViewContainer"] ::-webkit-scrollbar-thumb {
@@ -286,6 +290,36 @@ html { scrollbar-color: color-mix(in srgb, var(--ink-muted) 38%, transparent) tr
   color: var(--accent);
   box-shadow: inset 0 1px 0 color-mix(in srgb, var(--accent-contrast) 26%, transparent),
     0 8px 22px color-mix(in srgb, var(--glow-hover) 36%, transparent);
+}
+
+/* One selection capsule that travels between nav items instead of swapping backgrounds. */
+.st-key-nav_list { position: relative; }
+.st-key-nav_list button { position: relative; z-index: 1; }
+.nav-slider {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 44px;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+.st-key-nav_list.nav-slider-ready .nav-slider {
+  opacity: 1;
+  border-color: color-mix(in srgb, var(--accent) 22%, var(--line));
+  background: var(--accent-soft-strong);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--accent-contrast) 26%, transparent),
+    0 8px 22px color-mix(in srgb, var(--glow-hover) 36%, transparent);
+  transition: transform var(--motion-normal) var(--ease-emphasized),
+    height var(--motion-normal) var(--ease-emphasized), opacity var(--motion-fast) var(--ease);
+}
+.st-key-nav_list.nav-slider-ready [class*="st-key-nav_"] button[kind="primary"] {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
 }
 [class*="st-key-nav_"] button p,
 .st-key-sidebar_toggle button p {
@@ -701,6 +735,10 @@ input:focus-visible, textarea:focus-visible, [role="combobox"]:focus-visible {
   box-shadow: 0 0 0 3px var(--focus-ring) !important;
 }
 input, textarea { color: var(--ink) !important; caret-color: var(--accent); }
+input::placeholder, textarea::placeholder {
+  color: var(--ink-muted) !important;
+  opacity: 1;
+}
 [data-testid="stExpander"] {
   overflow: hidden;
   border-color: var(--line);
