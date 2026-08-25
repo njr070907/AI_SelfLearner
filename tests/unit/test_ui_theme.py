@@ -82,16 +82,34 @@ def test_motion_system_has_tokens_view_transitions_and_pointer_glow() -> None:
         "--motion-fast",
         "--motion-normal",
         "--motion-page",
+        "--motion-expand",
         "--motion-press",
         "--ease-standard",
         "--ease-emphasized",
     ):
         assert token in css
-    assert "@keyframes view-enter" in css
+    assert "@keyframes view-enter-soft {" in css
     assert '[class*="st-key-view-"]' in css
     assert "--glow-x" in css
     assert ".st-key-app_toolbar:hover::after" in css
     assert css.count("@media (hover: hover) and (pointer: fine)") >= 2
+
+
+def test_motion_language_covers_stagger_expand_and_glow_contracts() -> None:
+    css = design_system_css(preferences())
+
+    assert "@keyframes view-rise" in css
+    assert '[class*="st-key-view-"] > :nth-child(2)' in css
+    assert "animation-delay: 160ms" in css
+    assert "@keyframes view-pop" in css
+    assert '[data-testid="stSelectboxVirtualDropdown"]' in css
+    assert "::details-content" in css
+    assert "interpolate-size: allow-keywords" in css
+    assert "animation-delay: .01ms" in css
+    assert 'button[kind="primary"]:not(:disabled):hover::after' in css
+    assert "transition-all" not in css
+    assert "animation: fade" not in css
+    assert "@keyframes view-enter " not in css
 
 
 def test_toolbar_styles_current_react_aria_select_without_streamlit_defaults() -> None:

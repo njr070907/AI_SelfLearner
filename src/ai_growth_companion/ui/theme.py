@@ -131,28 +131,40 @@ APP_CSS = """
   --radius-panel: 20px;
   --radius-control: 12px;
   --radius-small: 9px;
-  --motion-fast: 140ms;
-  --motion-normal: 200ms;
-  --motion-page: 300ms;
+  --motion-fast: 160ms;
+  --motion-normal: 240ms;
+  --motion-page: 340ms;
+  --motion-expand: 320ms;
   --motion-press: 90ms;
   --ease-standard: cubic-bezier(.22, .8, .25, 1);
-  --ease-emphasized: cubic-bezier(.16, 1, .3, 1);
+  --ease-emphasized: cubic-bezier(.32, .72, 0, 1);
   --ease: var(--ease-standard);
   --sidebar-width: 268px;
+  interpolate-size: allow-keywords;
 }
 
-/* One shared motion language: views fade in and rise gently, never flash. */
-@keyframes view-enter {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: none; }
-}
+/* One shared motion language: content rises softly and settles in layers.
+   The container itself stays still; children carry the staggered entrance. */
 @keyframes view-enter-soft {
   from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: none; }
 }
-[class*="st-key-view-"] {
-  animation: view-enter var(--motion-page) var(--ease-emphasized) both;
+@keyframes view-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
 }
+@keyframes view-pop {
+  from { opacity: 0; transform: translateY(-4px) scale(.985); }
+  to { opacity: 1; transform: none; }
+}
+[class*="st-key-view-"] > * {
+  animation: view-rise var(--motion-page) var(--ease-emphasized) both;
+}
+[class*="st-key-view-"] > :nth-child(2) { animation-delay: 40ms; }
+[class*="st-key-view-"] > :nth-child(3) { animation-delay: 80ms; }
+[class*="st-key-view-"] > :nth-child(4) { animation-delay: 120ms; }
+[class*="st-key-view-"] > :nth-child(5) { animation-delay: 160ms; }
+[class*="st-key-view-"] > :nth-child(n + 6) { animation-delay: 160ms; }
 
 html, body, [class*="css"] {
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
@@ -621,12 +633,32 @@ p, li { color: var(--ink-soft); }
 }
 .stMain .stButton button[kind="primary"],
 .stMain .stFormSubmitButton button[kind^="primary"] {
+  position: relative;
+  overflow: hidden;
   border-color: color-mix(in srgb, var(--accent) 72%, transparent);
   background: linear-gradient(112deg, var(--accent), var(--accent-secondary));
   color: var(--accent-contrast);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .32),
     0 3px 10px color-mix(in srgb, var(--glow-hover) 40%, transparent);
 }
+/* Same pointer-aware light as the toolbar, derived from the live accent. */
+.stMain .stButton button[kind="primary"]::after,
+.stMain .stFormSubmitButton button[kind^="primary"]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    130px circle at var(--glow-x, 50%) var(--glow-y, 120%),
+    color-mix(in srgb, var(--accent-contrast) 30%, transparent),
+    transparent 72%
+  );
+  opacity: 0;
+  transition: opacity var(--motion-normal) var(--ease);
+  pointer-events: none;
+}
+.stMain .stButton button[kind="primary"]:not(:disabled):hover::after,
+.stMain .stFormSubmitButton button[kind^="primary"]:not(:disabled):hover::after { opacity: 1; }
 .stMain .stButton button[kind="primary"] p,
 .stMain .stFormSubmitButton button[kind^="primary"] p { color: var(--accent-contrast) !important; }
 @media (hover: hover) and (pointer: fine) {
@@ -674,6 +706,22 @@ input, textarea { color: var(--ink) !important; caret-color: var(--accent); }
   border-color: var(--line);
   border-radius: 15px;
   background: var(--surface-solid);
+}
+/* Unfold like a soft-cover folder: geometry leads, content gently follows. */
+[data-testid="stExpander"] details::details-content {
+  block-size: 0;
+  overflow: clip;
+  transition:
+    block-size var(--motion-expand) var(--ease-emphasized),
+    content-visibility var(--motion-expand) allow-discrete;
+}
+[data-testid="stExpander"] details[open]::details-content { block-size: auto; }
+[data-testid="stExpander"] details[open] [data-testid="stExpanderDetails"] {
+  animation: view-enter-soft var(--motion-expand) var(--ease-standard) 40ms both;
+}
+[data-testid="stSelectboxVirtualDropdown"] {
+  animation: view-pop var(--motion-fast) var(--ease-standard) both;
+  transform-origin: top;
 }
 [data-testid="stAlert"] { border-radius: 15px; }
 
@@ -778,7 +826,9 @@ input, textarea { color: var(--ink) !important; caret-color: var(--accent); }
   *, *::before, *::after {
     scroll-behavior: auto !important;
     transition-duration: .01ms !important;
+    transition-delay: .01ms !important;
     animation-duration: .01ms !important;
+    animation-delay: .01ms !important;
     animation-iteration-count: 1 !important;
   }
 }
