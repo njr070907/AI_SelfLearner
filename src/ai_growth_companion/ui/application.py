@@ -11,6 +11,7 @@ from ai_growth_companion.application.learning_service import LearningService
 from ai_growth_companion.application.models import DiagnosisView, HistoryItem
 from ai_growth_companion.config import Settings
 from ai_growth_companion.domain.session import InputValidationError, InvalidSessionState
+from ai_growth_companion.providers.fake import FakeScenario
 from ai_growth_companion.ui.motion import render_pointer_glow
 from ai_growth_companion.ui.presentation import (
     SCENARIO_LABELS,
@@ -42,7 +43,15 @@ def render_application(
     preferences = current_preferences()
     apply_design_system(preferences)
     page = str(st.session_state.active_page)
-    render_sidebar(preferences=preferences, active_page=page, navigate=_navigate)
+    provider_label = "Fake Provider" if settings.is_fake_mode else "DeepSeek Provider"
+    provider_detail = "本地模式 · 零 API 费用" if settings.is_fake_mode else "固定模型 · 按次调用"
+    render_sidebar(
+        preferences=preferences,
+        active_page=page,
+        navigate=_navigate,
+        provider_label=provider_label,
+        provider_detail=provider_detail,
+    )
     search_query = render_top_toolbar(active_page=page, preferences=preferences)
     render_search_results(
         history=service.list_history(),
@@ -55,7 +64,7 @@ def render_application(
         if page == "今日":
             _render_today(service)
         elif page == "学习":
-            _render_learning_flow(service)
+            _render_learning_flow(service, settings=settings)
         elif page == "进度":
             _render_progress(service)
         else:
@@ -125,7 +134,7 @@ def _render_today(service: LearningService) -> None:
         _history_row(item)
 
 
-def _render_learning_flow(service: LearningService) -> None:
+def _render_learning_flow(service: LearningService, *, settings: Settings) -> None:
     if "current_session_id" not in st.session_state:
         _render_start_form(service)
         return
@@ -156,7 +165,7 @@ def _render_learning_flow(service: LearningService) -> None:
     result = st.session_state.get("last_diagnosis")
     if isinstance(result, DiagnosisView):
         _render_diagnosis(result)
-        _render_result_actions(service, result)
+        _render_result_actions(service, result, settings=settings)
         return
 
     with st.form("answer-form"):
@@ -166,12 +175,19 @@ def _render_learning_flow(service: LearningService) -> None:
             height=220,
             placeholder="例如：它是什么、为什么有效、在什么情况下不成立……",
         )
-        with st.expander("测试不同诊断结果（仅 Fake Provider）"):
-            scenario = st.selectbox(
-                "诊断场景",
-                options=list(SCENARIO_LABELS),
-                format_func=SCENARIO_LABELS.__getitem__,
-                help="只控制本地 Fake Provider 的固定返回，不会访问任何真实模型。",
+        scenario = FakeScenario.PARTIAL
+        if settings.is_fake_mode:
+            with st.expander("测试不同诊断结果（仅 Fake Provider）"):
+                scenario = st.selectbox(
+                    "诊断场景",
+                    options=list(SCENARIO_LABELS),
+                    format_func=SCENARIO_LABELS.__getitem__,
+                    help="只控制本地 Fake Provider 的固定返回，不会访问任何真实模型。",
+                )
+        else:
+            st.caption(
+                "当前使用 DeepSeek `deepseek-v4-flash-vision-exp` 进行结构化证据提取；"
+                "不会显示 Fake 场景，也不会自动重试。"
             )
         submitted = st.form_submit_button("提交解释并查看诊断", type="primary")
 
@@ -307,14 +323,26 @@ def _render_diagnosis(result: DiagnosisView) -> None:
         )
 
 
-def _render_result_actions(service: LearningService, result: DiagnosisView) -> None:
+def _render_result_actions(
+    service: LearningService,
+    result: DiagnosisView,
+    *,
+    settings: Settings,
+) -> None:
     if result.retryable:
-        retry_scenario = st.selectbox(
-            "重试时使用的 Fake 场景",
-            options=list(SCENARIO_LABELS),
-            index=0,
-            format_func=SCENARIO_LABELS.__getitem__,
-        )
+        retry_scenario = FakeScenario.PARTIAL
+        if settings.is_fake_mode:
+            retry_scenario = st.selectbox(
+                "重试时使用的 Fake 场景",
+                options=list(SCENARIO_LABELS),
+                index=0,
+                format_func=SCENARIO_LABELS.__getitem__,
+            )
+        else:
+            st.caption(
+                "真实模式重试仍使用固定 DeepSeek 模型；系统不会自动重试，"
+                "只有你点击下面的按钮才会再次请求。"
+            )
         if st.button("使用已保存的解释重试", type="primary"):
             try:
                 st.session_state.last_diagnosis = service.retry(
@@ -443,11 +471,12 @@ def _render_system_status(*, settings: Settings, health_report: HealthReport) ->
         unsafe_allow_html=True,
     )
 
+    provider_label = "Fake Provider" if settings.is_fake_mode else "DeepSeek Provider"
     states = (
         ("应用进程", health_report.liveness.detail, health_report.liveness.state),
         ("SQLite 数据库", health_report.readiness.detail, health_report.readiness.state),
         (
-            "Fake Provider",
+            provider_label,
             health_report.provider_dependency.detail,
             health_report.provider_dependency.state,
         ),
@@ -476,7 +505,13 @@ def _render_system_status(*, settings: Settings, health_report: HealthReport) ->
         f"{'开启' if settings.log_content_enabled else '关闭'} / "
         f"{'开启' if settings.telemetry_enabled else '关闭'}"
     )
-    st.caption("当前仅使用 Fake Provider，不访问外部模型，不产生 API 费用。")
+    if settings.is_fake_mode:
+        st.caption("当前仅使用 Fake Provider，不访问外部模型，不产生 API 费用。")
+    else:
+        st.caption(
+            "当前使用固定 DeepSeek 模型进行证据提取；每次调用都由你的提交操作触发，"
+            "系统不会自动重试。"
+        )
 
 
 def _history_row(item: HistoryItem) -> None:

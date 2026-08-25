@@ -22,6 +22,18 @@ def app_for(tmp_path: Path, monkeypatch: MonkeyPatch, name: str) -> AppTest:
     return AppTest.from_file(APP_PATH).run(timeout=10)
 
 
+def app_for_real_provider(tmp_path: Path, monkeypatch: MonkeyPatch, name: str) -> AppTest:
+    database_url = f"sqlite:///{(tmp_path / name).as_posix()}"
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    monkeypatch.setenv("LLM_PROVIDER", "deepseek")
+    monkeypatch.setenv("LLM_MODEL", "deepseek-v4-flash-vision-exp")
+    monkeypatch.setenv("LLM_API_KEY", "synthetic-key")
+    monkeypatch.setenv("LLM_PAID_CALLS_ALLOWED", "true")
+    load_settings.cache_clear()
+    run_migrations(Database(database_url))
+    return AppTest.from_file(APP_PATH).run(timeout=10)
+
+
 def rendered_markdown(app: AppTest) -> str:
     return "\n".join(item.value for item in app.markdown)
 
@@ -169,6 +181,26 @@ def test_theme_accent_and_sidebar_controls_update_ui_state(
     collapse = next(item for item in app.sidebar.button if item.key == "sidebar_toggle")
     app = collapse.click().run(timeout=10)
     assert app.session_state["ui_sidebar_collapsed"] is True
+
+
+def test_real_provider_mode_hides_fake_controls_and_reports_deepseek(
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    app = app_for_real_provider(tmp_path, monkeypatch, "ui-real-provider.db")
+
+    app = open_learn(app)
+    assert not any(item.label == "诊断场景" for item in app.selectbox)
+    assert "deepseek-v4-flash-vision-exp" not in rendered_markdown(app)
+
+    app = (
+        next(item for item in app.sidebar.button if item.key == "nav_system")
+        .click()
+        .run(timeout=10)
+    )
+    page = rendered_markdown(app)
+    assert "DeepSeek Provider" in page
+    assert "当前仅使用 Fake Provider" not in page
 
 
 def test_search_filters_real_history_and_opens_progress(

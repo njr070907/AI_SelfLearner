@@ -34,6 +34,8 @@ def render_sidebar(
     preferences: UiPreferences,
     active_page: str,
     navigate: Callable[[str], None],
+    provider_label: str = "Fake Provider",
+    provider_detail: str = "本地模式 · 零 API 费用",
 ) -> None:
     """Render a capsule-style sidebar with a stable icon-only mode."""
     with st.sidebar:
@@ -78,8 +80,8 @@ def render_sidebar(
                 )
         st.markdown(
             '<div class="sidebar-status"><span class="status-dot"></span>'
-            '<span class="sidebar-status-copy">Fake Provider 已就绪<br>'
-            "本地模式 · 零 API 费用</span></div>",
+            f'<span class="sidebar-status-copy">{escape(provider_label)} 已就绪<br>'
+            f"{escape(provider_detail)}</span></div>",
             unsafe_allow_html=True,
         )
 
