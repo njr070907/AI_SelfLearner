@@ -5,6 +5,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
+from ai_growth_companion.domain.events import ConceptState
 from ai_growth_companion.domain.feedback import FeedbackVerdict
 from ai_growth_companion.domain.review import ReviewAttemptStatus, ReviewItemStatus, ReviewOutcome
 from ai_growth_companion.domain.wrong_items import WrongItemStatus, WrongItemType
@@ -130,3 +131,12 @@ class FeedbackView(ViewModel):
     verdict: FeedbackVerdict
     note: str | None
     created_at: datetime
+
+
+class WorkspaceSnapshot(ViewModel):
+    """One read model for the home, progress, wrong-item, and review pages."""
+
+    history: tuple[HistoryItem, ...]
+    concept_states: tuple[ConceptState, ...]
+    wrong_items: tuple[WrongItemView, ...]
+    review_queue: tuple[ReviewQueueItemView, ...]

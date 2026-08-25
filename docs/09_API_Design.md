@@ -14,6 +14,8 @@ Streamlit MVP 可直接调用 Application Service；本文定义稳定的应用�
 
 Provider 选择由后端工厂统一控制：Fake 模式免费且默认；真实模式目前只允许固定模型 `deepseek-v4-flash-vision-exp`，必须显式传入付费调用许可。真实模式仍使用本地 Fake 题目生成器，DeepSeek 只负责结构化证据提取；失败时沿用可恢复诊断状态，不自动重试。
 
+前端页面可以通过 Application Service 的 `get_workspace_snapshot(now, limit)` 获取一致的工作区读模型，一次返回 `history`、`concept_states`、`wrong_items` 和 `review_queue`。它只是组合读取，不新增业务判断；各页面仍应展示后端已经计算的状态和动作。
+
 ## 3. 创建会话
 
 ### `POST /api/v1/sessions`
