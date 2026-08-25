@@ -6,6 +6,8 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from ai_growth_companion.domain.feedback import ConceptTrend
+
 LOCAL_USER_ID = "00000000-0000-4000-8000-000000000001"
 
 
@@ -63,4 +65,13 @@ class ConceptState(BaseModel):
     evidence_ids: list[str]
     latest_event_id: str | None = None
     protocol_version: str = Field(min_length=1)
+    trend: ConceptTrend = ConceptTrend.INSUFFICIENT_DATA
+    score_delta: int = 0
+    wrong_item_count: int = Field(default=0, ge=0)
+    open_wrong_item_count: int = Field(default=0, ge=0)
+    feedback_count: int = Field(default=0, ge=0)
+    feedback_inaccurate_count: int = Field(default=0, ge=0)
+    review_attempt_count: int = Field(default=0, ge=0)
+    review_success_count: int = Field(default=0, ge=0)
+    repeated_misconceptions: list[str] = Field(default_factory=list)
     updated_at: datetime = Field(default_factory=utc_now)

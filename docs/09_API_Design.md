@@ -99,7 +99,7 @@ Streamlit MVP 可直接调用 Application Service；本文定义稳定的应用�
 }
 ```
 
-服务应先保存回答与 pending diagnosis，再调用模型；失败时返回可恢复状态。应用层返回的 `SessionView` 包含 `answer_count` 和 `can_submit_follow_up`，`DiagnosisView` 包含 `answer_type` 和 `sequence_no`，供 Streamlit 或未来 API 客户端稳定消费。
+服务应先保存回答与 pending diagnosis，再调用模型；失败时返回可恢复状态。应用层返回的 `SessionView` 包含 `answer_count` 和 `can_submit_follow_up`，`DiagnosisView` 包含 `diagnosis_id`、`answer_type` 和 `sequence_no`，供 Streamlit 或未来 API 客户端稳定消费。
 
 ## 6. 获取会话
 
@@ -115,11 +115,11 @@ Streamlit MVP 可直接调用 Application Service；本文定义稳定的应用�
 
 ### `GET /api/v1/knowledge-states`
 
-返回用户各概念的掌握等级、置信度、证据数与更新时间。
+返回用户各概念的当前掌握等级、置信度、证据数、趋势、分数变化、开放薄弱项数量、反馈数量与更新时间。它是可重算投影，不替代事件历史。
 
 ### `GET /api/v1/knowledge-states/{concept_id}`
 
-返回当前状态、历史可比记录和误区统计。样本不足时 `trend` 为 `insufficient_data`。
+返回当前状态、历史可比记录和误区统计。状态还包含 `trend`（`improving`/`stable`/`declining`/`insufficient_data`）、`score_delta`、`wrong_item_count`、`open_wrong_item_count`、`feedback_count`、`feedback_inaccurate_count`、`review_attempt_count`、`review_success_count` 和最多 5 条重复误区摘要。样本不足时 `trend` 为 `insufficient_data`。
 
 ## 8. 诊断反馈
 
@@ -127,12 +127,12 @@ Streamlit MVP 可直接调用 Application Service；本文定义稳定的应用�
 
 ```json
 {
-  "rating": "partial",
-  "comment": "遗漏判断正确，但我理解梯度方向。"
+  "verdict": "partial",
+  "note": "遗漏判断正确，但我理解梯度方向。"
 }
 ```
 
-反馈用于模型评估和状态置信度更新，不能直接改写原诊断。
+反馈会保存为 `diagnosis_feedback` 记录和 `feedback_submitted` 事件，支持 `Idempotency-Key`；`accurate`、`partial`、`inaccurate` 均不会直接改写原诊断，`inaccurate` 可作为用户纠正事件参与长期状态统计。原始回答、证据和模型版本始终保留。
 
 ## 9. 重试
 
