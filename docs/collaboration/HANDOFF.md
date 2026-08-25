@@ -2,22 +2,27 @@
 
 这份手册是当前阶段的“从哪里开始”说明。它服务于 Sprint 1 的 Mastery Protocol 实验，不要求新协作者重新阅读全部历史聊天记录。
 
-## 当前基线（2026-08-24）
+## 当前基线（2026-08-25）
 
-- `main` 已通过必需 CI，工程链路包括启动、迁移、Fake Provider、严格 Schema、事件历史、Mastery Engine、Learning Policy 和端到端假闭环。
+- `main` 已通过必需 CI，工程链路包括启动、迁移、Fake Provider、严格 Schema、事件历史、Mastery Engine、Learning Policy、端到端假闭环和第一版 Liquid Glass 学习工作区 UI。
 - 评测集包含 20 个高等数学案例，最新完整真实运行的结构化结果为 20/20 成功；多次完整运行的自动通过数在 16–19/20 之间。
 - 每条真实结果仍标记为“需要人工语义复核”。当前结论是：接口和数据管道稳定，但 Prompt v0.1 的语义判断存在波动，不能把自动通过数当作掌握度结论。
 - 真实 Provider 必须使用 `deepseek-v4-flash-vision-exp`。没有新的实验设计前，不要盲目重复完整付费运行。
-- 当前恢复点是：设计并执行 Prompt v0.2 的小范围、可比较实验，然后再决定是否扩大到完整 20 条。
+- UI v1 已在 PR #28–#29 合并，Prompt v0.2 候选版本在 PR #30 合并但仍需实验验证；当前离线回归为 122 个测试通过。
+- 完整自学 MVP 目前约完成 35%–45%；工程底座约完成 80%–90%，还需要补齐教学、错题、复习、长期状态和 7 天试用闭环。
+- 完整阶段、时间估算、停止条件和前后端边界见 [完整自学 MVP 开发计划](../roadmap/FULL_SELF_STUDY_MVP_PLAN.md)。
 
 ## 谁负责什么
 
 | 角色 | 责任 |
 | --- | --- |
-| 产品/协议负责人（仓库所有者） | 定义“掌握”的产品标准，确认人工复核结论，批准 Prompt/Schema/协议方向 |
-| 实现协作者 | 在短分支上完成一个 Issue，补测试、文档和可回滚实现，提交 PR |
+| 产品/协议负责人（仓库所有者） | 定义“掌握”的产品标准，确认人工复核结论，批准 Prompt/Schema/协议方向，验收学习体验 |
+| 当前 Codex（后端/学习核心） | 负责数据模型、迁移、事件历史、Mastery Engine、Learning Policy、Provider、服务契约、测试和 CI |
+| GitHub 合作者（前端 UI） | 负责 Streamlit 页面、组件、交互、主题/响应式、加载/空/错误状态和 UI 验收；使用服务契约，不直接写 SQL 或业务规则 |
 | 独立复核者 | 检查数学语义、证据是否足够、是否把模型输出误当最终裁判 |
 | CI | 自动检查密钥、格式、lint、测试、迁移和启动；CI 通过不等于语义实验通过 |
+
+前后端以 typed service models 协作。后端先提供 Fake fixtures，前端可以无 API Key 并行开发；需要增加字段时，先改服务契约和测试，再改页面。Provider 只是证据传感器，长期状态只能由 Mastery Engine 和 Learning Policy 计算。完整分阶段计划见 [完整自学 MVP 开发计划](../roadmap/FULL_SELF_STUDY_MVP_PLAN.md)。
 
 ## 新成员首次操作
 
@@ -70,9 +75,9 @@ uv run python scripts/run_golden_eval.py `
 
 ## 当前优先工作
 
-1. Prompt v0.2：在不改变结构化输出协议的前提下，减少 strong/partial/misconception 等语义误判，并用固定案例比较 Prompt v0.1 与 v0.2。
-2. 20 条真实结果人工复核：记录 `judgement`、证据充分性、错误概念和推荐动作是否符合量表。
-3. 评测报告与校准规则：把“自动通过”“人工通过”“需要复核”分开统计，不能只报一个百分比。
+1. #31：锁定完整自学 MVP 范围、事件命名和教学/错题/复习服务契约。
+2. 后端 #32：实现教学闭环；前端合作者 #33：接入学习教学页面，优先使用 Fake fixtures。
+3. 继续现有的 #24–#26 Prompt v0.2 实验、20 条人工复核和校准报告；在 Fake 闭环稳定前不盲目扩大付费调用。
 
 ## 验收标准
 
@@ -91,6 +96,8 @@ uv run python scripts/run_golden_eval.py `
 - [架构决策](../../DECISIONS.md)
 - [评测说明](../../evals/README.md)
 - [Mastery Protocol](../mastery-protocol/README.md)
+- [完整自学 MVP 开发计划](../roadmap/FULL_SELF_STUDY_MVP_PLAN.md)
+- [GitHub MVP Issues #31–#39](https://github.com/njr070907/AI_SelfLearner/issues?q=is%3Aissue+label%3Aenhancement)
 
 ## 恢复位置
 

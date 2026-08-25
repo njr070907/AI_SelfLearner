@@ -2,12 +2,12 @@
 
 ## 当前里程碑
 
-Sprint 1：用真实 Provider 验证 `evaluator-v0.1` 能否区分充分理解、部分理解、明确误区和证据不足；并行完善可验证的学习工作区 UI。
+Sprint 1：用真实 Provider 验证 `evaluator-v0.1` 能否区分充分理解、部分理解、明确误区和证据不足；并行把学习工作区扩展成完整自学 MVP。
 
 ## 当前状态
 
 - 分支：`main`
-- 任务：DeepSeek `deepseek-v4-flash-vision-exp` 的完整 20 案例真实评估基线已完成；接口适配、JSON 防护、失败诊断、GitHub 协作者交接和 UI v1 已完成，当前进入 Prompt v0.2 语义稳定性实验与 UI 手工验收。
+- 任务：DeepSeek `deepseek-v4-flash-vision-exp` 的完整 20 案例真实评估基线已完成；接口适配、JSON 防护、失败诊断、GitHub 协作者交接和 UI v1 已完成。完整自学 MVP 计划已写入 `docs/roadmap/FULL_SELF_STUDY_MVP_PLAN.md`，GitHub Issues #31–#39 已建立；当前先锁定服务契约，再实现教学闭环。
 - 约束：默认 Fake；真实运行必须显式确认；每个案例零重试；任何成功结果仍需人工语义复核。
 
 ## 最近验证
@@ -23,10 +23,12 @@ Sprint 1：用真实 Provider 验证 `evaluator-v0.1` 能否区分充分理解�
 
 ## Resume Point
 
-当前代码链路和 UI v1 已合并；Prompt v0.2 候选版本已经可以通过 `--prompt-version v0.2` 做零成本 dry-run。下一步是完成 UI 手工验收、逐条复核 20 条语义结果，并用固定案例设计 v0.1/v0.2 对照实验；在新实验方案确定前不再重复完整付费回归。
+当前代码链路和 UI v1 已合并；Prompt v0.2 候选版本已经可以通过 `--prompt-version v0.2` 做零成本 dry-run。完整自学 MVP 的下一步是完成 #31 服务契约、#32 教学后端和 #33 学习页；Prompt 实验与 UI 手工验收并行推进，在新实验方案确定前不再重复完整付费回归。
 
 GitHub 工作项：
 
 - [Prompt v0.2 语义稳定性实验](https://github.com/njr070907/AI_SelfLearner/issues/24)
 - [20 条黄金案例人工复核](https://github.com/njr070907/AI_SelfLearner/issues/25)
 - [自动结果与人工结论校准报告](https://github.com/njr070907/AI_SelfLearner/issues/26)
+- [完整自学 MVP 计划](https://github.com/njr070907/AI_SelfLearner/blob/main/docs/roadmap/FULL_SELF_STUDY_MVP_PLAN.md)
+- [完整自学 MVP 工作项 #31–#39](https://github.com/njr070907/AI_SelfLearner/issues?q=is%3Aissue+label%3Aenhancement)

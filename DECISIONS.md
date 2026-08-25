@@ -41,3 +41,10 @@
 - 新增 `evaluator-v0.2` 候选 Prompt，继续输出 `provider-observation-v0.1`，重点改为逐 `coverage_points` 内部检查，减少额外 gap、重复 gap 和把孤立公式当作正向证据。
 - CLI 通过 `--prompt-version v0.2` 显式选择候选版本；默认仍使用 `v0.1`，运行记录保存 Prompt 版本和内容哈希。
 - 先完成 Fake/dry-run 和固定案例对照设计，再决定是否进行真实 DeepSeek 调用；不因候选版本已经能渲染就宣称语义质量已改善。
+
+## 2026-08-25 — 完整自学 MVP 采用前后端分工
+
+- 当前 Codex 负责后端与学习核心：数据模型、事件历史、Mastery Engine、Learning Policy、Provider、服务契约、测试和 CI。
+- GitHub 合作者主要负责前端 UI：Streamlit 页面、组件、交互、主题/响应式和页面验收；前端不直接访问 SQL 或 Provider，也不复制掌握度和复习规则。
+- 先通过 Fake fixtures 锁定 typed service models，再并行实现学习、错题、复习和进度页面；真实 `deepseek-v4-flash-vision-exp` 只在 Fake 闭环稳定后做小范围验证。
+- 完整自学 MVP 的范围、26–39 个工作日估算、GitHub Issues #31–#39 和停止条件记录在 `docs/roadmap/FULL_SELF_STUDY_MVP_PLAN.md`。
