@@ -46,6 +46,10 @@ def input_with_label(app: AppTest, label: str):  # type: ignore[no-untyped-def]
     return next(item for item in app.text_input if item.label == label)
 
 
+def text_area_with_label(app: AppTest, label: str):  # type: ignore[no-untyped-def]
+    return next(item for item in app.text_area if item.label == label)
+
+
 def select_with_label(app: AppTest, label: str):  # type: ignore[no-untyped-def]
     return next(item for item in app.selectbox if item.label == label)
 
@@ -91,8 +95,10 @@ def test_user_can_complete_fake_diagnosis_in_rendered_app(
     assert not app.exception
     page = rendered_markdown(app)
     assert "理解较稳定" in page
-    assert "你已经讲清楚的部分" in page
-    assert "还缺少的关键点" in page
+    assert "你已经讲清楚的证据" in page
+    assert "缺少的关键点" in page
+    assert "可能的误区" in page
+    assert "当前掌握判断" in page
     assert "下一步" in page
     assert not app.error
 
@@ -146,6 +152,8 @@ def test_rendered_provider_errors_keep_the_answer_and_offer_retry(
     assert app.error
     assert error_fragment in app.error[0].value
     assert app.info
+    assert "已保存的原始回答" in rendered_markdown(app)
+    assert "我用一个合成回答说明递归的机制、边界和例子。" in rendered_markdown(app)
     assert button_with_label(app, "使用已保存的解释重试")
 
 
@@ -165,6 +173,42 @@ def test_failed_diagnosis_can_retry_with_saved_answer(
     assert not app.error
 
 
+def test_same_session_supports_follow_up_and_resume(
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    app = submit_scenario(
+        start_session(app_for(tmp_path, monkeypatch, "ui-follow-up.db")),
+        "partial",
+    )
+    session_id = app.session_state["current_session_id"]
+
+    app = button_with_label(app, "再解释一次").click().run(timeout=10)
+    text_area_with_label(app, "你的后续解释").input(
+        "这次我补充递归的终止条件、调用机制和适用边界。"
+    )
+    select_with_label(app, "后续诊断场景").select("strong")
+    app = button_with_label(app, "提交后续解释").click().run(timeout=10)
+
+    assert not app.exception
+    assert app.session_state["current_session_id"] == session_id
+    diagnosis = app.session_state["last_diagnosis"]
+    assert diagnosis.session_id == session_id
+    assert diagnosis.answer_type == "follow_up"
+    assert diagnosis.sequence_no == 2
+    assert "理解较稳定" in rendered_markdown(app)
+
+    app = (
+        next(item for item in app.sidebar.button if item.key == "nav_today").click().run(timeout=10)
+    )
+    app = button_with_label(app, "继续本次会话").click().run(timeout=10)
+
+    assert not app.exception
+    assert app.session_state["current_session_id"] == session_id
+    assert "理解较稳定" in rendered_markdown(app)
+    assert any("第 2 次回答" in item.value for item in app.caption)
+
+
 def test_theme_accent_and_sidebar_controls_update_ui_state(
     tmp_path: Path,
     monkeypatch: MonkeyPatch,
@@ -181,6 +225,27 @@ def test_theme_accent_and_sidebar_controls_update_ui_state(
     collapse = next(item for item in app.sidebar.button if item.key == "sidebar_toggle")
     app = collapse.click().run(timeout=10)
     assert app.session_state["ui_sidebar_collapsed"] is True
+
+
+def test_responsive_theme_styles_survive_the_learning_result(
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    app = submit_scenario(
+        start_session(app_for(tmp_path, monkeypatch, "ui-responsive.db")),
+        "misconception",
+    )
+    app = button_with_label(app, "浅色").click().run(timeout=10)
+    collapse = next(item for item in app.sidebar.button if item.key == "sidebar_toggle")
+    app = collapse.click().run(timeout=10)
+
+    page = rendered_markdown(app)
+    assert not app.exception
+    assert app.session_state["ui_theme_mode"] is ThemeMode.DARK
+    assert app.session_state["ui_sidebar_collapsed"] is True
+    assert "@media (max-width: 760px)" in page
+    assert ".diagnosis-grid { grid-template-columns: 1fr; }" in page
+    assert "可能的误区" in page
 
 
 def test_real_provider_mode_hides_fake_controls_and_reports_deepseek(

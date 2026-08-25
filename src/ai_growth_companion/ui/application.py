@@ -31,6 +31,9 @@ from ai_growth_companion.ui.shell import (
 from ai_growth_companion.ui.state import current_preferences, initialize_ui_state
 from ai_growth_companion.ui.theme import apply_design_system
 
+FAKE_SCENARIO_OPTIONS = tuple(SCENARIO_LABELS)
+DEFAULT_FAKE_SCENARIO_INDEX = FAKE_SCENARIO_OPTIONS.index(FakeScenario.PARTIAL)
+
 
 def render_application(
     service: LearningService,
@@ -125,6 +128,13 @@ def _render_today(service: LearningService) -> None:
             on_click=_resume_session,
             args=(latest.session_id,),
         )
+    elif latest.status in {"diagnosed", "diagnosis_failed"}:
+        st.button(
+            "继续本次会话",
+            type="primary",
+            on_click=_resume_session,
+            args=(latest.session_id,),
+        )
     else:
         st.button("查看并继续", type="primary", on_click=_navigate, args=("进度",))
 
@@ -163,6 +173,10 @@ def _render_learning_flow(service: LearningService, *, settings: Settings) -> No
     )
 
     result = st.session_state.get("last_diagnosis")
+    if not isinstance(result, DiagnosisView) or result.session_id != session.session_id:
+        result = service.get_session_diagnosis(session.session_id)
+        if result is not None:
+            st.session_state.last_diagnosis = result
     if isinstance(result, DiagnosisView):
         _render_diagnosis(result)
         _render_result_actions(service, result, settings=settings)
@@ -180,7 +194,8 @@ def _render_learning_flow(service: LearningService, *, settings: Settings) -> No
             with st.expander("测试不同诊断结果（仅 Fake Provider）"):
                 scenario = st.selectbox(
                     "诊断场景",
-                    options=list(SCENARIO_LABELS),
+                    options=FAKE_SCENARIO_OPTIONS,
+                    index=DEFAULT_FAKE_SCENARIO_INDEX,
                     format_func=SCENARIO_LABELS.__getitem__,
                     help="只控制本地 Fake Provider 的固定返回，不会访问任何真实模型。",
                 )
@@ -193,12 +208,13 @@ def _render_learning_flow(service: LearningService, *, settings: Settings) -> No
 
     if submitted:
         try:
-            diagnosis = service.submit_answer(
-                session_id=session.session_id,
-                answer_text=answer,
-                scenario=scenario,
-                request_id=str(uuid4()),
-            )
+            with st.spinner("正在保存解释并生成诊断……"):
+                diagnosis = service.submit_answer(
+                    session_id=session.session_id,
+                    answer_text=answer,
+                    scenario=scenario,
+                    request_id=str(uuid4()),
+                )
         except (InputValidationError, InvalidSessionState, LookupError) as error:
             st.error(str(error))
         else:
@@ -236,12 +252,13 @@ def _render_start_form(service: LearningService) -> None:
 
     if submitted:
         try:
-            session = service.start_session(
-                concept=concept,
-                learning_goal=learning_goal or None,
-                learner_level=learner_level or None,
-                request_id=str(uuid4()),
-            )
+            with st.spinner("正在创建学习会话并生成费曼问题……"):
+                session = service.start_session(
+                    concept=concept,
+                    learning_goal=learning_goal or None,
+                    learner_level=learner_level or None,
+                    request_id=str(uuid4()),
+                )
         except (InputValidationError, LookupError) as error:
             st.error(str(error))
         else:
@@ -253,7 +270,11 @@ def _render_diagnosis(result: DiagnosisView) -> None:
     st.markdown('<div class="rule"></div>', unsafe_allow_html=True)
     st.markdown('<div class="eyebrow">诊断结果 · 基于本次解释</div>', unsafe_allow_html=True)
     st.markdown('<h1 class="hero-title">你的理解到了哪里？</h1>', unsafe_allow_html=True)
-    st.caption("系统只根据本次解释中的证据给出判断，不把一次回答当作永久结论。")
+    answer_type = "首次解释" if result.answer_type == "main" else "后续解释"
+    st.caption(
+        f"第 {result.sequence_no} 次回答 · {answer_type}。"
+        "系统只根据本次解释中的证据给出判断，不把一次回答当作永久结论。"
+    )
 
     if result.status != "succeeded":
         message = error_message(result.error_code)
@@ -263,6 +284,8 @@ def _render_diagnosis(result: DiagnosisView) -> None:
         )
         st.error(message)
         st.info("无需重新输入。你可以使用已保存的解释直接重试。")
+        st.markdown("**已保存的原始回答**")
+        st.write(result.answer_text)
         st.caption(f"错误标识：{result.error_code or 'UNKNOWN_ERROR'}")
         return
 
@@ -283,27 +306,35 @@ def _render_diagnosis(result: DiagnosisView) -> None:
         or "<li class='row-meta'>当前解释中还没有足够的正向掌握证据。</li>"
     )
 
-    gap_parts = [
-        f"<li>{escape(item.description)} <span class='row-meta'>"
-        f"· {severity_label(item.severity)}</span></li>"
-        for item in observation.gaps
-    ]
-    gap_parts.extend(
-        f"<li><strong>可能的误区：</strong>{escape(item.description)}"
-        f"<br><span class='row-meta'>“{escape(item.answer_excerpt)}”</span></li>"
-        for item in observation.possible_misconceptions
+    gap_items = (
+        "".join(
+            f"<li>{escape(item.description)} <span class='row-meta'>"
+            f"· {severity_label(item.severity)}</span></li>"
+            for item in observation.gaps
+        )
+        or "<li class='row-meta'>本次没有发现明确的关键缺口。</li>"
     )
-    gap_items = "".join(gap_parts) or "<li class='row-meta'>本次没有发现明显缺口或误区。</li>"
+    misconception_items = (
+        "".join(
+            f"<li>{escape(item.description)}"
+            f"<br><span class='row-meta'>“{escape(item.answer_excerpt)}”</span></li>"
+            for item in observation.possible_misconceptions
+        )
+        or "<li class='row-meta'>本次没有发现有回答证据支持的明显误区。</li>"
+    )
 
     st.markdown(
         '<div class="diagnosis-panel">'
         '<div class="diagnosis-head">'
+        '<div class="question-kicker">当前掌握判断</div>'
         f'<span class="badge {badge_class}">{escape(mastery)}</span>'
         f"<h2>{escape(mastery)}</h2><p>{escape(decision.reason)}</p></div>"
         '<div class="diagnosis-grid">'
-        f'<div class="diagnosis-cell"><h3>你已经讲清楚的部分</h3><ul>{evidence_items}</ul></div>'
-        f'<div class="diagnosis-cell"><h3>还缺少的关键点</h3><ul>{gap_items}</ul></div>'
+        f'<div class="diagnosis-cell"><h3>你已经讲清楚的证据</h3><ul>{evidence_items}</ul></div>'
+        f'<div class="diagnosis-cell"><h3>缺少的关键点</h3><ul>{gap_items}</ul></div>'
         "</div>"
+        '<div class="misconception-band">'
+        f"<h3>可能的误区</h3><ul>{misconception_items}</ul></div>"
         '<div class="next-step">'
         f"<strong>{escape(action_heading(result.next_action.action_type))}</strong>"
         f"<p>{escape(result.next_action.instruction)}</p></div></div>",
@@ -323,6 +354,80 @@ def _render_diagnosis(result: DiagnosisView) -> None:
         )
 
 
+def _render_follow_up_form(
+    service: LearningService,
+    result: DiagnosisView,
+    *,
+    settings: Settings,
+) -> None:
+    """Submit another explanation without leaving the current learning session."""
+    assert result.next_action is not None
+    st.markdown('<div class="section-label">继续本次会话</div>', unsafe_allow_html=True)
+    st.subheader(action_heading(result.next_action.action_type))
+    st.write(result.next_action.instruction)
+
+    with st.form(f"follow-up-form-{result.sequence_no}"):
+        answer = st.text_area(
+            "你的后续解释",
+            key=f"follow_up_answer_{result.sequence_no}",
+            height=190,
+            placeholder="根据上面的建议补充机制、边界，或换一种说法重新解释……",
+        )
+        scenario = FakeScenario.PARTIAL
+        if settings.is_fake_mode:
+            with st.expander("测试后续诊断结果（仅 Fake Provider）"):
+                scenario = st.selectbox(
+                    "后续诊断场景",
+                    options=FAKE_SCENARIO_OPTIONS,
+                    index=DEFAULT_FAKE_SCENARIO_INDEX,
+                    format_func=SCENARIO_LABELS.__getitem__,
+                    help="只控制本地 Fake Provider 的固定返回，不会访问任何真实模型。",
+                    key=f"follow_up_scenario_{result.sequence_no}",
+                )
+        submitted = st.form_submit_button("提交后续解释", type="primary")
+
+    if submitted:
+        try:
+            with st.spinner("正在保存后续解释并更新诊断……"):
+                diagnosis = service.submit_follow_up(
+                    session_id=result.session_id,
+                    answer_text=answer,
+                    scenario=scenario,
+                    request_id=str(uuid4()),
+                )
+        except (InputValidationError, InvalidSessionState, LookupError) as error:
+            st.error(str(error))
+        else:
+            st.session_state.last_diagnosis = diagnosis
+            st.session_state.pop("show_follow_up_form", None)
+            st.rerun()
+
+    st.button("暂不继续", on_click=_hide_follow_up_form)
+
+
+def _render_success_actions(service: LearningService, result: DiagnosisView) -> None:
+    """Offer service-backed next turns without interpreting the policy in the UI."""
+    assert result.next_action is not None
+    try:
+        session = service.get_session(result.session_id)
+    except LookupError:
+        st.error("当前学习记录无法读取，请重新开始。")
+        return
+
+    if not session.can_submit_follow_up:
+        st.warning("当前会话暂时不能继续提交，请稍后重新打开。")
+        return
+
+    action_type = result.next_action.action_type.value
+    st.button(
+        action_label(action_type),
+        type="primary",
+        on_click=_show_follow_up_form,
+    )
+    if action_type != "re_explain":
+        st.button("重新解释", on_click=_show_follow_up_form)
+
+
 def _render_result_actions(
     service: LearningService,
     result: DiagnosisView,
@@ -334,8 +439,8 @@ def _render_result_actions(
         if settings.is_fake_mode:
             retry_scenario = st.selectbox(
                 "重试时使用的 Fake 场景",
-                options=list(SCENARIO_LABELS),
-                index=0,
+                options=FAKE_SCENARIO_OPTIONS,
+                index=DEFAULT_FAKE_SCENARIO_INDEX,
                 format_func=SCENARIO_LABELS.__getitem__,
             )
         else:
@@ -345,11 +450,12 @@ def _render_result_actions(
             )
         if st.button("使用已保存的解释重试", type="primary"):
             try:
-                st.session_state.last_diagnosis = service.retry(
-                    explanation_id=result.explanation_id,
-                    scenario=retry_scenario,
-                    request_id=str(uuid4()),
-                )
+                with st.spinner("正在使用已保存的解释重试诊断……"):
+                    st.session_state.last_diagnosis = service.retry(
+                        explanation_id=result.explanation_id,
+                        scenario=retry_scenario,
+                        request_id=str(uuid4()),
+                    )
             except (InvalidSessionState, LookupError) as error:
                 st.error(str(error))
             else:
@@ -357,27 +463,10 @@ def _render_result_actions(
         st.button("开始其他主题", on_click=_reset_flow)
         return
 
-    assert result.next_action is not None
-    action_type = result.next_action.action_type.value
-    if action_type == "re_explain":
-        st.button(
-            action_label(action_type),
-            type="primary",
-            on_click=_restart_concept,
-            args=(service, result.concept),
-        )
+    if st.session_state.get("show_follow_up_form"):
+        _render_follow_up_form(service, result, settings=settings)
     else:
-        st.button(
-            f"{action_label(action_type)} · 后续开放",
-            type="primary",
-            disabled=True,
-            help="当前后端尚未提供对应活动；本轮不扩展核心学习协议。",
-        )
-        st.button(
-            "用新的解释继续验证",
-            on_click=_restart_concept,
-            args=(service, result.concept),
-        )
+        _render_success_actions(service, result)
     st.button("开始其他主题", on_click=_reset_flow)
 
 
@@ -543,12 +632,15 @@ def _set_current_session(session_id: str) -> None:
     st.session_state.current_session_id = session_id
     st.session_state.pop("last_diagnosis", None)
     st.session_state.pop("draft_answer", None)
+    st.session_state.pop("show_follow_up_form", None)
 
 
-def _restart_concept(service: LearningService, concept: str) -> None:
-    session = service.start_session(concept=concept, request_id=str(uuid4()))
-    _set_current_session(session.session_id)
-    _navigate("学习")
+def _show_follow_up_form() -> None:
+    st.session_state.show_follow_up_form = True
+
+
+def _hide_follow_up_form() -> None:
+    st.session_state.pop("show_follow_up_form", None)
 
 
 def _resume_session(session_id: str) -> None:
@@ -557,6 +649,17 @@ def _resume_session(session_id: str) -> None:
 
 
 def _reset_flow() -> None:
-    for key in ("current_session_id", "last_diagnosis", "draft_answer"):
+    flow_keys = {
+        "current_session_id",
+        "last_diagnosis",
+        "draft_answer",
+        "show_follow_up_form",
+    }
+    flow_keys.update(
+        key
+        for key in st.session_state
+        if str(key).startswith(("follow_up_answer_", "follow_up_scenario_"))
+    )
+    for key in flow_keys:
         st.session_state.pop(key, None)
     _navigate("学习")
