@@ -6,6 +6,7 @@ import pytest
 from pytest import MonkeyPatch
 from streamlit.testing.v1 import AppTest
 
+from ai_growth_companion.application.demo_workspace import seed_fake_workspace
 from ai_growth_companion.config import load_settings
 from ai_growth_companion.repositories.database import Database, run_migrations
 from ai_growth_companion.ui.state import AccentTheme, ThemeMode
@@ -34,6 +35,16 @@ def app_for_real_provider(tmp_path: Path, monkeypatch: MonkeyPatch, name: str) -
     return AppTest.from_file(APP_PATH).run(timeout=10)
 
 
+def app_for_seeded(tmp_path: Path, monkeypatch: MonkeyPatch, name: str) -> AppTest:
+    database_url = f"sqlite:///{(tmp_path / name).as_posix()}"
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    monkeypatch.setenv("LLM_PROVIDER", "fake")
+    monkeypatch.setenv("LLM_PAID_CALLS_ALLOWED", "false")
+    load_settings.cache_clear()
+    seed_fake_workspace(database_url, seed_name=name)
+    return AppTest.from_file(APP_PATH).run(timeout=10)
+
+
 def rendered_markdown(app: AppTest) -> str:
     return "\n".join(item.value for item in app.markdown)
 
@@ -57,6 +68,14 @@ def select_with_label(app: AppTest, label: str):  # type: ignore[no-untyped-def]
 def open_learn(app: AppTest) -> AppTest:
     return (
         next(item for item in app.sidebar.button if item.key == "nav_learn").click().run(timeout=10)
+    )
+
+
+def open_mistakes(app: AppTest) -> AppTest:
+    return (
+        next(item for item in app.sidebar.button if item.key == "nav_mistakes")
+        .click()
+        .run(timeout=10)
     )
 
 
@@ -285,3 +304,140 @@ def test_search_filters_real_history_and_opens_progress(
     app = button_with_label(app, "打开").click().run(timeout=10)
     assert app.session_state["active_page"] == "进度"
     assert "看见理解如何变化" in rendered_markdown(app)
+
+
+def test_mistake_notebook_has_a_clear_empty_state(
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    app = open_mistakes(app_for(tmp_path, monkeypatch, "ui-wrong-empty.db"))
+
+    assert not app.exception
+    assert "目前没有需要整理的错题" in rendered_markdown(app)
+    assert "学习" in [item.label for item in app.sidebar.button]
+    assert "错题" in [item.label for item in app.sidebar.button]
+    assert "复习" in [item.label for item in app.sidebar.button]
+    assert "进度" in [item.label for item in app.sidebar.button]
+
+
+def test_seeded_mistakes_show_all_types_and_support_filtering_and_sorting(
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    app = open_mistakes(app_for_seeded(tmp_path, monkeypatch, "ui-wrong-list.db"))
+    page = rendered_markdown(app)
+
+    assert not app.exception
+    assert "明确误区" in page
+    assert "关键缺口" in page
+    assert "证据不足" in page
+    assert "待处理" in page
+
+    select_with_label(app, "错题类型").select("misconception")
+    app = app.run(timeout=10)
+    filtered = rendered_markdown(app)
+    assert "洛必达法则" in filtered
+    assert "泰勒公式" not in filtered
+    assert "函数极限" not in filtered
+
+    select_with_label(app, "错题类型").select(None)
+    select_with_label(app, "排序方式").select("concept")
+    app = app.run(timeout=10)
+    sorted_page = rendered_markdown(app)
+    assert app.session_state["wrong_sort_order"] == "concept"
+    assert sorted_page.index("函数极限") < sorted_page.index("洛必达法则")
+
+
+def test_mistake_detail_preserves_source_answer_and_diagnosis_evidence(
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    app = open_mistakes(app_for_seeded(tmp_path, monkeypatch, "ui-wrong-detail.db"))
+    app = button_with_label(app, "查看详情").click().run(timeout=10)
+    page = rendered_markdown(app)
+
+    assert not app.exception
+    assert "当时的题目与回答" in page
+    assert "原题" in page
+    assert "你的原回答" in page
+    assert "已经讲清楚的证据" in page
+    assert "缺少的关键点" in page
+    assert "可能的误区" in page
+    assert "正确思路" in page
+    assert button_with_label(app, "安排复习")
+    assert button_with_label(app, "标记已掌握")
+    assert button_with_label(app, "围绕此知识点重新作答")
+
+
+def test_mistake_can_enter_review_and_mark_mastered(
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    app = open_mistakes(app_for_seeded(tmp_path, monkeypatch, "ui-wrong-actions.db"))
+    app = button_with_label(app, "查看详情").click().run(timeout=10)
+    wrong_item_id = app.session_state["selected_wrong_item_id"]
+
+    review_app = button_with_label(app, "安排复习").click().run(timeout=10)
+    assert not review_app.exception
+    assert review_app.session_state["active_page"] == "复习"
+    assert review_app.session_state["review_wrong_item_id"] == wrong_item_id
+    assert "这条错题已经由后端加入复习队列" in review_app.info[0].value
+
+    app = open_mistakes(review_app)
+    app = button_with_label(app, "标记已掌握").click().run(timeout=10)
+    assert not app.exception
+    assert "已标记为掌握" in app.success[0].value
+    assert "已掌握" in rendered_markdown(app)
+    assert button_with_label(app, "恢复待处理")
+
+
+def test_mistake_can_start_a_fresh_explanation_for_the_same_concept(
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    app = open_mistakes(app_for_seeded(tmp_path, monkeypatch, "ui-wrong-reanswer.db"))
+    app = button_with_label(app, "查看详情").click().run(timeout=10)
+    concept = next(
+        candidate
+        for candidate in ("函数极限", "洛必达法则", "泰勒公式")
+        if candidate in rendered_markdown(app)
+    )
+    app = button_with_label(app, "围绕此知识点重新作答").click().run(timeout=10)
+
+    assert not app.exception
+    assert app.session_state["active_page"] == "学习"
+    assert app.session_state["current_session_id"]
+    assert "学习主题" in rendered_markdown(app)
+    assert "费曼问题" in rendered_markdown(app)
+    assert concept in rendered_markdown(app)
+
+
+def test_missing_mistake_detail_shows_recoverable_error(
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    app = open_mistakes(app_for_seeded(tmp_path, monkeypatch, "ui-wrong-error.db"))
+    app.session_state["selected_wrong_item_id"] = "missing-wrong-item"
+    app = app.run(timeout=10)
+
+    assert not app.exception
+    assert app.error
+    assert "不存在或已经无法读取" in app.error[0].value
+    assert button_with_label(app, "回到错题列表")
+
+
+def test_mistake_page_keeps_theme_and_narrow_layout_contract(
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    app = open_mistakes(app_for_seeded(tmp_path, monkeypatch, "ui-wrong-responsive.db"))
+    app = button_with_label(app, "查看详情").click().run(timeout=10)
+    app = button_with_label(app, "浅色").click().run(timeout=10)
+    page = rendered_markdown(app)
+
+    assert not app.exception
+    assert app.session_state["ui_theme_mode"] is ThemeMode.DARK
+    assert "@media (max-width: 760px)" in page
+    assert ".source-answer-grid, .mistake-evidence-grid, .mistake-correction" in page
+    assert '.st-key-view-mistakes [data-testid="stHorizontalBlock"]' in page
+    assert "你的原回答" in page

@@ -40,6 +40,18 @@ STATUS_LABELS = {
     "invalid": "诊断格式无效",
 }
 
+WRONG_ITEM_TYPE_LABELS = {
+    "misconception": "明确误区",
+    "gap": "关键缺口",
+    "insufficient_evidence": "证据不足",
+}
+
+WRONG_ITEM_STATUS_LABELS = {
+    "open": "待处理",
+    "snoozed": "已暂缓",
+    "mastered": "已掌握",
+}
+
 SEVERITY_LABELS = {
     "low": "轻微",
     "medium": "重要",
@@ -106,6 +118,20 @@ def severity_label(value: str | Enum) -> str:
     normalized = _value(value)
     assert normalized is not None
     return SEVERITY_LABELS.get(normalized, normalized)
+
+
+def wrong_item_type_label(value: str | Enum) -> str:
+    """Localize a backend-provided wrong-item classification."""
+    normalized = _value(value)
+    assert normalized is not None
+    return WRONG_ITEM_TYPE_LABELS.get(normalized, normalized)
+
+
+def wrong_item_status_label(value: str | Enum) -> str:
+    """Localize a user-controlled wrong-item lifecycle status."""
+    normalized = _value(value)
+    assert normalized is not None
+    return WRONG_ITEM_STATUS_LABELS.get(normalized, normalized)
 
 
 def error_message(error_code: str | None) -> str:

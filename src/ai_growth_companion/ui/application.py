@@ -12,6 +12,7 @@ from ai_growth_companion.application.models import DiagnosisView, HistoryItem
 from ai_growth_companion.config import Settings
 from ai_growth_companion.domain.session import InputValidationError, InvalidSessionState
 from ai_growth_companion.providers.fake import FakeScenario
+from ai_growth_companion.ui.mistake_notebook import render_mistake_notebook
 from ai_growth_companion.ui.motion import render_pointer_glow
 from ai_growth_companion.ui.presentation import (
     SCENARIO_LABELS,
@@ -62,17 +63,40 @@ def render_application(
         open_result=_open_search_result,
     )
 
-    view_slugs = {"今日": "today", "学习": "learn", "进度": "progress", "系统": "system"}
+    view_slugs = {
+        "今日": "today",
+        "学习": "learn",
+        "错题": "mistakes",
+        "复习": "review",
+        "进度": "progress",
+        "系统": "system",
+    }
     with st.container(key=f"view-{view_slugs.get(page, 'today')}"):
         if page == "今日":
             _render_today(service)
         elif page == "学习":
             _render_learning_flow(service, settings=settings)
+        elif page == "错题":
+            render_mistake_notebook(
+                service,
+                open_review=_open_review_from_wrong,
+                resume_learning=_resume_session,
+            )
+        elif page == "复习":
+            _render_review_placeholder()
         elif page == "进度":
             _render_progress(service)
         else:
             _render_system_status(settings=settings, health_report=health_report)
     render_pointer_glow()
+
+
+def _render_review_placeholder() -> None:
+    """Keep the #35 review entry usable while the #37 page is the next checkpoint."""
+    st.markdown('<div class="eyebrow">复习 · 今日队列</div>', unsafe_allow_html=True)
+    st.markdown('<h1 class="hero-title">复习队列正在接入</h1>', unsafe_allow_html=True)
+    st.info("这条错题已经由后端加入复习队列。完整复测流程将在下一阶段接入。")
+    st.button("返回错题本", type="primary", on_click=_navigate, args=("错题",))
 
 
 def _render_today(service: LearningService) -> None:
@@ -626,6 +650,11 @@ def _open_search_result(session_id: str, concept: str) -> None:
     st.session_state.progress_concept = concept
     st.session_state.ui_search_query = ""
     _navigate("进度")
+
+
+def _open_review_from_wrong(wrong_item_id: str) -> None:
+    st.session_state.review_wrong_item_id = wrong_item_id
+    _navigate("复习")
 
 
 def _set_current_session(session_id: str) -> None:

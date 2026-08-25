@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 import pytest
 
 from ai_growth_companion.application.models import HistoryItem
+from ai_growth_companion.domain.wrong_items import WrongItemStatus, WrongItemType
 from ai_growth_companion.schemas.diagnosis import ActionType, MasteryLevel
 from ai_growth_companion.ui.presentation import (
     action_label,
@@ -12,6 +13,8 @@ from ai_growth_companion.ui.presentation import (
     filter_history,
     mastery_label,
     status_label,
+    wrong_item_status_label,
+    wrong_item_type_label,
 )
 
 
@@ -61,6 +64,36 @@ def test_provider_errors_have_safe_actionable_copy(code: str, fragment: str) -> 
 def test_session_status_is_localized_without_changing_the_value() -> None:
     assert status_label("questioned") == "等待你的解释"
     assert status_label("diagnosed") == "诊断完成"
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        (WrongItemType.MISCONCEPTION, "明确误区"),
+        (WrongItemType.GAP, "关键缺口"),
+        (WrongItemType.INSUFFICIENT_EVIDENCE, "证据不足"),
+    ],
+)
+def test_wrong_item_types_have_chinese_labels(
+    value: WrongItemType,
+    expected: str,
+) -> None:
+    assert wrong_item_type_label(value) == expected
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        (WrongItemStatus.OPEN, "待处理"),
+        (WrongItemStatus.SNOOZED, "已暂缓"),
+        (WrongItemStatus.MASTERED, "已掌握"),
+    ],
+)
+def test_wrong_item_statuses_have_chinese_labels(
+    value: WrongItemStatus,
+    expected: str,
+) -> None:
+    assert wrong_item_status_label(value) == expected
 
 
 def history_item(
