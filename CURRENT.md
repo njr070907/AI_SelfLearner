@@ -8,7 +8,7 @@ Sprint 1：用真实 Provider 验证 `evaluator-v0.1` 能否区分充分理解�
 
 **约 56% / 100%** · **阶段 3「复习与复测」后端已完成**，等待前端 [Issue #37](https://github.com/njr070907/AI_SelfLearner/issues/37) 接入。预计还需 **11–18 个有效工作日**（每天 4–6 小时约 3–5 周）。
 
-完整阶段权重和计算方式见 [`docs/roadmap/MVP_PROGRESS.md`](docs/roadmap/MVP_PROGRESS.md)。这个百分比按可验收产品能力计算，不按代码量计算。
+完整阶段权重和计算方式见 [`docs/roadmap/MVP_PROGRESS.md`](docs/roadmap/MVP_PROGRESS.md)。这个百分比按可验收产品能力计算，不按代码量或已经经过的时间计算；当前 56% 不代表日历时间已经过去 56%。
 
 ## 当前状态
 
