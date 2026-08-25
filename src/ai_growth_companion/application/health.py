@@ -8,6 +8,7 @@ from pydantic import BaseModel, ConfigDict
 
 from ai_growth_companion.config import Settings, load_settings
 from ai_growth_companion.domain.events import LOCAL_USER_ID
+from ai_growth_companion.providers.deepseek_evaluation import DEEPSEEK_MODEL
 from ai_growth_companion.repositories.database import Database, migration_status
 
 
@@ -74,10 +75,20 @@ def check_health(settings: Settings, database: Database) -> HealthReport:
             state=HealthState.HEALTHY,
             detail="Fake Provider 本地可用，不访问外部网络",
         )
+    elif (
+        settings.llm_provider.casefold() == "deepseek"
+        and settings.llm_model == DEEPSEEK_MODEL
+        and settings.llm_api_key is not None
+        and settings.llm_paid_calls_allowed
+    ):
+        dependency = ComponentHealth(
+            state=HealthState.HEALTHY,
+            detail="DeepSeek Provider 配置完整；应用不会自动重试或主动发起调用",
+        )
     else:
         dependency = ComponentHealth(
             state=HealthState.DEGRADED,
-            detail="真实 Provider 尚未在 Sprint 0 实现",
+            detail="真实 Provider 需要固定 DeepSeek 模型、API Key 和显式付费许可",
         )
 
     return HealthReport(

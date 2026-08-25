@@ -2,11 +2,10 @@
 
 import streamlit as st
 
+from ai_growth_companion.application.bootstrap import build_learning_service
 from ai_growth_companion.application.health import check_health
-from ai_growth_companion.application.learning_service import LearningService
 from ai_growth_companion.config import load_settings
 from ai_growth_companion.repositories.database import Database
-from ai_growth_companion.repositories.session_repository import SQLiteSessionRepository
 from ai_growth_companion.ui.application import render_application
 
 
@@ -27,12 +26,15 @@ def main() -> None:
         st.info("请先运行 README 中的数据库迁移命令。")
         st.stop()
 
-    if not settings.is_fake_mode:
-        st.error("Sprint 0 只实现 Fake Provider。请将 LLM_PROVIDER 设置为 fake。")
+    try:
+        service = build_learning_service(database, settings)
+    except ValueError as error:
+        st.error(f"Provider 配置不可用：{error}")
+        st.info(
+            "默认使用 Fake Provider。若要启用真实模式，请固定模型并显式设置 "
+            "LLM_PAID_CALLS_ALLOWED=true。"
+        )
         st.stop()
-
-    repository = SQLiteSessionRepository(database)
-    service = LearningService(repository)
     render_application(
         service,
         settings=settings,

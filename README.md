@@ -150,7 +150,10 @@ uv run python scripts/run_golden_eval.py --provider fake `
 LLM_PROVIDER=deepseek
 LLM_MODEL=deepseek-v4-flash-vision-exp
 LLM_API_KEY=<本机 API Key>
+LLM_PAID_CALLS_ALLOWED=true
 ```
+
+应用启动时也会读取这三个条件：只有 Provider 为 `deepseek`、模型完全匹配且显式打开 `LLM_PAID_CALLS_ALLOWED=true`，交互式学习服务才会构造真实 Provider；默认 Fake 模式不会访问外部网络。真实模式仍然零自动重试，题目生成暂由本地 Fake 提供，DeepSeek 只负责结构化证据提取。
 
 完成费用授权后，首次只运行 1 条：
 

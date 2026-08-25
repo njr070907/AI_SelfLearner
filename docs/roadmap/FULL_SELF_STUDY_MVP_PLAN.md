@@ -4,7 +4,7 @@
 
 ## 1. 当前判断
 
-当前仓库已经具备可靠的工程地基：SQLite 与迁移、事件历史、Mastery Engine、Learning Policy、Fake Provider、真实 DeepSeek 适配器、结构化 Schema、评测 CLI、CI 和第一版学习工作区 UI 都已存在。最近一次离线回归为 134 个测试通过，Provider Factory 已把 Fake/固定 DeepSeek 模式和显式付费许可隔离，Prompt v0.2 也已经可以用 dry-run 做零成本实验。
+当前仓库已经具备可靠的工程地基：SQLite 与迁移、事件历史、Mastery Engine、Learning Policy、Fake Provider、真实 DeepSeek 适配器、结构化 Schema、评测 CLI、CI 和第一版学习工作区 UI 都已存在。最近一次离线回归为 143 个测试通过，Provider Factory 已接入应用组合根，把 Fake/固定 DeepSeek 模式和显式付费许可隔离，Prompt v0.2 也已经可以用 dry-run 做零成本实验。
 
 但从“完整自学系统 MVP”看，按最终用户可正常使用的阶段权重计算当前约完成 **54%**：教学、错题、复习、反馈/趋势和 Provider 安全边界的后端能力已经建立，Fake 后端整条路径也已验证，但用户页面、真实语义验收和 7 天试用还没有全部完成。每次开发都会同步更新 [`MVP_PROGRESS.md`](MVP_PROGRESS.md)，避免把代码量、测试数量或单个后端 PR 误当成产品完成度。当前最重要的是把 Mastery Protocol 变成用户能从头走到尾的一条完整路径。
 
