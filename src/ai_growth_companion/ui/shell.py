@@ -61,16 +61,21 @@ def render_sidebar(
             use_container_width=True,
         )
         st.markdown('<div class="nav-section-label">导航</div>', unsafe_allow_html=True)
-        for page, icon, key in NAVIGATION:
-            st.button(
-                page,
-                key=key,
-                type="primary" if page == active_page else "tertiary",
-                icon=f":material/{icon}:",
-                on_click=navigate,
-                args=(page,),
-                use_container_width=True,
+        with st.container(key="nav_list"):
+            st.markdown(
+                '<div class="nav-slider" aria-hidden="true"></div>',
+                unsafe_allow_html=True,
             )
+            for page, icon, key in NAVIGATION:
+                st.button(
+                    page,
+                    key=key,
+                    type="primary" if page == active_page else "tertiary",
+                    icon=f":material/{icon}:",
+                    on_click=navigate,
+                    args=(page,),
+                    use_container_width=True,
+                )
         st.markdown(
             '<div class="sidebar-status"><span class="status-dot"></span>'
             '<span class="sidebar-status-copy">Fake Provider 已就绪<br>'

@@ -131,23 +131,71 @@ APP_CSS = """
   --radius-panel: 20px;
   --radius-control: 12px;
   --radius-small: 9px;
-  --ease: cubic-bezier(.22, .8, .25, 1);
+  --motion-fast: 160ms;
+  --motion-normal: 240ms;
+  --motion-page: 340ms;
+  --motion-expand: 320ms;
+  --motion-press: 90ms;
+  --ease-standard: cubic-bezier(.22, .8, .25, 1);
+  --ease-emphasized: cubic-bezier(.32, .72, 0, 1);
+  --ease: var(--ease-standard);
   --sidebar-width: 268px;
+  interpolate-size: allow-keywords;
 }
+
+/* One shared motion language: content rises softly and settles in layers.
+   The container itself stays still; children carry the staggered entrance. */
+@keyframes view-enter-soft {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes view-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes view-pop {
+  /* Individual translate/scale keep react-aria's inline transform positioning intact. */
+  from { opacity: 0; translate: 0 -4px; scale: .985; }
+  to { opacity: 1; translate: 0 0; scale: 1; }
+}
+[class*="st-key-view-"] > * {
+  animation: view-rise var(--motion-page) var(--ease-emphasized) both;
+}
+[class*="st-key-view-"] > :nth-child(2) { animation-delay: 40ms; }
+[class*="st-key-view-"] > :nth-child(3) { animation-delay: 80ms; }
+[class*="st-key-view-"] > :nth-child(4) { animation-delay: 120ms; }
+[class*="st-key-view-"] > :nth-child(5) { animation-delay: 160ms; }
+[class*="st-key-view-"] > :nth-child(n + 6) { animation-delay: 160ms; }
 
 html, body, [class*="css"] {
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
     "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
 }
 html { background: var(--canvas); color-scheme: var(--color-scheme); }
-body { color: var(--ink); }
+body { color: var(--ink); transition: color var(--motion-normal) var(--ease); }
+/* Toolbar icons follow the semantic ink tokens instead of hardcoded grays,
+   keeping them readable in both themes. */
+.st-key-app_toolbar svg { color: var(--ink-soft); fill: currentColor; }
+html { scrollbar-color: color-mix(in srgb, var(--ink-muted) 38%, transparent) transparent; }
+[data-testid="stAppViewContainer"] ::-webkit-scrollbar { width: 10px; height: 10px; }
+[data-testid="stAppViewContainer"] ::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--ink-muted) 34%, transparent);
+  background-clip: padding-box;
+}
+[data-testid="stAppViewContainer"] ::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--ink-muted) 55%, transparent);
+  background-clip: padding-box;
+}
+[data-testid="stAppViewContainer"] ::-webkit-scrollbar-track { background: transparent; }
 [data-testid="stAppViewContainer"] {
   background-color: var(--canvas);
   background-image:
     radial-gradient(ellipse 58% 46% at -10% -8%, var(--ambient-primary), transparent 72%),
     radial-gradient(ellipse 46% 42% at 108% 22%, var(--ambient-secondary), transparent 75%);
   background-attachment: fixed;
-  transition: background-color 180ms var(--ease);
+  transition: background-color var(--motion-normal) var(--ease);
 }
 [data-testid="stHeader"] { background: transparent; pointer-events: none; }
 [data-testid="stToolbar"] { display: none; }
@@ -173,8 +221,9 @@ body { color: var(--ink); }
   -webkit-backdrop-filter: saturate(1.18) blur(24px);
   backdrop-filter: saturate(1.18) blur(24px);
   overflow: hidden;
-  transition: width 180ms var(--ease), min-width 180ms var(--ease),
-    background-color 180ms var(--ease), border-color 180ms var(--ease);
+  transition: width var(--motion-normal) var(--ease), min-width var(--motion-normal) var(--ease),
+    background-color var(--motion-normal) var(--ease),
+    border-color var(--motion-normal) var(--ease);
 }
 [data-testid="stSidebarContent"] { padding: 1.2rem 1rem 1rem; }
 [data-testid="stSidebarCollapseButton"] { display: none; }
@@ -223,8 +272,9 @@ body { color: var(--ink); }
   background: transparent;
   color: var(--ink-soft);
   box-shadow: none;
-  transition: background-color 145ms var(--ease), border-color 145ms var(--ease),
-    box-shadow 160ms var(--ease), transform 90ms ease-out;
+  transition: background-color var(--motion-fast) var(--ease),
+    border-color var(--motion-fast) var(--ease),
+    box-shadow var(--motion-normal) var(--ease), transform var(--motion-press) ease-out;
 }
 .st-key-sidebar_toggle button { color: var(--ink-muted); }
 .st-key-sidebar_toggle button:hover,
@@ -240,6 +290,36 @@ body { color: var(--ink); }
   color: var(--accent);
   box-shadow: inset 0 1px 0 color-mix(in srgb, var(--accent-contrast) 26%, transparent),
     0 8px 22px color-mix(in srgb, var(--glow-hover) 36%, transparent);
+}
+
+/* One selection capsule that travels between nav items instead of swapping backgrounds. */
+.st-key-nav_list { position: relative; }
+.st-key-nav_list button { position: relative; z-index: 1; }
+.nav-slider {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 44px;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+.st-key-nav_list.nav-slider-ready .nav-slider {
+  opacity: 1;
+  border-color: color-mix(in srgb, var(--accent) 22%, var(--line));
+  background: var(--accent-soft-strong);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--accent-contrast) 26%, transparent),
+    0 8px 22px color-mix(in srgb, var(--glow-hover) 36%, transparent);
+  transition: transform var(--motion-normal) var(--ease-emphasized),
+    height var(--motion-normal) var(--ease-emphasized), opacity var(--motion-fast) var(--ease);
+}
+.st-key-nav_list.nav-slider-ready [class*="st-key-nav_"] button[kind="primary"] {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
 }
 [class*="st-key-nav_"] button p,
 .st-key-sidebar_toggle button p {
@@ -309,7 +389,8 @@ body:has(.sidebar-collapse-marker) .sidebar-status {
   box-shadow: var(--shadow-floating), inset 0 1px 0 var(--glass-highlight);
   -webkit-backdrop-filter: saturate(1.2) blur(22px);
   backdrop-filter: saturate(1.2) blur(22px);
-  transition: background-color 180ms var(--ease), border-color 180ms var(--ease);
+  transition: background-color var(--motion-normal) var(--ease),
+    border-color var(--motion-normal) var(--ease);
 }
 .st-key-app_toolbar::before {
   content: "";
@@ -320,6 +401,23 @@ body:has(.sidebar-collapse-marker) .sidebar-status {
   background: radial-gradient(circle at 68% -40%, var(--accent-soft), transparent 44%);
   pointer-events: none;
 }
+/* Pointer-aware ambient glow: follows the cursor, fades in only while hovering. */
+.st-key-app_toolbar::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: radial-gradient(
+    240px circle at var(--glow-x, 50%) var(--glow-y, -30%),
+    color-mix(in srgb, var(--glow-hover) 42%, transparent),
+    transparent 72%
+  );
+  opacity: 0;
+  transition: opacity var(--motion-normal) var(--ease);
+  pointer-events: none;
+}
+.st-key-app_toolbar:hover::after { opacity: 1; }
 .toolbar-location {
   display: flex;
   align-items: center;
@@ -346,8 +444,8 @@ body:has(.sidebar-collapse-marker) .sidebar-status {
   border-radius: var(--radius-control);
   background: color-mix(in srgb, var(--glass-strong) 84%, var(--glass-accent));
   box-shadow: inset 0 1px 0 var(--glass-highlight), 0 4px 14px rgba(50, 68, 98, .05);
-  transition: border-color 150ms var(--ease), box-shadow 170ms var(--ease),
-    background-color 150ms var(--ease);
+  transition: border-color var(--motion-fast) var(--ease),
+    box-shadow var(--motion-normal) var(--ease), background-color var(--motion-fast) var(--ease);
 }
 .st-key-app_toolbar [data-testid="stTextInputRootElement"],
 .st-key-app_toolbar [data-baseweb="select"] > div,
@@ -407,6 +505,7 @@ body:has(.sidebar-collapse-marker) .sidebar-status {
   box-shadow: var(--shadow-floating), inset 0 1px 0 var(--glass-highlight);
   -webkit-backdrop-filter: saturate(1.15) blur(18px);
   backdrop-filter: saturate(1.15) blur(18px);
+  animation: view-enter-soft var(--motion-normal) var(--ease-emphasized) both;
 }
 .search-results-title {
   margin: .1rem 0 .65rem;
@@ -460,6 +559,22 @@ p, li { color: var(--ink-soft); }
   background: var(--surface-solid);
   border: 1px solid var(--line);
   box-shadow: var(--shadow-raised);
+  transition: border-color var(--motion-fast) var(--ease),
+    box-shadow var(--motion-normal) var(--ease), transform var(--motion-fast) var(--ease);
+}
+@media (hover: hover) and (pointer: fine) {
+  /* Layered, restrained card response: border light, deeper shadow, no scale. */
+  .empty-state:hover, .question-panel:hover, .diagnosis-panel:hover, [data-testid="stForm"]:hover {
+    border-color: color-mix(in srgb, var(--accent) 15%, var(--line-strong));
+    box-shadow: var(--shadow-raised), 0 0 0 1px var(--accent-soft),
+      0 22px 52px color-mix(in srgb, var(--glow-hover) 12%, transparent);
+  }
+  .progress-row:hover, .status-row:hover {
+    transform: translateY(-1px);
+    border-color: color-mix(in srgb, var(--accent) 16%, var(--line-strong));
+    box-shadow: 0 14px 34px color-mix(in srgb, var(--glow-hover) 16%, rgba(50, 68, 98, .08)),
+      inset 0 1px 0 var(--glass-highlight);
+  }
 }
 .empty-state {
   max-width: 760px;
@@ -477,7 +592,12 @@ p, li { color: var(--ink-soft); }
 .question-panel p { margin: .7rem 0 0; color: var(--ink); font-size: 1.12rem; line-height: 1.65; }
 [data-testid="stForm"] { padding: 1.55rem; border-radius: var(--radius-panel); }
 
-.diagnosis-panel { overflow: hidden; margin: 1.2rem 0 1.5rem; border-radius: var(--radius-panel); }
+.diagnosis-panel {
+  overflow: hidden;
+  margin: 1.2rem 0 1.5rem;
+  border-radius: var(--radius-panel);
+  animation: view-enter-soft var(--motion-normal) var(--ease-emphasized) both;
+}
 .diagnosis-head { padding: 1.75rem 1.85rem 1.45rem; }
 .diagnosis-head h2 { margin: .6rem 0 .35rem; font-size: 1.7rem; }
 .diagnosis-head p { margin: 0; color: var(--ink-muted); line-height: 1.65; }
@@ -541,17 +661,38 @@ p, li { color: var(--ink-soft); }
   min-height: 44px;
   border-radius: var(--radius-control);
   font-weight: 680;
-  transition: background-color 145ms var(--ease), border-color 145ms var(--ease),
-    box-shadow 165ms var(--ease), transform 90ms ease-out;
+  transition: background-color var(--motion-fast) var(--ease),
+    border-color var(--motion-fast) var(--ease),
+    box-shadow var(--motion-normal) var(--ease), transform var(--motion-press) ease-out;
 }
 .stMain .stButton button[kind="primary"],
 .stMain .stFormSubmitButton button[kind^="primary"] {
+  position: relative;
+  overflow: hidden;
   border-color: color-mix(in srgb, var(--accent) 72%, transparent);
   background: linear-gradient(112deg, var(--accent), var(--accent-secondary));
   color: var(--accent-contrast);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .32),
     0 3px 10px color-mix(in srgb, var(--glow-hover) 40%, transparent);
 }
+/* Same pointer-aware light as the toolbar, derived from the live accent. */
+.stMain .stButton button[kind="primary"]::after,
+.stMain .stFormSubmitButton button[kind^="primary"]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    130px circle at var(--glow-x, 50%) var(--glow-y, 120%),
+    color-mix(in srgb, var(--accent-contrast) 30%, transparent),
+    transparent 72%
+  );
+  opacity: 0;
+  transition: opacity var(--motion-normal) var(--ease);
+  pointer-events: none;
+}
+.stMain .stButton button[kind="primary"]:not(:disabled):hover::after,
+.stMain .stFormSubmitButton button[kind^="primary"]:not(:disabled):hover::after { opacity: 1; }
 .stMain .stButton button[kind="primary"] p,
 .stMain .stFormSubmitButton button[kind^="primary"] p { color: var(--accent-contrast) !important; }
 @media (hover: hover) and (pointer: fine) {
@@ -561,6 +702,12 @@ p, li { color: var(--ink-soft); }
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, .48),
       0 11px 30px var(--glow-hover), 0 0 0 1px var(--accent-soft);
     filter: brightness(1.035) saturate(1.03);
+  }
+  .stMain .stButton button[kind="tertiary"]:not(:disabled):hover {
+    border-color: var(--line);
+    background: color-mix(in srgb, var(--glass-strong) 78%, var(--accent-soft));
+    color: var(--ink);
+    box-shadow: 0 8px 22px color-mix(in srgb, var(--glow-hover) 30%, transparent);
   }
 }
 .stMain .stButton button:active,
@@ -588,11 +735,31 @@ input:focus-visible, textarea:focus-visible, [role="combobox"]:focus-visible {
   box-shadow: 0 0 0 3px var(--focus-ring) !important;
 }
 input, textarea { color: var(--ink) !important; caret-color: var(--accent); }
+input::placeholder, textarea::placeholder {
+  color: var(--ink-muted) !important;
+  opacity: 1;
+}
 [data-testid="stExpander"] {
   overflow: hidden;
   border-color: var(--line);
   border-radius: 15px;
   background: var(--surface-solid);
+}
+/* Unfold like a soft-cover folder: geometry leads, content gently follows. */
+[data-testid="stExpander"] details::details-content {
+  block-size: 0;
+  overflow: clip;
+  transition:
+    block-size var(--motion-expand) var(--ease-emphasized),
+    content-visibility var(--motion-expand) allow-discrete;
+}
+[data-testid="stExpander"] details[open]::details-content { block-size: auto; }
+[data-testid="stExpander"] details[open] [data-testid="stExpanderDetails"] {
+  animation: view-enter-soft var(--motion-expand) var(--ease-standard) 40ms both;
+}
+[data-testid="stSelectboxVirtualDropdown"] {
+  animation: view-pop var(--motion-fast) var(--ease-standard) both;
+  transform-origin: top;
 }
 [data-testid="stAlert"] { border-radius: 15px; }
 
@@ -697,7 +864,9 @@ input, textarea { color: var(--ink) !important; caret-color: var(--accent); }
   *, *::before, *::after {
     scroll-behavior: auto !important;
     transition-duration: .01ms !important;
+    transition-delay: .01ms !important;
     animation-duration: .01ms !important;
+    animation-delay: .01ms !important;
     animation-iteration-count: 1 !important;
   }
 }
