@@ -7,6 +7,7 @@ from typing import Literal, Self
 from pydantic import Field, model_validator
 
 from ai_growth_companion.evaluation.golden_set import GoldenScenario
+from ai_growth_companion.prompts.registry import PromptVersion
 from ai_growth_companion.schemas.diagnosis import (
     LearningAction,
     MasteryDecision,
@@ -153,7 +154,7 @@ class GoldenEvaluationRun(StrictSchema):
     run_id: str = Field(min_length=1)
     dataset_id: Literal["high-math-mastery-v0.1"]
     dataset_schema_version: Literal["golden-set-v0.1"]
-    prompt_version: Literal["evaluator-v0.1"]
+    prompt_version: PromptVersion
     prompt_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
     configuration: RunConfiguration
     started_at: datetime

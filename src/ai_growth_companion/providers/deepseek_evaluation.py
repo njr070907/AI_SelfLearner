@@ -80,6 +80,7 @@ class DeepSeekEvaluationProvider:
         model: str = DEEPSEEK_MODEL,
         timeout_seconds: int = 30,
         max_output_tokens: int = 1200,
+        prompt_version: str = "v0.1",
         prompt_registry: PromptRegistry | None = None,
         client: _OpenAIClientLike | None = None,
     ) -> None:
@@ -94,6 +95,7 @@ class DeepSeekEvaluationProvider:
 
         self.model_name = model
         self._max_output_tokens = max_output_tokens
+        self._prompt_version = prompt_version
         self._prompt_registry = prompt_registry or PromptRegistry()
         self._client = client or cast(
             _OpenAIClientLike,
@@ -107,7 +109,7 @@ class DeepSeekEvaluationProvider:
 
     def evaluate(self, request: EvaluationRequest, *, request_id: str) -> ProviderResponse:
         """Call DeepSeek Chat Completions with JSON mode and no automatic retry."""
-        rendered = self._prompt_registry.render_evaluation(request)
+        rendered = self._prompt_registry.render_evaluation(request, version=self._prompt_version)
         system_message = (
             f"{rendered.system_message}\n\n"
             "Return valid json only. Do not use Markdown fences or explanatory text.\n"

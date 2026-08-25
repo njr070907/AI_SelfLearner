@@ -35,3 +35,9 @@
 - 完整 20 案例已验证 Provider 管道：所有调用均返回可解析且 Schema 合法的观察。
 - 自动检查在多轮运行中为 16–19/20，剩余差异集中在强答案的额外 gap 和 partial/insufficient 的置信度边界。
 - 不继续用重复付费调用追逐 20/20；先进行 Prompt v0.2 或确定性校准实验，并保留所有运行证据供人工复核。
+
+## 2026-08-25 — Prompt v0.2 先做可追踪候选，不替换默认版本
+
+- 新增 `evaluator-v0.2` 候选 Prompt，继续输出 `provider-observation-v0.1`，重点改为逐 `coverage_points` 内部检查，减少额外 gap、重复 gap 和把孤立公式当作正向证据。
+- CLI 通过 `--prompt-version v0.2` 显式选择候选版本；默认仍使用 `v0.1`，运行记录保存 Prompt 版本和内容哈希。
+- 先完成 Fake/dry-run 和固定案例对照设计，再决定是否进行真实 DeepSeek 调用；不因候选版本已经能渲染就宣称语义质量已改善。

@@ -23,12 +23,11 @@ from ai_growth_companion.providers.fake import FakeLLMProvider, FakeScenario
 from ai_growth_companion.providers.openai_evaluation import OpenAIEvaluationProvider
 
 DEFAULT_DATASET = Path("evals/golden/high_math_v0.1.json")
-DEFAULT_FAKE_OUTPUT = Path("evals/runs/fake-pipeline-v0.1.json")
 
 
-def fake_provider_for_case(case: GoldenCase) -> FakeLLMProvider:
+def fake_provider_for_case(case: GoldenCase, *, prompt_version: str = "v0.1") -> FakeLLMProvider:
     """Select the deterministic Fake path matching a golden scenario."""
-    return FakeLLMProvider(FakeScenario(case.scenario.value))
+    return FakeLLMProvider(FakeScenario(case.scenario.value), prompt_version=prompt_version)
 
 
 def bounded_int(minimum: int, maximum: int) -> Callable[[str], int]:
@@ -51,6 +50,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--dataset", type=Path, default=DEFAULT_DATASET)
     parser.add_argument("--output", type=Path)
     parser.add_argument("--max-cases", type=int, choices=range(1, 21))
+    parser.add_argument(
+        "--prompt-version",
+        choices=("v0.1", "v0.2"),
+        default="v0.1",
+        help="Versioned evaluation Prompt; v0.2 is an experimental candidate.",
+    )
     parser.add_argument(
         "--case-id",
         action="append",
@@ -115,7 +120,8 @@ def main(argv: list[str] | None = None) -> int:
                     question_text=case.question_text,
                     coverage_points=tuple(case.coverage_points),
                     answer_text=case.learner_answer,
-                )
+                ),
+                version=args.prompt_version,
             )
             rendered_characters += len(rendered.system_message) + len(rendered.user_message)
         print(f"Dry run validated {max_cases} Prompt envelopes")
@@ -150,6 +156,7 @@ def main(argv: list[str] | None = None) -> int:
                 model=model,
                 timeout_seconds=args.timeout_seconds,
                 max_output_tokens=args.max_output_tokens,
+                prompt_version=args.prompt_version,
             )
         else:
             provider = OpenAIEvaluationProvider(
@@ -157,6 +164,7 @@ def main(argv: list[str] | None = None) -> int:
                 model=model,
                 timeout_seconds=args.timeout_seconds,
                 max_output_tokens=args.max_output_tokens,
+                prompt_version=args.prompt_version,
             )
 
         def real_provider_for_case(_case: GoldenCase) -> EvaluationProvider:
@@ -167,18 +175,22 @@ def main(argv: list[str] | None = None) -> int:
         paid_calls_allowed = True
         timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
         provider_prefix = "deepseek" if args.provider == "deepseek" else "openai"
-        run_id = f"{provider_prefix}-evaluator-v0.1-{timestamp}"
+        run_id = f"{provider_prefix}-evaluator-{args.prompt_version}-{timestamp}"
         output = args.output or Path(f"evals/runs/{run_id}.json")
     else:
         if args.confirm_paid_calls:
             raise SystemExit(
                 "--confirm-paid-calls is only valid with --provider openai or deepseek."
             )
-        provider_factory = fake_provider_for_case
+
+        def fake_provider_factory(case: GoldenCase) -> FakeLLMProvider:
+            return fake_provider_for_case(case, prompt_version=args.prompt_version)
+
+        provider_factory = fake_provider_factory
         mode = EvaluationMode.FAKE_PIPELINE
         paid_calls_allowed = False
-        run_id = "fake-pipeline-v0.1"
-        output = args.output or DEFAULT_FAKE_OUTPUT
+        run_id = f"fake-pipeline-{args.prompt_version}"
+        output = args.output or Path(f"evals/runs/{run_id}.json")
 
     run = run_golden_evaluation(
         golden_set,
@@ -186,10 +198,12 @@ def main(argv: list[str] | None = None) -> int:
         mode=mode,
         max_cases=max_cases,
         paid_calls_allowed=paid_calls_allowed,
+        prompt_version=args.prompt_version,
         run_id=run_id,
     )
     save_evaluation_run(run, output)
     print(f"Run: {run.run_id}")
+    print(f"Prompt version: {args.prompt_version}")
     print(f"Cases: {run.summary.succeeded_cases}/{run.summary.total_cases} succeeded")
     print(
         f"Automatic checks: {run.summary.automatic_passed_cases}/{run.summary.total_cases} passed"

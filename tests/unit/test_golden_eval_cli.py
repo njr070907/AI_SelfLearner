@@ -155,3 +155,37 @@ def test_case_id_selection_reorders_dataset_and_bounds_run(monkeypatch: pytest.M
     assert exit_code == 0
     assert captured["case_ids"][0] == "hm-lhopital-strong"
     assert captured["run_kwargs"]["max_cases"] == 1
+
+
+def test_prompt_version_is_forwarded_and_fake_output_is_versioned(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, Any] = {}
+
+    def stub_run(_golden_set: Any, **kwargs: Any) -> SimpleNamespace:
+        captured["run_kwargs"] = kwargs
+        return SimpleNamespace(
+            run_id="fake-pipeline-v0.2",
+            summary=SimpleNamespace(
+                succeeded_cases=1,
+                total_cases=1,
+                automatic_passed_cases=1,
+                human_review_required_cases=1,
+                input_tokens=0,
+                output_tokens=0,
+                failed_cases=0,
+            ),
+        )
+
+    monkeypatch.setattr(cli, "run_golden_evaluation", stub_run)
+    monkeypatch.setattr(
+        cli, "save_evaluation_run", lambda _run, output: captured.setdefault("output", output)
+    )
+
+    exit_code = main(
+        ["--provider", "fake", "--prompt-version", "v0.2", "--case-id", "hm-lhopital-strong"]
+    )
+
+    assert exit_code == 0
+    assert captured["run_kwargs"]["prompt_version"] == "v0.2"
+    assert str(captured["output"]).endswith("fake-pipeline-v0.2.json")

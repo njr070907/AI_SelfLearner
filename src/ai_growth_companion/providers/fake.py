@@ -31,8 +31,14 @@ class FakeLLMProvider:
     model_name: str = "fake-mastery-v0.1"
     model_revision: str | None = "deterministic-1"
 
-    def __init__(self, scenario: FakeScenario = FakeScenario.PARTIAL) -> None:
+    def __init__(
+        self,
+        scenario: FakeScenario = FakeScenario.PARTIAL,
+        *,
+        prompt_version: str = "v0.1",
+    ) -> None:
         self.scenario = scenario
+        self.prompt_version = prompt_version
 
     def _metadata(
         self,
@@ -87,7 +93,7 @@ class FakeLLMProvider:
             content=content,
             metadata=self._metadata(
                 request_id=request_id,
-                prompt_version="fake-evaluator-v0.1",
+                prompt_version=f"fake-evaluator-{self.prompt_version}",
                 schema_version="provider-observation-v0.1",
             ),
         )
