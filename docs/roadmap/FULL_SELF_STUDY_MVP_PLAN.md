@@ -6,7 +6,7 @@
 
 当前仓库已经具备可靠的工程地基：SQLite 与迁移、事件历史、Mastery Engine、Learning Policy、Fake Provider、真实 DeepSeek 适配器、结构化 Schema、评测 CLI、CI 和第一版学习工作区 UI 都已存在。最近一次离线回归为 122 个测试通过，Prompt v0.2 也已经可以用 dry-run 做零成本实验。
 
-但从“完整自学系统 MVP”看，目前大约完成了 **35%–45%**：工程基础约完成 80%–90%，真正面向用户的连续学习闭环还需要补齐。当前最重要的不是继续堆工程工具，而是把 Mastery Protocol 变成用户能走完的一条完整路径。
+但从“完整自学系统 MVP”看，按阶段权重计算当前约完成 **38%**：工程基础约完成 80%–90%，真正面向用户的连续学习闭环还需要补齐。每次开发都会同步更新 [`MVP_PROGRESS.md`](MVP_PROGRESS.md)，避免把代码量或测试数量误当成产品完成度。当前最重要的不是继续堆工程工具，而是把 Mastery Protocol 变成用户能走完的一条完整路径。
 
 ## 2. MVP 范围
 
@@ -34,6 +34,8 @@
 ## 3. 预计时间
 
 按每天 4–6 个有效开发小时估算，总计 **26–39 个工作日，约 5–8 个日历周**。如果每天只有 2–3 小时，预计为 8–12 周。时间是可调整的工程估算，不是付费模型调用承诺。
+
+当前已完成范围约 38%，按剩余阶段拆分估算还需要 **17–26 个有效工作日**：每天 4–6 小时约 4–6 个日历周，每天 2–3 小时约 6–9 周。前后端可并行，真实模型人工复核和 7 天试用可能拉长日历时间。
 
 | 阶段 | 预计用时 | 后端/协议交付 | 前端 UI 交付 | 阶段验收 |
 | --- | --- | --- | --- | --- |
@@ -93,6 +95,14 @@ submit_retest(item_id, answer) -> ReviewResult
 get_concept_state(concept_id) -> ConceptState
 record_user_correction(event_id, correction) -> ConceptState
 ```
+
+当前教学闭环已经落地为以下可供前端接入的字段：
+
+- `SessionView.answer_count`：当前会话已经提交的回答数量；
+- `SessionView.can_submit_follow_up`：只有成功诊断后才允许继续同一会话；
+- `DiagnosisView.answer_type`：`main` 或 `follow_up`；
+- `DiagnosisView.sequence_no`：回答在当前会话中的顺序；
+- `submit_follow_up(...)`：保存追问/练习回答，再走同一套 Provider → Mastery Engine → Learning Policy 管道。
 
 这些是协作边界，不要求前端等待最终数据库表名。表结构可以演进，但不能绕过事件历史和服务层。
 

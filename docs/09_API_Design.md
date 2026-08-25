@@ -69,6 +69,8 @@ Streamlit MVP 可直接调用 Application Service；本文定义稳定的应用�
 }
 ```
 
+`answer_type` 可以是 `main` 或 `follow_up`。`main` 只能在会话第一次回答时提交；诊断成功后，前端可以在同一 `session_id` 下提交 `follow_up`，系统会递增 `sequence_no`，保存新的证据/决定/动作并重新计算当前状态。前端不需要知道数据库表名，也不能跳过 Application Service 直接访问 Provider 或 SQLite。
+
 同步响应 `201`：
 
 ```json
@@ -97,7 +99,7 @@ Streamlit MVP 可直接调用 Application Service；本文定义稳定的应用�
 }
 ```
 
-服务应先保存回答与 pending diagnosis，再调用模型；失败时返回可恢复状态。
+服务应先保存回答与 pending diagnosis，再调用模型；失败时返回可恢复状态。应用层返回的 `SessionView` 包含 `answer_count` 和 `can_submit_follow_up`，`DiagnosisView` 包含 `answer_type` 和 `sequence_no`，供 Streamlit 或未来 API 客户端稳定消费。
 
 ## 6. 获取会话
 
@@ -177,4 +179,3 @@ created → questioned → answered → diagnosed
 - 限制输入长度和内容类型；
 - 材料与用户回答是数据，不作为系统指令；
 - 原始模型响应仅管理员/本地调试可见。
-

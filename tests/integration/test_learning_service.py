@@ -187,6 +187,78 @@ def test_successful_diagnosis_cannot_be_retried(tmp_path: Path) -> None:
         )
 
 
+def test_same_session_follow_up_is_saved_and_re_diagnosed(tmp_path: Path) -> None:
+    service, repository, database = setup_service(tmp_path)
+    session = service.start_session(concept="极限", request_id="follow-up-start")
+
+    first = service.submit_answer(
+        session_id=session.session_id,
+        answer_text="第一次解释覆盖了定义，但还需要用例子说明边界。",
+        scenario=FakeScenario.PARTIAL,
+        request_id="follow-up-main",
+    )
+    assert first.answer_type == "main"
+    assert first.sequence_no == 1
+    assert service.get_session(session.session_id).can_submit_follow_up is True
+
+    follow_up = service.submit_follow_up(
+        session_id=session.session_id,
+        answer_text="追问回答补充了一个新情境中的机制和边界。",
+        scenario=FakeScenario.STRONG,
+        request_id="follow-up-second",
+    )
+
+    assert follow_up.status == "succeeded"
+    assert follow_up.answer_type == "follow_up"
+    assert follow_up.sequence_no == 2
+    assert follow_up.explanation_id != first.explanation_id
+    assert follow_up.decision is not None
+    assert follow_up.decision.mastery_level == "solid"
+    assert service.get_session(session.session_id).answer_count == 2
+
+    latest = service.get_session_diagnosis(session.session_id)
+    assert latest is not None
+    assert latest.explanation_id == follow_up.explanation_id
+    assert latest.answer_type == "follow_up"
+
+    rebuilt = repository.rebuild_current_state(
+        user_id=LOCAL_USER_ID,
+        concept_id=session.concept_id,
+    )
+    assert rebuilt is not None
+    assert rebuilt.evidence_count == 2
+    with database.connect() as connection:
+        rows = connection.execute(
+            "SELECT answer_type, sequence_no FROM user_explanations "
+            "WHERE session_id = ? ORDER BY sequence_no",
+            (session.session_id,),
+        ).fetchall()
+        answer_events = connection.execute(
+            "SELECT payload_json FROM learning_events "
+            "WHERE session_id = ? AND event_type = 'answer_submitted' ORDER BY rowid",
+            (session.session_id,),
+        ).fetchall()
+
+    assert [(row["answer_type"], row["sequence_no"]) for row in rows] == [
+        ("main", 1),
+        ("follow_up", 2),
+    ]
+    assert '"answer_type": "follow_up"' in answer_events[1]["payload_json"]
+
+
+def test_follow_up_requires_a_successful_main_diagnosis(tmp_path: Path) -> None:
+    service, _repository, _database = setup_service(tmp_path)
+    session = service.start_session(concept="导数", request_id="follow-up-guard-start")
+
+    with pytest.raises(InvalidSessionState, match="成功诊断"):
+        service.submit_follow_up(
+            session_id=session.session_id,
+            answer_text="还没有主回答，不能直接提交追问。",
+            scenario=FakeScenario.STRONG,
+            request_id="follow-up-before-main",
+        )
+
+
 def test_history_can_be_reopened_by_a_new_service_instance(tmp_path: Path) -> None:
     service, repository, _database = setup_service(tmp_path)
     session = service.start_session(concept="Embedding", request_id="history-start")

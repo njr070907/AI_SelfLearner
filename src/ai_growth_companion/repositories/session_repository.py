@@ -43,6 +43,8 @@ class ExplanationRecord:
     question_id: str
     answer_text: str
     request_id: str
+    answer_type: Literal["main", "follow_up"]
+    sequence_no: int
 
 
 @dataclass(frozen=True)
@@ -286,12 +288,14 @@ class SQLiteSessionRepository:
         question: QuestionRecord,
         answer_text: str,
         request_id: str,
+        answer_type: Literal["main", "follow_up"] = "main",
     ) -> tuple[ExplanationRecord, bool]:
-        """Persist the answer before any provider call and make submission idempotent."""
+        """Persist one answer before any provider call and make it idempotent."""
         with self.database.connect() as connection, connection:
             existing = connection.execute(
                 """
-                SELECT id, session_id, question_id, answer_text, request_id
+                SELECT id, session_id, question_id, answer_text, request_id,
+                       answer_type, sequence_no
                 FROM user_explanations WHERE request_id = ?
                 """,
                 (request_id,),
@@ -301,6 +305,7 @@ class SQLiteSessionRepository:
                     existing["session_id"] != session.id
                     or existing["question_id"] != question.id
                     or existing["answer_text"] != answer_text
+                    or existing["answer_type"] != answer_type
                 ):
                     raise InvalidSessionState("同一个幂等键不能用于不同的回答提交")
                 return ExplanationRecord(**dict(existing)), False
@@ -308,8 +313,23 @@ class SQLiteSessionRepository:
             current = connection.execute(
                 "SELECT status FROM learning_sessions WHERE id = ?", (session.id,)
             ).fetchone()
-            if current is None or current["status"] != SessionStatus.QUESTIONED.value:
+            allowed_statuses = (
+                {SessionStatus.QUESTIONED.value}
+                if answer_type == "main"
+                else {SessionStatus.DIAGNOSED.value}
+            )
+            if current is None or current["status"] not in allowed_statuses:
+                if answer_type == "follow_up":
+                    raise InvalidSessionState("只有完成一次成功诊断后才能提交追问回答")
                 raise InvalidSessionState("当前会话不能提交新回答")
+
+            next_sequence = connection.execute(
+                "SELECT COALESCE(MAX(sequence_no), 0) + 1 AS sequence_no "
+                "FROM user_explanations WHERE session_id = ?",
+                (session.id,),
+            ).fetchone()["sequence_no"]
+            if answer_type == "main" and next_sequence != 1:
+                raise InvalidSessionState("当前会话已经有主回答")
 
             explanation_id = str(uuid4())
             connection.execute(
@@ -317,9 +337,18 @@ class SQLiteSessionRepository:
                 INSERT INTO user_explanations(
                     id, session_id, question_id, answer_text, answer_type,
                     sequence_no, request_id, created_at
-                ) VALUES (?, ?, ?, ?, 'main', 1, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """,
-                (explanation_id, session.id, question.id, answer_text, request_id, utc_text()),
+                (
+                    explanation_id,
+                    session.id,
+                    question.id,
+                    answer_text,
+                    answer_type,
+                    next_sequence,
+                    request_id,
+                    utc_text(),
+                ),
             )
             connection.execute(
                 "UPDATE learning_sessions SET status = ?, error_code = NULL WHERE id = ?",
@@ -331,7 +360,12 @@ class SQLiteSessionRepository:
                 session_id=session.id,
                 concept_id=session.concept_id,
                 event_type=EventType.ANSWER_SUBMITTED,
-                payload={"explanation_id": explanation_id, "answer_length": len(answer_text)},
+                payload={
+                    "explanation_id": explanation_id,
+                    "answer_length": len(answer_text),
+                    "answer_type": answer_type,
+                    "sequence_no": next_sequence,
+                },
                 request_id=request_id,
             )
             return (
@@ -341,6 +375,8 @@ class SQLiteSessionRepository:
                     question_id=question.id,
                     answer_text=answer_text,
                     request_id=request_id,
+                    answer_type=answer_type,
+                    sequence_no=next_sequence,
                 ),
                 True,
             )
@@ -349,7 +385,8 @@ class SQLiteSessionRepository:
         with self.database.connect() as connection:
             row = connection.execute(
                 """
-                SELECT id, session_id, question_id, answer_text, request_id
+                SELECT id, session_id, question_id, answer_text, request_id,
+                       answer_type, sequence_no
                 FROM user_explanations WHERE id = ?
                 """,
                 (explanation_id,),
@@ -363,7 +400,8 @@ class SQLiteSessionRepository:
         with self.database.connect() as connection:
             row = connection.execute(
                 """
-                SELECT id, session_id, question_id, answer_text, request_id
+                SELECT id, session_id, question_id, answer_text, request_id,
+                       answer_type, sequence_no
                 FROM user_explanations
                 WHERE session_id = ? AND answer_type = 'main'
                 ORDER BY sequence_no
@@ -372,6 +410,31 @@ class SQLiteSessionRepository:
                 (session_id,),
             ).fetchone()
         return None if row is None else ExplanationRecord(**dict(row))
+
+    def get_latest_explanation(self, session_id: str) -> ExplanationRecord | None:
+        """Load the latest answer in a teaching session, including a follow-up."""
+        with self.database.connect() as connection:
+            row = connection.execute(
+                """
+                SELECT id, session_id, question_id, answer_text, request_id,
+                       answer_type, sequence_no
+                FROM user_explanations
+                WHERE session_id = ?
+                ORDER BY sequence_no DESC
+                LIMIT 1
+                """,
+                (session_id,),
+            ).fetchone()
+        return None if row is None else ExplanationRecord(**dict(row))
+
+    def answer_count(self, session_id: str) -> int:
+        """Return the number of submitted answers in a teaching session."""
+        with self.database.connect() as connection:
+            row = connection.execute(
+                "SELECT COUNT(*) AS answer_count FROM user_explanations WHERE session_id = ?",
+                (session_id,),
+            ).fetchone()
+        return int(row["answer_count"])
 
     def next_attempt_no(self, explanation_id: str) -> int:
         with self.database.connect() as connection:
