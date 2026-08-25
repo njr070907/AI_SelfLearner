@@ -9,7 +9,7 @@
 - 每条真实结果仍标记为“需要人工语义复核”。当前结论是：接口和数据管道稳定，但 Prompt v0.1 的语义判断存在波动，不能把自动通过数当作掌握度结论。
 - 真实 Provider 必须使用 `deepseek-v4-flash-vision-exp`。没有新的实验设计前，不要盲目重复完整付费运行。
 - UI v1 已在 PR #28–#29 合并，Prompt v0.2 候选版本在 PR #30 合并但仍需实验验证；教学、错题本、复习调度、反馈/长期状态和 Provider 组合根后端已完成；当前离线回归为 143 个测试通过。
-- 完整自学 MVP 按最终用户可正常使用的验收口径当前约完成 54%，预计还需 12–20 个有效工作日（前后端并行约 4–6 周）；#38 长期状态后端、#45 Provider 安全边界和 Fake 后端完整路径测试已合并，但后端完成而前端未接入只计阶段一半，还需要补齐学习/错题/复习/进度页面、真实语义验收和 7 天试用闭环。
+- 完整自学 MVP 按最终用户可正常使用的验收口径当前约完成 56%，预计还需 12–20 个有效工作日（前后端并行约 4–6 周）；#38 长期状态后端、#45 Provider 安全边界、#48 WorkspaceSnapshot、#49 应用组合根接线和 Fake 后端完整路径测试已合并，但后端完成而前端未接入只计阶段一半，还需要补齐学习/错题/复习/进度页面、真实语义验收和 7 天试用闭环。
 - 完整阶段、时间估算、停止条件和前后端边界见 [完整自学 MVP 开发计划](../roadmap/FULL_SELF_STUDY_MVP_PLAN.md)。
 
 ## 谁负责什么
@@ -77,9 +77,9 @@ uv run python scripts/run_golden_eval.py `
 
 ## 当前优先工作
 
-1. 前端合作者 #33/#35/#37：接入 `SessionView`、`DiagnosisView`、`WrongItemView`、`ReviewQueueItemView` 和 `submit_follow_up`，优先使用 Fake fixtures。
-2. 后端 #38：实现长期状态、用户修正和趋势服务，复用全部事件历史。
-3. 继续现有的 #24–#26 Prompt v0.2 实验、20 条人工复核和校准报告；在 Fake 闭环稳定前不盲目扩大付费调用。
+1. 前端合作者 #33/#35/#37：接入 `SessionView`、`DiagnosisView`、`WrongItemView`、`ReviewQueueItemView` 和 `submit_follow_up`，优先使用 Fake fixtures；应用入口现在已通过组合根自动选择 Fake/固定 DeepSeek 模式。
+2. 继续现有的 #24–#26 Prompt v0.2 实验、20 条人工复核和校准报告；在 Fake 闭环稳定前不盲目扩大付费调用。
+3. 完成 #39 全链路集成、迁移/启动/错误恢复验收和至少一轮 7 天试用。
 
 ## 验收标准
 
