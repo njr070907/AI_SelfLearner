@@ -1,7 +1,7 @@
 """End-to-end deterministic Sprint 0 learning use cases."""
 
 from collections.abc import Callable
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Literal
 from uuid import uuid4
 
@@ -10,11 +10,14 @@ from pydantic import ValidationError
 from ai_growth_companion.application.models import (
     DiagnosisView,
     HistoryItem,
+    ReviewQueueItemView,
+    ReviewResultView,
     SessionView,
     WrongItemView,
 )
 from ai_growth_companion.domain.events import LOCAL_USER_ID
 from ai_growth_companion.domain.mastery import DemoLearningPolicy, DemoMasteryEngine
+from ai_growth_companion.domain.review import ReviewAttemptStatus, ReviewItemStatus, ReviewOutcome
 from ai_growth_companion.domain.session import (
     InvalidSessionState,
     normalize_concept,
@@ -28,6 +31,11 @@ from ai_growth_companion.providers.base import (
     QuestionRequest,
 )
 from ai_growth_companion.providers.fake import FakeLLMProvider, FakeScenario
+from ai_growth_companion.repositories.review_repository import (
+    ReviewAttemptRecord,
+    ReviewItemRecord,
+    SQLiteReviewRepository,
+)
 from ai_growth_companion.repositories.session_repository import (
     ExplanationRecord,
     QuestionRecord,
@@ -40,6 +48,8 @@ from ai_growth_companion.repositories.wrong_item_repository import (
     WrongItemRecord,
 )
 from ai_growth_companion.schemas.diagnosis import (
+    LearningAction,
+    MasteryDecision,
     ProviderObservation,
     QuestionDraft,
     validate_answer_excerpts,
@@ -72,6 +82,7 @@ class LearningService:
         self.mastery_engine = mastery_engine or DemoMasteryEngine()
         self.learning_policy = learning_policy or DemoLearningPolicy()
         self.wrong_item_repository = SQLiteWrongItemRepository(repository.database)
+        self.review_repository = SQLiteReviewRepository(repository.database)
 
     def start_session(
         self,
@@ -290,7 +301,7 @@ class LearningService:
             action=action,
             metadata=response.metadata,
         )
-        self.wrong_item_repository.create_from_success(
+        wrong_item = self.wrong_item_repository.create_from_success(
             user_id=LOCAL_USER_ID,
             concept_id=session.concept_id,
             concept=session.concept,
@@ -306,6 +317,8 @@ class LearningService:
             decision=decision,
             action=action,
         )
+        if wrong_item is not None:
+            self.review_repository.ensure_for_wrong_item(wrong_item)
         return DiagnosisView(
             session_id=session.id,
             explanation_id=explanation.id,
@@ -358,12 +371,110 @@ class LearningService:
         request_id: str,
     ) -> WrongItemView:
         """Record a user-controlled wrong-item status change."""
-        return self._wrong_item_view(
+        view = self._wrong_item_view(
             self.wrong_item_repository.update_status(
                 wrong_item_id=wrong_item_id,
                 status=status,
                 request_id=request_id,
             )
+        )
+        if status is WrongItemStatus.MASTERED:
+            self.review_repository.mark_mastered_for_wrong_item(wrong_item_id)
+        return view
+
+    def list_review_queue(
+        self,
+        *,
+        now: datetime | None = None,
+        limit: int = 50,
+    ) -> tuple[ReviewQueueItemView, ...]:
+        """Return the active review items due at the supplied instant."""
+        now_value = now or datetime.now().astimezone()
+        return tuple(
+            self._review_item_view(record, now=now_value)
+            for record in self.review_repository.list_due(
+                now=now_value.isoformat().replace("+00:00", "Z"),
+                limit=limit,
+            )
+        )
+
+    def submit_retest(
+        self,
+        *,
+        review_item_id: str,
+        answer_text: str,
+        scenario: FakeScenario,
+        request_id: str,
+    ) -> ReviewResultView:
+        """Evaluate a due item and schedule its next review without guessing mastery."""
+        answer = validate_answer(answer_text)
+        existing = self.review_repository.get_attempt_by_request(request_id)
+        if existing is not None:
+            existing_item, existing_attempt = existing
+            if (
+                existing_item.review_item_id != review_item_id
+                or existing_attempt.answer_text != answer
+            ):
+                raise ValueError("同一个幂等键不能用于不同的复测提交")
+            return self._review_result(existing_item, existing_attempt)
+
+        item = self.review_repository.get(review_item_id)
+        if item.status is ReviewItemStatus.MASTERED:
+            raise InvalidSessionState("这个复习项目已经标记为掌握")
+
+        provider = self.provider_factory(scenario)
+        try:
+            response = provider.evaluate(
+                EvaluationRequest(
+                    concept=item.concept,
+                    question_text=item.question_text,
+                    coverage_points=(),
+                    answer_text=answer,
+                ),
+                request_id=request_id,
+            )
+        except ProviderError as error:
+            updated_item, attempt = self.review_repository.record_failure(
+                review_item_id=review_item_id,
+                answer_text=answer,
+                request_id=request_id,
+                status=ReviewAttemptStatus.FAILED,
+                error_code=error.code,
+            )
+            return self._review_result(updated_item, attempt)
+
+        try:
+            observation = ProviderObservation.model_validate(response.content)
+            validate_answer_excerpts(observation, answer)
+        except (ValidationError, ValueError):
+            updated_item, attempt = self.review_repository.record_failure(
+                review_item_id=review_item_id,
+                answer_text=answer,
+                request_id=request_id,
+                status=ReviewAttemptStatus.INVALID,
+                error_code="LLM_OUTPUT_INVALID",
+            )
+            return self._review_result(updated_item, attempt)
+
+        observation_id = str(uuid4())
+        decision = self.mastery_engine.decide(observation, observation_id=observation_id)
+        action = self.learning_policy.choose(observation, decision)
+        result = self._review_outcome(observation)
+        updated_item, attempt = self.review_repository.record_success(
+            review_item_id=review_item_id,
+            answer_text=answer,
+            request_id=request_id,
+            result=result,
+            observation=observation,
+            decision=decision,
+            action=action,
+        )
+        return self._review_result(
+            updated_item,
+            attempt,
+            observation=observation,
+            decision=decision,
+            action=action,
         )
 
     def _session_view(self, session: SessionRecord, question: QuestionRecord) -> SessionView:
@@ -379,6 +490,66 @@ class LearningService:
             started_at=_parse_datetime(session.started_at),
             answer_count=self.repository.answer_count(session.id),
             can_submit_follow_up=session.status == "diagnosed",
+        )
+
+    @staticmethod
+    def _review_outcome(observation: ProviderObservation) -> ReviewOutcome:
+        if observation.possible_misconceptions or not observation.evidence:
+            return ReviewOutcome.INCORRECT
+        if observation.gaps:
+            return ReviewOutcome.PARTIAL
+        return ReviewOutcome.CORRECT
+
+    @staticmethod
+    def _review_item_view(
+        record: ReviewItemRecord,
+        *,
+        now: datetime,
+    ) -> ReviewQueueItemView:
+        due_at = _parse_datetime(record.due_at)
+        return ReviewQueueItemView(
+            review_item_id=record.review_item_id,
+            wrong_item_id=record.wrong_item_id,
+            concept_id=record.concept_id,
+            concept=record.concept,
+            question_text=record.question_text,
+            due_at=due_at,
+            interval_days=record.interval_days,
+            attempt_count=record.attempt_count,
+            last_result=record.last_result,
+            status=record.status,
+            is_due=due_at <= now,
+        )
+
+    @classmethod
+    def _review_result(
+        cls,
+        item: ReviewItemRecord,
+        attempt: ReviewAttemptRecord,
+        *,
+        observation: ProviderObservation | None = None,
+        decision: MasteryDecision | None = None,
+        action: LearningAction | None = None,
+    ) -> ReviewResultView:
+        parsed_observation = observation
+        parsed_decision = decision
+        parsed_action = action
+        if parsed_observation is None and attempt.observation_json is not None:
+            parsed_observation = ProviderObservation.model_validate_json(attempt.observation_json)
+        if parsed_decision is None and attempt.decision_json is not None:
+            parsed_decision = MasteryDecision.model_validate_json(attempt.decision_json)
+        if parsed_action is None and attempt.action_json is not None:
+            parsed_action = LearningAction.model_validate_json(attempt.action_json)
+        return ReviewResultView(
+            review_item=cls._review_item_view(item, now=datetime.now(UTC)),
+            attempt_id=attempt.attempt_id,
+            status=attempt.status,
+            result=attempt.result,
+            retryable=attempt.status in {ReviewAttemptStatus.FAILED, ReviewAttemptStatus.INVALID},
+            error_code=attempt.error_code,
+            observation=parsed_observation,
+            decision=parsed_decision,
+            next_action=parsed_action,
         )
 
     @staticmethod

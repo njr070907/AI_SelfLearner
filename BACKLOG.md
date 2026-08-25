@@ -20,14 +20,14 @@
 
 ## P0 — 完整自学 MVP
 
-这是当前从“工程底座”走向“可用自学产品”的主队列。当前总进度约 **49%**，预计还需 **13–21 个有效工作日**；完整阶段、权重、时间估算、接口边界和停止条件见 [`docs/roadmap/FULL_SELF_STUDY_MVP_PLAN.md`](docs/roadmap/FULL_SELF_STUDY_MVP_PLAN.md) 和 [`docs/roadmap/MVP_PROGRESS.md`](docs/roadmap/MVP_PROGRESS.md)。
+这是当前从“工程底座”走向“可用自学产品”的主队列。当前总进度约 **56%**，预计还需 **11–18 个有效工作日**；完整阶段、权重、时间估算、接口边界和停止条件见 [`docs/roadmap/FULL_SELF_STUDY_MVP_PLAN.md`](docs/roadmap/FULL_SELF_STUDY_MVP_PLAN.md) 和 [`docs/roadmap/MVP_PROGRESS.md`](docs/roadmap/MVP_PROGRESS.md)。
 
 - [x] [#31](https://github.com/njr070907/AI_SelfLearner/issues/31) 锁定完整自学 MVP 范围与数据/服务契约。
 - [x] [#32](https://github.com/njr070907/AI_SelfLearner/issues/32) 后端：实现完整教学闭环 API 与领域模型。
 - [ ] [#33](https://github.com/njr070907/AI_SelfLearner/issues/33) 前端：实现学习教学流程页面。
 - [x] [#34](https://github.com/njr070907/AI_SelfLearner/issues/34) 后端：实现错题本数据模型与服务。
 - [ ] [#35](https://github.com/njr070907/AI_SelfLearner/issues/35) 前端：实现错题本页面。
-- [ ] [#36](https://github.com/njr070907/AI_SelfLearner/issues/36) 后端：实现复习调度与复测。
+- [x] [#36](https://github.com/njr070907/AI_SelfLearner/issues/36) 后端：实现复习调度与复测。
 - [ ] [#37](https://github.com/njr070907/AI_SelfLearner/issues/37) 前端：实现复习队列与复测页面。
 - [ ] [#38](https://github.com/njr070907/AI_SelfLearner/issues/38) 后端：实现反馈、长期状态与趋势。
 - [ ] [#39](https://github.com/njr070907/AI_SelfLearner/issues/39) 集成教学、错题、复习、进度并完成 7 天试用。

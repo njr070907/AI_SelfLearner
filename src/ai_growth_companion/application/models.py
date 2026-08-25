@@ -5,6 +5,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
+from ai_growth_companion.domain.review import ReviewAttemptStatus, ReviewItemStatus, ReviewOutcome
 from ai_growth_companion.domain.wrong_items import WrongItemStatus, WrongItemType
 from ai_growth_companion.schemas.diagnosis import (
     DiagnosisEnvelope,
@@ -85,3 +86,33 @@ class WrongItemView(ViewModel):
     created_at: datetime
     updated_at: datetime
     resolved_at: datetime | None = None
+
+
+class ReviewQueueItemView(ViewModel):
+    """A due review item that a page can render without storage access."""
+
+    review_item_id: str
+    wrong_item_id: str
+    concept_id: str
+    concept: str
+    question_text: str
+    due_at: datetime
+    interval_days: int
+    attempt_count: int
+    last_result: ReviewOutcome | None
+    status: ReviewItemStatus
+    is_due: bool
+
+
+class ReviewResultView(ViewModel):
+    """The retest result plus the next deterministic scheduling decision."""
+
+    review_item: ReviewQueueItemView
+    attempt_id: str
+    status: ReviewAttemptStatus
+    result: ReviewOutcome | None
+    retryable: bool
+    error_code: str | None = None
+    observation: ProviderObservation | None = None
+    decision: MasteryDecision | None = None
+    next_action: LearningAction | None = None
