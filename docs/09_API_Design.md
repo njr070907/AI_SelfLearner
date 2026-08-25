@@ -147,6 +147,26 @@ Streamlit MVP 可直接调用 Application Service；本文定义稳定的应用�
 
 删除属于高影响操作，应二次确认并明确范围；导出应包含原始数据、派生状态和版本信息。
 
+## 10.1 错题本
+
+### `GET /api/v1/wrong-items?status=open|snoozed|mastered`
+
+返回可追溯的错题/薄弱项列表。每条记录包含原题、用户回答、错误类型、诊断证据、修正建议、来源会话和当前状态；默认优先返回 `open` 项。
+
+### `GET /api/v1/wrong-items/{wrong_item_id}`
+
+返回一条错题详情，不返回 Provider 原始响应。
+
+### `POST /api/v1/wrong-items/{wrong_item_id}/status`
+
+```json
+{
+  "status": "mastered"
+}
+```
+
+状态变更保留 `wrong_item_status_updated` 事件，支持幂等键；标记为 `mastered` 不删除原题、回答或诊断证据，也不直接改写 Mastery Protocol 的历史决定。
+
 ## 11. 错误格式
 
 ```json

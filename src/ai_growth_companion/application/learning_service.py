@@ -7,13 +7,20 @@ from uuid import uuid4
 
 from pydantic import ValidationError
 
-from ai_growth_companion.application.models import DiagnosisView, HistoryItem, SessionView
+from ai_growth_companion.application.models import (
+    DiagnosisView,
+    HistoryItem,
+    SessionView,
+    WrongItemView,
+)
+from ai_growth_companion.domain.events import LOCAL_USER_ID
 from ai_growth_companion.domain.mastery import DemoLearningPolicy, DemoMasteryEngine
 from ai_growth_companion.domain.session import (
     InvalidSessionState,
     normalize_concept,
     validate_answer,
 )
+from ai_growth_companion.domain.wrong_items import WrongItemStatus
 from ai_growth_companion.providers.base import (
     EvaluationRequest,
     LLMProvider,
@@ -27,6 +34,10 @@ from ai_growth_companion.repositories.session_repository import (
     SessionRecord,
     SQLiteSessionRepository,
     StoredOutcome,
+)
+from ai_growth_companion.repositories.wrong_item_repository import (
+    SQLiteWrongItemRepository,
+    WrongItemRecord,
 )
 from ai_growth_companion.schemas.diagnosis import (
     ProviderObservation,
@@ -60,6 +71,7 @@ class LearningService:
         self.provider_factory = provider_factory
         self.mastery_engine = mastery_engine or DemoMasteryEngine()
         self.learning_policy = learning_policy or DemoLearningPolicy()
+        self.wrong_item_repository = SQLiteWrongItemRepository(repository.database)
 
     def start_session(
         self,
@@ -264,17 +276,35 @@ class LearningService:
         observation_id = str(uuid4())
         decision = self.mastery_engine.decide(observation, observation_id=observation_id)
         action = self.learning_policy.choose(observation, decision)
-        self.repository.record_success(
+        decision_id = str(uuid4())
+        action_id = str(uuid4())
+        source_event_id = self.repository.record_success(
             session=session,
             explanation=explanation,
             attempt_no=attempt_no,
             observation_id=observation_id,
-            decision_id=str(uuid4()),
-            action_id=str(uuid4()),
+            decision_id=decision_id,
+            action_id=action_id,
             observation=observation,
             decision=decision,
             action=action,
             metadata=response.metadata,
+        )
+        self.wrong_item_repository.create_from_success(
+            user_id=LOCAL_USER_ID,
+            concept_id=session.concept_id,
+            concept=session.concept,
+            session_id=session.id,
+            question_id=question.id,
+            question_text=question.question_text,
+            explanation_id=explanation.id,
+            answer_text=explanation.answer_text,
+            observation_id=observation_id,
+            decision_id=decision_id,
+            source_event_id=source_event_id,
+            observation=observation,
+            decision=decision,
+            action=action,
         )
         return DiagnosisView(
             session_id=session.id,
@@ -304,6 +334,38 @@ class LearningService:
     def list_history(self) -> tuple[HistoryItem, ...]:
         return self.repository.list_history()
 
+    def list_wrong_items(
+        self,
+        *,
+        status: WrongItemStatus | None = None,
+        limit: int = 50,
+    ) -> tuple[WrongItemView, ...]:
+        """Return traceable wrong items for the review UI."""
+        return tuple(
+            self._wrong_item_view(record)
+            for record in self.wrong_item_repository.list(status=status, limit=limit)
+        )
+
+    def get_wrong_item(self, wrong_item_id: str) -> WrongItemView:
+        """Return one wrong item without exposing SQLite row details."""
+        return self._wrong_item_view(self.wrong_item_repository.get(wrong_item_id))
+
+    def update_wrong_item_status(
+        self,
+        *,
+        wrong_item_id: str,
+        status: WrongItemStatus,
+        request_id: str,
+    ) -> WrongItemView:
+        """Record a user-controlled wrong-item status change."""
+        return self._wrong_item_view(
+            self.wrong_item_repository.update_status(
+                wrong_item_id=wrong_item_id,
+                status=status,
+                request_id=request_id,
+            )
+        )
+
     def _session_view(self, session: SessionRecord, question: QuestionRecord) -> SessionView:
         """Build the stable page contract without leaking repository records."""
         return SessionView(
@@ -317,6 +379,28 @@ class LearningService:
             started_at=_parse_datetime(session.started_at),
             answer_count=self.repository.answer_count(session.id),
             can_submit_follow_up=session.status == "diagnosed",
+        )
+
+    @staticmethod
+    def _wrong_item_view(record: WrongItemRecord) -> WrongItemView:
+        return WrongItemView(
+            wrong_item_id=record.wrong_item_id,
+            concept_id=record.concept_id,
+            concept=record.concept,
+            session_id=record.session_id,
+            explanation_id=record.explanation_id,
+            question_text=record.question_text,
+            answer_text=record.answer_text,
+            error_type=record.error_type,
+            error_summary=record.error_summary,
+            evidence=ProviderObservation.model_validate_json(record.evidence_json),
+            correction_text=record.correction_text,
+            status=record.status,
+            created_at=_parse_datetime(record.created_at),
+            updated_at=_parse_datetime(record.updated_at),
+            resolved_at=(
+                None if record.resolved_at is None else _parse_datetime(record.resolved_at)
+            ),
         )
 
     @staticmethod

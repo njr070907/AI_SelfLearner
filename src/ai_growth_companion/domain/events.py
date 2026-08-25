@@ -25,6 +25,8 @@ class EventType(StrEnum):
     MASTERY_DECISION_RECORDED = "mastery_decision_recorded"
     LEARNING_ACTION_SELECTED = "learning_action_selected"
     FEEDBACK_SUBMITTED = "feedback_submitted"
+    WRONG_ITEM_CREATED = "wrong_item_created"
+    WRONG_ITEM_STATUS_UPDATED = "wrong_item_status_updated"
 
 
 class LearningEvent(BaseModel):
