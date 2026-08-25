@@ -5,6 +5,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
+from ai_growth_companion.domain.feedback import FeedbackVerdict
 from ai_growth_companion.domain.review import ReviewAttemptStatus, ReviewItemStatus, ReviewOutcome
 from ai_growth_companion.domain.wrong_items import WrongItemStatus, WrongItemType
 from ai_growth_companion.schemas.diagnosis import (
@@ -35,6 +36,7 @@ class SessionView(ViewModel):
 class DiagnosisView(ViewModel):
     session_id: str
     explanation_id: str
+    diagnosis_id: str | None = None
     answer_type: Literal["main", "follow_up"]
     sequence_no: int
     concept: str
@@ -116,3 +118,15 @@ class ReviewResultView(ViewModel):
     observation: ProviderObservation | None = None
     decision: MasteryDecision | None = None
     next_action: LearningAction | None = None
+
+
+class FeedbackView(ViewModel):
+    """A learner correction that can be shown without exposing storage rows."""
+
+    feedback_id: str
+    diagnosis_id: str
+    concept_id: str
+    concept: str
+    verdict: FeedbackVerdict
+    note: str | None
+    created_at: datetime

@@ -113,8 +113,9 @@ concepts N──N concepts (knowledge_relations, later)
 | id | TEXT | PK | UUID |
 | diagnosis_id | TEXT | FK | 诊断 |
 | user_id | TEXT | FK | 用户 |
-| rating | TEXT | NOT NULL | accurate/partial/inaccurate |
-| comment | TEXT | NULL | 说明 |
+| verdict | TEXT | NOT NULL | accurate/partial/inaccurate |
+| note | TEXT | NULL | 说明 |
+| request_id | TEXT | UNIQUE NULL | 幂等键 |
 | created_at | TEXT | NOT NULL | UTC |
 
 ### 3.8 knowledge_states
@@ -172,4 +173,3 @@ concepts N──N concepts (knowledge_relations, later)
 - 每次 Schema 变更包含向前迁移和备份说明；
 - 使用临时数据库运行集成测试；
 - 验证 UTC、中文、长文本、引号和 Emoji。
-

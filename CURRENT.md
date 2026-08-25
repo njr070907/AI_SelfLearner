@@ -6,20 +6,20 @@ Sprint 1：用真实 Provider 验证 `evaluator-v0.1` 能否区分充分理解�
 
 ## MVP 总进度
 
-**约 56% / 100%** · **阶段 3「复习与复测」后端已完成**，等待前端 [Issue #37](https://github.com/njr070907/AI_SelfLearner/issues/37) 接入。预计还需 **11–18 个有效工作日**（每天 4–6 小时约 3–5 周）。
+**约 44% / 100%** · **阶段 4「反馈、长期状态与趋势」后端实现中**；阶段 1–3 的前端页面仍待接入。预计还需 **15–24 个有效工作日**（前后端并行、每天 4–6 小时约 4–6 周）。
 
-完整阶段权重和计算方式见 [`docs/roadmap/MVP_PROGRESS.md`](docs/roadmap/MVP_PROGRESS.md)。这个百分比按可验收产品能力计算，不按代码量或已经经过的时间计算；当前 56% 不代表日历时间已经过去 56%。
+完整阶段权重和计算方式见 [`docs/roadmap/MVP_PROGRESS.md`](docs/roadmap/MVP_PROGRESS.md)。这是按最终用户可正常使用的功能验收权重，不按代码量或已经经过的时间计算；当前 44% 不代表日历时间已经过去 44%。
 
 ## 当前状态
 
 - 分支：`main`
-- 任务：DeepSeek `deepseek-v4-flash-vision-exp` 的完整 20 案例真实评估基线已完成；接口适配、JSON 防护、失败诊断、GitHub 协作者交接、UI v1、教学闭环后端、错题本后端和复习调度后端已完成。完整自学 MVP 计划已写入 `docs/roadmap/FULL_SELF_STUDY_MVP_PLAN.md`，GitHub Issues #31–#39 已建立；当前由前端接入 #37，后端进入 #38 长期状态与趋势服务。
+- 任务：DeepSeek `deepseek-v4-flash-vision-exp` 的完整 20 案例真实评估基线已完成；接口适配、JSON 防护、失败诊断、GitHub 协作者交接、UI v1、教学闭环后端、错题本后端和复习调度后端已完成。完整自学 MVP 计划已写入 `docs/roadmap/FULL_SELF_STUDY_MVP_PLAN.md`，GitHub Issues #31–#39 已建立；当前由前端接入 #33/#35/#37，后端完成 #38，随后进入 #39 全链路集成与 7 天试用。
 - 约束：默认 Fake；真实运行必须显式确认；每个案例零重试；任何成功结果仍需人工语义复核。
 
 ## 最近验证
 
 - PR #3–#29 均已按 PR + CI 流程合并到 `main`；PR #28 建立 Liquid Glass 学习工作区，PR #29 完成动效、光效、导航指示器和下拉定位修复；两次合并后的 CI 均成功。
-- 当前离线回归：122 tests、Ruff、format、Mypy 全部通过；真实调用保持零重试。
+- 当前离线回归：134 tests、Ruff、format、Mypy 全部通过；真实调用保持零重试。#38 新增反馈幂等、用户纠正、趋势和重复误区集成覆盖，尚未合并。
 - 真实运行 `deepseek-evaluator-v0.1-20260824T004542Z`：模型为指定实验模型，935/452 tokens，调用成功但自动检查 0/1；模型提取到 4 条证据，却额外记录了未列入覆盖点的缺口，导致 `fragile`/`re_explain`，与该 strong 黄金案例的 `solid`/`practice` 标准不符。
 - 随后的两次受控调用 `20260824T005050Z`、`20260824T005448Z` 均为 `LLM_OUTPUT_INVALID`，0/0 tokens；未自动重试。
 - 诊断后确认模型曾返回 JSON 但类型不稳定（`limitations` 字符串、置信度文字），已通过显式 JSON 类型指令修复。
@@ -29,7 +29,7 @@ Sprint 1：用真实 Provider 验证 `evaluator-v0.1` 能否区分充分理解�
 
 ## Resume Point
 
-当前代码链路、UI v1、#32 教学闭环后端、#34 错题本后端和 #36 复习调度后端已完成；Prompt v0.2 候选版本已经可以通过 `--prompt-version v0.2` 做零成本 dry-run。完整自学 MVP 的下一步是前端 #33/#35/#37 页面接入和后端 #38 长期状态与趋势服务；Prompt 实验与 UI 手工验收并行推进，在新实验方案确定前不再重复完整付费回归。
+当前代码链路、UI v1、#32 教学闭环后端、#34 错题本后端和 #36 复习调度后端已完成；Prompt v0.2 候选版本已经可以通过 `--prompt-version v0.2` 做零成本 dry-run。完整自学 MVP 的下一步是完成并合并 #38 长期状态与趋势服务，同时由前端合作者接入 #33/#35/#37；之后进入 #39 全链路集成和 7 天试用。未合并代码不计入进度。
 
 GitHub 工作项：
 

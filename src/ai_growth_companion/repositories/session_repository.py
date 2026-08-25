@@ -8,6 +8,7 @@ from uuid import uuid4
 
 from ai_growth_companion.application.models import HistoryItem
 from ai_growth_companion.domain.events import LOCAL_USER_ID, ConceptState, EventType, utc_now
+from ai_growth_companion.domain.feedback import ConceptTrend
 from ai_growth_companion.domain.session import InvalidSessionState, SessionStatus
 from ai_growth_companion.providers.base import ProviderMetadata
 from ai_growth_companion.repositories.database import Database, utc_text
@@ -54,6 +55,7 @@ class StoredOutcome:
     observation: ProviderObservation | None
     decision: MasteryDecision | None
     action: LearningAction | None
+    diagnosis_id: str | None = None
 
 
 def _event_payload(value: dict[str, object]) -> str:
@@ -657,6 +659,63 @@ class SQLiteSessionRepository:
 
         latest = rows[-1]
         evidence_ids = [str(row["id"]) for row in rows]
+        scores = [int(row["score"]) for row in rows]
+        score_delta = scores[-1] - scores[-2] if len(scores) > 1 else 0
+        if len(scores) < 2:
+            trend = ConceptTrend.INSUFFICIENT_DATA
+        elif score_delta >= 10:
+            trend = ConceptTrend.IMPROVING
+        elif score_delta <= -10:
+            trend = ConceptTrend.DECLINING
+        else:
+            trend = ConceptTrend.STABLE
+        feedback_stats = connection.execute(
+            """
+            SELECT COUNT(*) AS feedback_count,
+                   SUM(CASE WHEN f.verdict = 'inaccurate' THEN 1 ELSE 0 END)
+                       AS feedback_inaccurate_count
+            FROM diagnosis_feedback f
+            JOIN mastery_decisions d ON d.id = f.decision_id
+            JOIN provider_observations o ON o.id = d.observation_id
+            JOIN user_explanations e ON e.id = o.explanation_id
+            JOIN learning_sessions s ON s.id = e.session_id
+            WHERE s.user_id = ? AND s.concept_id = ?
+            """,
+            (user_id, concept_id),
+        ).fetchone()
+        wrong_stats = connection.execute(
+            """
+            SELECT COUNT(*) AS wrong_item_count,
+                   SUM(CASE WHEN status = 'open' THEN 1 ELSE 0 END)
+                       AS open_wrong_item_count
+            FROM wrong_items
+            WHERE user_id = ? AND concept_id = ?
+            """,
+            (user_id, concept_id),
+        ).fetchone()
+        review_stats = connection.execute(
+            """
+            SELECT COUNT(*) AS review_attempt_count,
+                   SUM(CASE WHEN a.status = 'succeeded' AND a.result = 'correct'
+                            THEN 1 ELSE 0 END) AS review_success_count
+            FROM review_attempts a
+            JOIN review_items r ON r.id = a.review_item_id
+            WHERE r.user_id = ? AND r.concept_id = ?
+            """,
+            (user_id, concept_id),
+        ).fetchone()
+        repeated_rows = connection.execute(
+            """
+            SELECT error_summary, COUNT(*) AS occurrences
+            FROM wrong_items
+            WHERE user_id = ? AND concept_id = ? AND error_type = 'misconception'
+            GROUP BY error_summary
+            HAVING COUNT(*) >= 2
+            ORDER BY occurrences DESC, error_summary
+            LIMIT 5
+            """,
+            (user_id, concept_id),
+        ).fetchall()
         if latest_event_id is None:
             event_row = connection.execute(
                 """
@@ -679,6 +738,15 @@ class SQLiteSessionRepository:
             evidence_ids=evidence_ids,
             latest_event_id=latest_event_id,
             protocol_version=latest["protocol_version"],
+            trend=trend,
+            score_delta=score_delta,
+            wrong_item_count=int(wrong_stats["wrong_item_count"] or 0),
+            open_wrong_item_count=int(wrong_stats["open_wrong_item_count"] or 0),
+            feedback_count=int(feedback_stats["feedback_count"] or 0),
+            feedback_inaccurate_count=int(feedback_stats["feedback_inaccurate_count"] or 0),
+            review_attempt_count=int(review_stats["review_attempt_count"] or 0),
+            review_success_count=int(review_stats["review_success_count"] or 0),
+            repeated_misconceptions=[str(row["error_summary"]) for row in repeated_rows],
             updated_at=utc_now(),
         )
         connection.execute(
@@ -730,7 +798,7 @@ class SQLiteSessionRepository:
             row = connection.execute(
                 """
                 SELECT o.status, o.error_code, o.result_json,
-                       d.mastery_level, d.understanding_level, d.score,
+                       d.id AS diagnosis_id, d.mastery_level, d.understanding_level, d.score,
                        d.confidence, d.evidence_ids_json, d.reason,
                        d.protocol_version, a.action_type, a.instruction,
                        a.reason AS action_reason, a.evidence_ids_json AS action_evidence_ids,
@@ -753,6 +821,7 @@ class SQLiteSessionRepository:
                 observation=None,
                 decision=None,
                 action=None,
+                diagnosis_id=row["diagnosis_id"],
             )
         return StoredOutcome(
             status="succeeded",
@@ -774,7 +843,28 @@ class SQLiteSessionRepository:
                 evidence_ids=json.loads(row["action_evidence_ids"]),
                 policy_version=row["policy_version"],
             ),
+            diagnosis_id=row["diagnosis_id"],
         )
+
+    def list_current_states(
+        self,
+        *,
+        user_id: str = LOCAL_USER_ID,
+        limit: int = 100,
+    ) -> tuple[ConceptState, ...]:
+        """Return derived states for concepts that have at least one diagnosis."""
+        bounded_limit = max(1, min(limit, 100))
+        with self.database.connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT state_json FROM concept_states
+                WHERE user_id = ?
+                ORDER BY updated_at DESC
+                LIMIT ?
+                """,
+                (user_id, bounded_limit),
+            ).fetchall()
+        return tuple(ConceptState.model_validate_json(row["state_json"]) for row in rows)
 
     def list_history(self, *, limit: int = 20) -> tuple[HistoryItem, ...]:
         with self.database.connect() as connection:

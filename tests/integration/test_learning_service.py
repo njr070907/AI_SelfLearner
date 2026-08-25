@@ -7,6 +7,7 @@ import pytest
 
 from ai_growth_companion.application.learning_service import LearningService
 from ai_growth_companion.domain.events import LOCAL_USER_ID
+from ai_growth_companion.domain.feedback import ConceptTrend, FeedbackVerdict
 from ai_growth_companion.domain.review import ReviewAttemptStatus, ReviewOutcome
 from ai_growth_companion.domain.session import InvalidSessionState
 from ai_growth_companion.domain.wrong_items import WrongItemStatus, WrongItemType
@@ -374,6 +375,9 @@ def test_review_queue_is_due_and_correct_retest_moves_to_three_days(tmp_path: Pa
     assert result.review_item.interval_days == 3
     assert result.review_item.attempt_count == 1
     assert result.review_item.is_due is False
+    state = service.get_concept_state(item.concept_id)
+    assert state.review_attempt_count == 1
+    assert state.review_success_count == 1
     assert service.list_review_queue() == ()
     due_again = result.review_item.due_at + timedelta(seconds=1)
     assert len(service.list_review_queue(now=due_again)) == 1
@@ -435,6 +439,102 @@ def test_review_provider_failure_keeps_item_due_and_retryable(tmp_path: Path) ->
     assert len(queue) == 1
     assert queue[0].attempt_count == 0
     assert queue[0].is_due is True
+
+
+def test_feedback_is_idempotent_and_rebuilds_traceable_state(tmp_path: Path) -> None:
+    service, _repository, database = setup_service(tmp_path)
+    session = service.start_session(concept="反馈", request_id="feedback-start")
+    diagnosis = service.submit_answer(
+        session_id=session.session_id,
+        answer_text="这是用于反馈测试的部分回答。",
+        scenario=FakeScenario.PARTIAL,
+        request_id="feedback-answer",
+    )
+    assert diagnosis.diagnosis_id is not None
+
+    first = service.submit_feedback(
+        diagnosis_id=diagnosis.diagnosis_id,
+        verdict=FeedbackVerdict.PARTIAL,
+        note="诊断方向正确，但我已经补上了一个边界。",
+        request_id="feedback-submit",
+    )
+    duplicate = service.submit_feedback(
+        diagnosis_id=diagnosis.diagnosis_id,
+        verdict=FeedbackVerdict.PARTIAL,
+        note="诊断方向正确，但我已经补上了一个边界。",
+        request_id="feedback-submit",
+    )
+
+    assert duplicate == first
+    state = service.get_concept_state(session.concept_id)
+    assert state.trend is ConceptTrend.INSUFFICIENT_DATA
+    assert state.feedback_count == 1
+    assert state.feedback_inaccurate_count == 0
+    with database.connect() as connection:
+        event_count = connection.execute(
+            "SELECT COUNT(*) FROM learning_events WHERE event_type = 'feedback_submitted'"
+        ).fetchone()[0]
+        feedback_count = connection.execute("SELECT COUNT(*) FROM diagnosis_feedback").fetchone()[0]
+    assert (event_count, feedback_count) == (1, 1)
+
+
+def test_user_correction_is_an_event_and_trend_uses_latest_evidence(tmp_path: Path) -> None:
+    service, _repository, database = setup_service(tmp_path)
+    first_session = service.start_session(concept="趋势", request_id="trend-start-1")
+    first = service.submit_answer(
+        session_id=first_session.session_id,
+        answer_text="第一次只覆盖了部分机制。",
+        scenario=FakeScenario.PARTIAL,
+        request_id="trend-answer-1",
+    )
+    second_session = service.start_session(concept="趋势", request_id="trend-start-2")
+    service.submit_answer(
+        session_id=second_session.session_id,
+        answer_text="第二次回答覆盖了核心机制和边界。",
+        scenario=FakeScenario.STRONG,
+        request_id="trend-answer-2",
+    )
+    assert first.diagnosis_id is not None
+
+    state = service.record_user_correction(
+        diagnosis_id=first.diagnosis_id,
+        correction="这个诊断遗漏了我对边界条件的说明。",
+        request_id="trend-correction",
+    )
+
+    assert state.trend is ConceptTrend.IMPROVING
+    assert state.score_delta == 45
+    assert state.evidence_count == 2
+    assert state.feedback_inaccurate_count == 1
+    with database.connect() as connection:
+        payload = connection.execute(
+            "SELECT payload_json FROM learning_events WHERE event_type = 'feedback_submitted'"
+        ).fetchone()[0]
+    assert '"verdict": "inaccurate"' in payload
+    assert "边界条件" in payload
+
+
+def test_repeated_misconceptions_are_exposed_in_current_state(tmp_path: Path) -> None:
+    service, _repository, _database = setup_service(tmp_path)
+    first = service.start_session(concept="重复误区", request_id="mis-start-1")
+    service.submit_answer(
+        session_id=first.session_id,
+        answer_text="我会重复陈述这个错误概念。",
+        scenario=FakeScenario.MISCONCEPTION,
+        request_id="mis-answer-1",
+    )
+    second = service.start_session(concept="重复误区", request_id="mis-start-2")
+    service.submit_answer(
+        session_id=second.session_id,
+        answer_text="我再次重复陈述这个错误概念。",
+        scenario=FakeScenario.MISCONCEPTION,
+        request_id="mis-answer-2",
+    )
+
+    state = service.get_concept_state(first.concept_id)
+    assert state.wrong_item_count == 2
+    assert state.open_wrong_item_count == 2
+    assert state.repeated_misconceptions == ["回答中包含一个用于测试的明确错误概念"]
 
 
 def test_history_can_be_reopened_by_a_new_service_instance(tmp_path: Path) -> None:

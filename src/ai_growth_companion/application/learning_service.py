@@ -9,13 +9,15 @@ from pydantic import ValidationError
 
 from ai_growth_companion.application.models import (
     DiagnosisView,
+    FeedbackView,
     HistoryItem,
     ReviewQueueItemView,
     ReviewResultView,
     SessionView,
     WrongItemView,
 )
-from ai_growth_companion.domain.events import LOCAL_USER_ID
+from ai_growth_companion.domain.events import LOCAL_USER_ID, ConceptState
+from ai_growth_companion.domain.feedback import FeedbackVerdict
 from ai_growth_companion.domain.mastery import DemoLearningPolicy, DemoMasteryEngine
 from ai_growth_companion.domain.review import ReviewAttemptStatus, ReviewItemStatus, ReviewOutcome
 from ai_growth_companion.domain.session import (
@@ -31,6 +33,10 @@ from ai_growth_companion.providers.base import (
     QuestionRequest,
 )
 from ai_growth_companion.providers.fake import FakeLLMProvider, FakeScenario
+from ai_growth_companion.repositories.feedback_repository import (
+    FeedbackRecord,
+    SQLiteFeedbackRepository,
+)
 from ai_growth_companion.repositories.review_repository import (
     ReviewAttemptRecord,
     ReviewItemRecord,
@@ -83,6 +89,7 @@ class LearningService:
         self.learning_policy = learning_policy or DemoLearningPolicy()
         self.wrong_item_repository = SQLiteWrongItemRepository(repository.database)
         self.review_repository = SQLiteReviewRepository(repository.database)
+        self.feedback_repository = SQLiteFeedbackRepository(repository.database)
 
     def start_session(
         self,
@@ -322,6 +329,7 @@ class LearningService:
         return DiagnosisView(
             session_id=session.id,
             explanation_id=explanation.id,
+            diagnosis_id=decision_id,
             answer_type=explanation.answer_type,
             sequence_no=explanation.sequence_no,
             concept=session.concept,
@@ -346,6 +354,65 @@ class LearningService:
 
     def list_history(self) -> tuple[HistoryItem, ...]:
         return self.repository.list_history()
+
+    def submit_feedback(
+        self,
+        *,
+        diagnosis_id: str,
+        verdict: FeedbackVerdict,
+        note: str | None,
+        request_id: str,
+    ) -> FeedbackView:
+        """Record learner feedback without rewriting the original diagnosis."""
+        normalized_note = None if note is None else note.strip()
+        if normalized_note == "":
+            normalized_note = None
+        if normalized_note is not None and len(normalized_note) > 1000:
+            raise ValueError("反馈说明不能超过 1000 个字符")
+        record = self.feedback_repository.submit(
+            diagnosis_id=diagnosis_id,
+            verdict=verdict,
+            note=normalized_note,
+            request_id=request_id,
+        )
+        self.repository.rebuild_current_state(
+            user_id=record.user_id,
+            concept_id=record.concept_id,
+        )
+        return self._feedback_view(record)
+
+    def record_user_correction(
+        self,
+        *,
+        diagnosis_id: str,
+        correction: str,
+        request_id: str,
+    ) -> ConceptState:
+        """Persist an explicit learner correction and return the rebuilt state."""
+        correction_text = correction.strip()
+        if not correction_text:
+            raise ValueError("修正说明不能为空")
+        feedback = self.submit_feedback(
+            diagnosis_id=diagnosis_id,
+            verdict=FeedbackVerdict.INACCURATE,
+            note=correction_text,
+            request_id=request_id,
+        )
+        return self.get_concept_state(feedback.concept_id)
+
+    def get_concept_state(self, concept_id: str) -> ConceptState:
+        """Return a fresh projection so trend fields include the latest feedback."""
+        state = self.repository.rebuild_current_state(
+            user_id=LOCAL_USER_ID,
+            concept_id=concept_id,
+        )
+        if state is None:
+            raise LookupError("知识点尚无诊断状态")
+        return state
+
+    def list_concept_states(self, *, limit: int = 100) -> tuple[ConceptState, ...]:
+        """Return current projections for the progress page."""
+        return self.repository.list_current_states(limit=limit)
 
     def list_wrong_items(
         self,
@@ -441,6 +508,10 @@ class LearningService:
                 status=ReviewAttemptStatus.FAILED,
                 error_code=error.code,
             )
+            self.repository.rebuild_current_state(
+                user_id=LOCAL_USER_ID,
+                concept_id=item.concept_id,
+            )
             return self._review_result(updated_item, attempt)
 
         try:
@@ -453,6 +524,10 @@ class LearningService:
                 request_id=request_id,
                 status=ReviewAttemptStatus.INVALID,
                 error_code="LLM_OUTPUT_INVALID",
+            )
+            self.repository.rebuild_current_state(
+                user_id=LOCAL_USER_ID,
+                concept_id=item.concept_id,
             )
             return self._review_result(updated_item, attempt)
 
@@ -468,6 +543,10 @@ class LearningService:
             observation=observation,
             decision=decision,
             action=action,
+        )
+        self.repository.rebuild_current_state(
+            user_id=LOCAL_USER_ID,
+            concept_id=item.concept_id,
         )
         return self._review_result(
             updated_item,
@@ -584,6 +663,7 @@ class LearningService:
         return DiagnosisView(
             session_id=explanation.session_id,
             explanation_id=explanation.id,
+            diagnosis_id=outcome.diagnosis_id,
             answer_type=explanation.answer_type,
             sequence_no=explanation.sequence_no,
             concept=concept,
@@ -595,4 +675,16 @@ class LearningService:
             observation=outcome.observation,
             decision=outcome.decision,
             next_action=outcome.action,
+        )
+
+    @staticmethod
+    def _feedback_view(record: FeedbackRecord) -> FeedbackView:
+        return FeedbackView(
+            feedback_id=record.feedback_id,
+            diagnosis_id=record.diagnosis_id,
+            concept_id=record.concept_id,
+            concept=record.concept,
+            verdict=record.verdict,
+            note=record.note,
+            created_at=_parse_datetime(record.created_at),
         )
