@@ -121,3 +121,4 @@
 - 增加本地用户数据导出服务与 `scripts/export_user_data.py`：以 ZIP 保存用户范围内的原始事件、派生状态、错题、复习、课程进度和资料文件，附清单、Schema 版本、缺失文件警告和 SHA-256；隔离 CLI 演练及全量回归通过，更新为 210 tests。
 - 将常规教学报告计算从 Streamlit UI 提升到 `TeachingService` 的 typed contract，增加来源资料数和最新答题口径；教学单测与 Streamlit E2E 通过，全量回归保持为 210 tests。
 - 系统状态页接入本地导出按钮，使用同一 `UserExportService` 生成可下载 ZIP；新增 AppTest 覆盖并完成全量回归，当前为 211 tests。
+- 修复文本资料安全边界：小于 20 MB 的 Markdown/TXT 教学提取也严格要求 UTF-8，新增非 UTF-8 回归测试；全量回归更新为 212 tests。

@@ -63,6 +63,7 @@ def test_pdf_text_is_extracted_locally() -> None:
         ("scan.pdf", b"not a pdf", "PDF 无法读取"),
         ("scan.pdf", _minimal_text_pdf(""), "没有可提取"),
         ("lesson.docx", b"unsupported", "只支持"),
+        ("legacy.txt", b"\x80\x81not utf-8", "必须使用 UTF-8"),
     ],
 )
 def test_unreadable_or_unsupported_material_is_rejected(

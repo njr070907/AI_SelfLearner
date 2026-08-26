@@ -24,7 +24,12 @@ def extract_knowledge(filename: str, content: bytes) -> ExtractedKnowledge:
     """Extract readable text without uploading or persisting a second raw copy."""
     extension = Path(filename).suffix.lower()
     if extension in {".md", ".markdown", ".txt"}:
-        text = content.decode("utf-8", errors="replace")
+        try:
+            text = content.decode("utf-8")
+        except UnicodeDecodeError as error:
+            raise DocumentValidationError(
+                "Markdown/TXT 必须使用 UTF-8 编码，无法安全生成教学内容"
+            ) from error
         page_count = None
     elif extension == ".pdf":
         try:
