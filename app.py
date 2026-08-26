@@ -7,6 +7,7 @@ from ai_growth_companion.application.bootstrap import (
     build_learning_service,
     build_teaching_service,
 )
+from ai_growth_companion.application.export_service import UserExportService
 from ai_growth_companion.application.health import check_health
 from ai_growth_companion.config import load_settings
 from ai_growth_companion.repositories.database import Database
@@ -41,10 +42,12 @@ def main() -> None:
         )
         st.stop()
     document_library = build_document_library(database)
+    export_service = UserExportService(database, document_library)
     render_application(
         service,
         document_library=document_library,
         teaching_service=teaching_service,
+        export_service=export_service,
         settings=settings,
         health_report=health_report,
     )

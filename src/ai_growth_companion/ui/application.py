@@ -8,6 +8,7 @@ from uuid import uuid4
 import streamlit as st
 
 from ai_growth_companion.application.document_library import DocumentLibraryService
+from ai_growth_companion.application.export_service import ExportArtifact, UserExportService
 from ai_growth_companion.application.health import HealthReport, HealthState
 from ai_growth_companion.application.learning_service import LearningService
 from ai_growth_companion.application.models import DiagnosisView, HistoryItem, WorkspaceSnapshot
@@ -52,6 +53,7 @@ def render_application(
     *,
     document_library: DocumentLibraryService | None = None,
     teaching_service: TeachingService | None = None,
+    export_service: UserExportService | None = None,
     settings: Settings,
     health_report: HealthReport,
 ) -> None:
@@ -140,7 +142,11 @@ def render_application(
         elif page == "进度":
             _render_progress(service)
         else:
-            _render_system_status(settings=settings, health_report=health_report)
+            _render_system_status(
+                settings=settings,
+                health_report=health_report,
+                export_service=export_service,
+            )
     render_pointer_glow()
 
 
@@ -906,7 +912,12 @@ def _render_longitudinal_states(
     st.caption(f"长期状态最后更新：{local_datetime(selected.updated_at)}")
 
 
-def _render_system_status(*, settings: Settings, health_report: HealthReport) -> None:
+def _render_system_status(
+    *,
+    settings: Settings,
+    health_report: HealthReport,
+    export_service: UserExportService | None = None,
+) -> None:
     st.markdown('<div class="eyebrow">系统 · 本地运行状态</div>', unsafe_allow_html=True)
     st.markdown('<h1 class="hero-title">系统状态</h1>', unsafe_allow_html=True)
     st.markdown(
@@ -956,6 +967,32 @@ def _render_system_status(*, settings: Settings, health_report: HealthReport) ->
             "当前使用固定 DeepSeek 模型进行证据提取；每次调用都由你的提交操作触发，"
             "系统不会自动重试。"
         )
+
+    if export_service is None:
+        return
+    st.markdown('<div class="rule"></div>', unsafe_allow_html=True)
+    with st.container(border=True):
+        st.markdown('<div class="section-label">数据导出</div>', unsafe_allow_html=True)
+        st.caption("导出当前本地用户的学习证据、课程、错题、复习记录和资料文件；不会上传到网络。")
+        if st.button("生成本地导出包", key="generate_user_export"):
+            try:
+                st.session_state.user_export_artifact = export_service.export()
+            except (OSError, RuntimeError) as error:
+                st.error(f"导出失败：{error}")
+            else:
+                st.success("导出包已生成，请下载并妥善保管。")
+        artifact = st.session_state.get("user_export_artifact")
+        if isinstance(artifact, ExportArtifact):
+            st.download_button(
+                "下载导出包",
+                data=artifact.content,
+                file_name=artifact.filename,
+                mime="application/zip",
+                key="download_user_export",
+            )
+            st.caption(
+                f"SHA-256：{artifact.sha256} · 已包含资料 {artifact.included_document_count} 份"
+            )
 
 
 def _history_row(item: HistoryItem) -> None:

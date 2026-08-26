@@ -112,6 +112,14 @@ def open_teaching(app: AppTest) -> AppTest:
     )
 
 
+def open_system(app: AppTest) -> AppTest:
+    return (
+        next(item for item in app.sidebar.button if item.key == "nav_system")
+        .click()
+        .run(timeout=10)
+    )
+
+
 def submit_review_scenario(
     app: AppTest,
     scenario: str,
@@ -786,6 +794,21 @@ def test_seeded_today_page_exposes_the_four_core_workspaces(
     assert button_with_label(app, "查看错题")
     assert button_with_label(app, "开始复习")
     assert button_with_label(app, "查看进度")
+
+
+def test_system_page_can_generate_a_local_user_export(
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    app = open_system(app_for(tmp_path, monkeypatch, "ui-export.db"))
+
+    assert not app.exception
+    assert "数据导出" in rendered_markdown(app)
+    app = button_with_label(app, "生成本地导出包").click().run(timeout=10)
+
+    assert not app.exception
+    assert "导出包已生成" in app.success[0].value
+    assert any(item.label == "下载导出包" for item in app.download_button)
 
 
 def test_user_correction_is_saved_and_reflected_in_progress(
