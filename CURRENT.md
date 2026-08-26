@@ -35,7 +35,7 @@ Sprint 1：用真实 Provider 验证 `evaluator-v0.1` 能否区分充分理解�
 - 已生成 [v0.2 AI 初审摘要](docs/mastery-protocol/V0_2_AI_INITIAL_REVIEW.md)：20/20 自动量表通过，并按四种场景做了可追溯的形态检查；没有把 AI 初审写成人工语义结论。
 - 已生成 [v0.2 AI 建议复核表](docs/mastery-protocol/V0_2_AI_SUGGESTED_REVIEW.md)：20 条逐案例候选结论和重点疑点，仍要求负责人回看原始证据后签字。
 - 已将 Mastery Protocol 更新为 v0.4：`no_clue`=完全未掌握、`re_learn`=重新学习；明确错误概念统一推荐 `re_learn`，旧数据库值读取时兼容。
-- 聊天内人工验收已完成 9/20：第 3、7 条的错误概念动作按 v0.4 校准为 `re_learn`，第 4 条仍记录为 `mastery/action` 偏差，第 8 条正式记录为 `no_clue / re_learn`，第 9 条为 `solid / practice` 一致。
+- 聊天内人工验收已完成 10/20：第 3、7 条的错误概念动作按 v0.4 校准为 `re_learn`，第 4 条仍记录为 `mastery/action` 偏差，第 8 条正式记录为 `no_clue / re_learn`，第 9 条为 `solid / practice`，第 10 条为 `fragile / re_learn`。
 
 ## Resume Point
 
