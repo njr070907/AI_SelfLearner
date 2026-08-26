@@ -174,6 +174,7 @@ def _render_lesson(
     )
     if lesson.progress.completed_at is not None:
         st.success("这门课程已经完成，可以继续复习或进行可选掌握检测。")
+        _render_completion_report(lesson)
     st.info(content.summary)
 
     section_count = len(content.sections)
@@ -282,9 +283,7 @@ def _render_interactive_checks(
         return
 
     st.markdown('<div class="section-label">第 3 步 · 互动小测</div>', unsafe_allow_html=True)
-    latest_attempts: dict[int, TeachingActivityAttemptView] = {}
-    for attempt in lesson.progress.attempts:
-        latest_attempts.setdefault(attempt.activity_index, attempt)
+    latest_attempts = _latest_attempts(lesson)
     for index, check in enumerate(checks, start=1):
         choice_key = f"teaching_check_choice_{lesson.lesson_id}_{index}"
         submitted_key = f"teaching_check_submitted_{lesson.lesson_id}_{index}"
@@ -327,6 +326,44 @@ def _render_interactive_checks(
                 if source_names:
                     st.caption(f"本题来源：{source_names}")
                 st.info(f"正确答案：{check.correct_answer}\n\n解析：{check.explanation}")
+
+
+def _render_completion_report(lesson: TeachingLessonView) -> None:
+    """Show a transparent course report without turning quiz results into mastery."""
+    latest_attempts = _latest_attempts(lesson)
+    checks = lesson.lesson.interactive_checks
+    correct_count = sum(
+        1
+        for index in range(1, len(checks) + 1)
+        if (attempt := latest_attempts.get(index)) is not None and attempt.is_correct
+    )
+    incorrect_checks = [
+        (index, checks[index - 1], latest_attempts[index])
+        for index in range(1, len(checks) + 1)
+        if index in latest_attempts and not latest_attempts[index].is_correct
+    ]
+    score = round(correct_count / len(checks) * 100) if checks else 100
+    with st.container(border=True):
+        st.markdown('<div class="section-label">学习小结</div>', unsafe_allow_html=True)
+        st.markdown(
+            f"已完成 {len(lesson.lesson.sections)} 个课程章节和 {len(checks)} 道互动题。"
+            f"本次互动得分：**{correct_count}/{len(checks)}（{score}%）**。"
+        )
+        if not incorrect_checks:
+            st.success("本次互动题全部答对，可以进入可选掌握检测或安排后续复习。")
+            return
+        st.warning("有些互动题还需要再巩固。下面保留错题和解析，建议先复习后再进行掌握检测。")
+        for index, check, attempt in incorrect_checks:
+            st.markdown(f"**第 {index} 题** · 你的回答：{attempt.selected_answer}")
+            st.caption(f"正确答案：{check.correct_answer} · 解析：{check.explanation}")
+
+
+def _latest_attempts(lesson: TeachingLessonView) -> dict[int, TeachingActivityAttemptView]:
+    """Return one newest persisted attempt per activity."""
+    latest_attempts: dict[int, TeachingActivityAttemptView] = {}
+    for attempt in lesson.progress.attempts:
+        latest_attempts.setdefault(attempt.activity_index, attempt)
+    return latest_attempts
 
 
 def _source_names(sources: Sequence[LessonSource], source_ids: list[str]) -> str:

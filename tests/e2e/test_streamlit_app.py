@@ -491,6 +491,8 @@ def test_teaching_progress_can_complete_and_resume_the_lesson(
 
     app = button_with_label(app, "完成本课程").click().run(timeout=10)
     assert any("这门课程已经完成" in item.value for item in app.success)
+    assert "学习小结" in rendered_markdown(app)
+    assert "互动得分" in rendered_markdown(app)
     assert button_with_label(app, "进入掌握检测（可选）")
 
     app.session_state["teaching_lesson_id"] = None
