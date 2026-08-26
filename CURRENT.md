@@ -31,6 +31,7 @@ Sprint 1：用真实 Provider 验证 `evaluator-v0.1` 能否区分充分理解�
 - 已将该轮自动结果与黄金量表的差异写入 [`docs/mastery-protocol/REAL_SEMANTIC_CALIBRATION.md`](docs/mastery-protocol/REAL_SEMANTIC_CALIBRATION.md)；报告仍标记为“中间校准”，不替代 20 条人工语义复核。
 - 2026-08-26 使用固定 `deepseek-v4-flash-vision-exp` 完成 Prompt v0.2 受控实验：运行 `020209Z` 为 18/20 结构成功且 18/18 自动通过；两条是 `evidence_id` 类型错误，随后运行 `020421Z` 定向复测 2/2 通过。此前 3 条置信度/边界失败也在 `020147Z` 定向复测中 3/3 通过。
 - v0.2 的协议约束和边界提示已修复并通过离线测试，但完整批量结果仍有随机结构波动，20 条人工语义复核和发布决定仍未完成；v0.2 暂不设为默认。
+- 已生成 [v0.2 人工复核草稿](docs/mastery-protocol/V0_2_REVIEW_DRAFT.md)，20 行均标记为“待确认”，没有把自动通过冒充人工结论。
 
 ## Resume Point
 
