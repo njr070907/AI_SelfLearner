@@ -1,11 +1,14 @@
 """Local document-library service for upload, inspection, replacement and deletion."""
 
 import hashlib
+import io
 import mimetypes
 from contextlib import suppress
 from datetime import datetime
 from pathlib import Path
 from uuid import uuid4
+
+from pypdf import PdfReader, PdfWriter
 
 from ai_growth_companion.application.models import DocumentView
 from ai_growth_companion.domain.events import LOCAL_USER_ID
@@ -17,6 +20,7 @@ from ai_growth_companion.repositories.document_repository import (
 
 ALLOWED_EXTENSIONS = frozenset({".pdf", ".md", ".markdown", ".txt"})
 MAX_DOCUMENT_BYTES = 20 * 1024 * 1024
+AUTO_SPLIT_TARGET_BYTES = 19 * 1024 * 1024
 DEFAULT_DOCUMENT_STORAGE = PROJECT_ROOT / "data" / "documents"
 MIME_TYPES = {
     ".pdf": "application/pdf",
@@ -47,6 +51,35 @@ class DocumentLibraryService:
         return tuple(self._view(record) for record in self.repository.list(limit=limit))
 
     def upload(self, *, filename: str, content: bytes) -> DocumentView:
+        """Upload a file, automatically splitting oversized material into safe chunks.
+
+        The return value remains the first created document for backwards compatibility.
+        Call ``upload_documents`` when callers need every generated chunk.
+        """
+        documents = self.upload_documents(filename=filename, content=content)
+        return documents[0]
+
+    def upload_documents(self, *, filename: str, content: bytes) -> tuple[DocumentView, ...]:
+        """Upload one file or safely split oversized material into multiple documents."""
+        normalized = self._validate_filename(filename)
+        if not content:
+            raise DocumentValidationError("不能上传空文件")
+        if len(content) <= MAX_DOCUMENT_BYTES:
+            return (self._upload_single(filename=normalized, content=content),)
+
+        chunks = self._split_oversized_content(filename=normalized, content=content)
+        created: list[DocumentView] = []
+        try:
+            for chunk_name, chunk_content in chunks:
+                created.append(self._upload_single(filename=chunk_name, content=chunk_content))
+        except Exception:
+            for document in created:
+                with suppress(LookupError, OSError):
+                    self.delete(document.document_id)
+            raise
+        return tuple(created)
+
+    def _upload_single(self, *, filename: str, content: bytes) -> DocumentView:
         normalized, mime_type = self._validate_upload(filename, content)
         document_id = str(uuid4())
         storage_name = f"{document_id}{Path(normalized).suffix.lower()}"
@@ -65,6 +98,228 @@ class DocumentLibraryService:
             self._remove_file(storage_name)
             raise
         return self._view(record)
+
+    @classmethod
+    def _split_oversized_content(
+        cls,
+        *,
+        filename: str,
+        content: bytes,
+    ) -> tuple[tuple[str, bytes], ...]:
+        extension = Path(filename).suffix.lower()
+        if extension == ".pdf":
+            return cls._split_pdf(filename=filename, content=content)
+        if extension in {".md", ".markdown", ".txt"}:
+            return cls._split_text(filename=filename, content=content)
+        raise DocumentValidationError("只支持 PDF、Markdown 和 TXT 文件")
+
+    @classmethod
+    def _split_pdf(cls, *, filename: str, content: bytes) -> tuple[tuple[str, bytes], ...]:
+        try:
+            reader = PdfReader(io.BytesIO(content))
+            page_count = len(reader.pages)
+        except Exception as error:
+            raise DocumentValidationError("PDF 无法拆分，请确认文件未损坏") from error
+        if page_count == 0:
+            raise DocumentValidationError("PDF 没有可拆分的页面")
+
+        target_bytes = cls._split_target_bytes()
+        estimated_pages = max(
+            1,
+            int(page_count * target_bytes / len(content) * 0.9),
+        )
+        ranges: list[tuple[int, int, bytes]] = []
+        for start in range(0, page_count, estimated_pages):
+            ranges.extend(
+                cls._split_pdf_range(
+                    reader=reader,
+                    source_name=filename,
+                    start=start,
+                    end=min(page_count, start + estimated_pages),
+                )
+            )
+        return tuple(
+            (
+                cls._chunk_filename(
+                    filename,
+                    part=index,
+                    start=start + 1,
+                    end=end,
+                    unit="pages",
+                ),
+                chunk,
+            )
+            for index, (start, end, chunk) in enumerate(ranges, start=1)
+        )
+
+    @classmethod
+    def _split_pdf_range(
+        cls,
+        *,
+        reader: PdfReader,
+        source_name: str,
+        start: int,
+        end: int,
+    ) -> list[tuple[int, int, bytes]]:
+        chunk = cls._serialize_pdf_range(reader, source_name=source_name, start=start, end=end)
+        if len(chunk) <= cls._split_target_bytes():
+            return [(start, end, chunk)]
+        if end - start <= 1:
+            raise DocumentValidationError(
+                "PDF 中存在无法放入 20 MB 限制的单页，请先压缩该 PDF 或拆分页面"
+            )
+        middle = start + (end - start) // 2
+        return cls._split_pdf_range(
+            reader=reader,
+            source_name=source_name,
+            start=start,
+            end=middle,
+        ) + cls._split_pdf_range(
+            reader=reader,
+            source_name=source_name,
+            start=middle,
+            end=end,
+        )
+
+    @staticmethod
+    def _serialize_pdf_range(
+        reader: PdfReader,
+        *,
+        source_name: str,
+        start: int,
+        end: int,
+    ) -> bytes:
+        stream = io.BytesIO()
+        writer = PdfWriter()
+        for page in reader.pages[start:end]:
+            writer.add_page(page)
+        writer.add_metadata({"/Title": f"{source_name} pages {start + 1}-{end}"})
+        writer.write(stream)
+        return stream.getvalue()
+
+    @classmethod
+    def _split_text(cls, *, filename: str, content: bytes) -> tuple[tuple[str, bytes], ...]:
+        try:
+            text = content.decode("utf-8")
+        except UnicodeDecodeError as error:
+            raise DocumentValidationError(
+                "Markdown/TXT 必须使用 UTF-8 编码，无法安全拆分其他编码的文件"
+            ) from error
+        lines = text.splitlines(keepends=True)
+        if not lines:
+            raise DocumentValidationError("不能上传空文件")
+
+        target_bytes = cls._split_target_bytes()
+        blocks: list[list[str]] = []
+        current_block: list[str] = []
+        for line in lines:
+            current_block.append(line)
+            if not line.rstrip("\r\n").strip():
+                blocks.append(current_block)
+                current_block = []
+        if current_block:
+            blocks.append(current_block)
+
+        chunks: list[bytes] = []
+        current_lines: list[str] = []
+        current_bytes = 0
+        for block in blocks:
+            block_bytes = len("".join(block).encode("utf-8"))
+            if block_bytes > target_bytes:
+                if current_lines:
+                    chunks.append("".join(current_lines).encode("utf-8"))
+                    current_lines = []
+                    current_bytes = 0
+                chunks.extend(cls._split_text_block(block, target_bytes=target_bytes))
+                continue
+            if current_lines and current_bytes + block_bytes > target_bytes:
+                chunks.append("".join(current_lines).encode("utf-8"))
+                current_lines = []
+                current_bytes = 0
+            current_lines.extend(block)
+            current_bytes += block_bytes
+        if current_lines:
+            chunks.append("".join(current_lines).encode("utf-8"))
+
+        suffix = Path(filename).suffix
+        return tuple(
+            (
+                cls._chunk_filename(
+                    filename,
+                    part=index,
+                    start=1,
+                    end=1,
+                    unit="chunk",
+                    suffix=suffix,
+                ),
+                chunk,
+            )
+            for index, chunk in enumerate(chunks, start=1)
+        )
+
+    @classmethod
+    def _split_text_block(cls, lines: list[str], *, target_bytes: int) -> list[bytes]:
+        chunks: list[bytes] = []
+        current: list[str] = []
+        current_bytes = 0
+        for line in lines:
+            line_bytes = len(line.encode("utf-8"))
+            if line_bytes > target_bytes:
+                if current:
+                    chunks.append("".join(current).encode("utf-8"))
+                    current = []
+                    current_bytes = 0
+                chunks.extend(cls._split_long_text_line(line, target_bytes=target_bytes))
+                continue
+            if current and current_bytes + line_bytes > target_bytes:
+                chunks.append("".join(current).encode("utf-8"))
+                current = []
+                current_bytes = 0
+            current.append(line)
+            current_bytes += line_bytes
+        if current:
+            chunks.append("".join(current).encode("utf-8"))
+        return chunks
+
+    @classmethod
+    def _split_long_text_line(cls, line: str, *, target_bytes: int) -> list[bytes]:
+        chunks: list[bytes] = []
+        current: list[str] = []
+        current_bytes = 0
+        for character in line:
+            character_bytes = len(character.encode("utf-8"))
+            if current and current_bytes + character_bytes > target_bytes:
+                chunks.append("".join(current).encode("utf-8"))
+                current = []
+                current_bytes = 0
+            current.append(character)
+            current_bytes += character_bytes
+        if current:
+            chunks.append("".join(current).encode("utf-8"))
+        return chunks
+
+    @staticmethod
+    def _split_target_bytes() -> int:
+        """Keep generated chunks below the configured upload ceiling."""
+        return max(1, min(AUTO_SPLIT_TARGET_BYTES, MAX_DOCUMENT_BYTES))
+
+    @staticmethod
+    def _chunk_filename(
+        filename: str,
+        *,
+        part: int,
+        start: int,
+        end: int,
+        unit: str,
+        suffix: str | None = None,
+    ) -> str:
+        extension = suffix or Path(filename).suffix
+        stem = Path(filename).stem
+        label = f"_part_{part:02d}_{unit}"
+        if unit == "pages":
+            label += f"_{start:04d}-{end:04d}"
+        available = max(1, 255 - len(extension) - len(label))
+        return f"{stem[:available]}{label}{extension}"
 
     def get(self, document_id: str) -> DocumentView:
         return self._view(self.repository.get(document_id))
@@ -85,6 +340,41 @@ class DocumentLibraryService:
         return self._view(self.repository.rename(document_id, filename=normalized))
 
     def replace(self, document_id: str, *, filename: str, content: bytes) -> DocumentView:
+        documents = self.replace_documents(document_id, filename=filename, content=content)
+        return documents[0]
+
+    def replace_documents(
+        self,
+        document_id: str,
+        *,
+        filename: str,
+        content: bytes,
+    ) -> tuple[DocumentView, ...]:
+        """Replace one entry, splitting oversized replacement material safely."""
+        normalized = self._validate_filename(filename)
+        if not content:
+            raise DocumentValidationError("不能上传空文件")
+        if len(content) <= MAX_DOCUMENT_BYTES:
+            return (self._replace_single(document_id, filename=normalized, content=content),)
+
+        chunks = self._split_oversized_content(filename=normalized, content=content)
+        created: list[DocumentView] = []
+        try:
+            for chunk_name, chunk_content in chunks[1:]:
+                created.append(self._upload_single(filename=chunk_name, content=chunk_content))
+            first = self._replace_single(
+                document_id,
+                filename=chunks[0][0],
+                content=chunks[0][1],
+            )
+        except Exception:
+            for document in created:
+                with suppress(LookupError, OSError):
+                    self.delete(document.document_id)
+            raise
+        return (first, *created)
+
+    def _replace_single(self, document_id: str, *, filename: str, content: bytes) -> DocumentView:
         normalized, mime_type = self._validate_upload(filename, content)
         current = self.repository.get(document_id)
         storage_name = f"{document_id}-{uuid4()}{Path(normalized).suffix.lower()}"

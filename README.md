@@ -16,7 +16,7 @@ Sprint 1 已开始建立 Mastery Protocol 的真实评测基线。第一批 20 �
 - 将原始回答、诊断尝试和学习事件保存到 SQLite。
 - 保存追加式 Event History，并将 Current State 作为可重新计算的投影。
 - Provider 失败时保留用户回答，并可使用同一回答重试。
-- 资料库支持上传、查看、下载、重命名、替换和删除 PDF、Markdown、TXT 文件；在“教学”页选择资料后，可由 Fake 或固定 DeepSeek Provider 生成可阅读的结构化导学。
+- 资料库支持上传、查看、下载、重命名、替换和删除 PDF、Markdown、TXT 文件；超过 20 MB 的文件会默认自动分卷后导入：PDF 按页、Markdown/TXT 按段落和行尾优先，原文内容不改写；在“教学”页选择资料后，可由 Fake 或固定 DeepSeek Provider 生成可阅读的结构化导学。
 - “学习”入口默认进入常规教学：按章节阅读、上一节/下一节、完成末节互动小测；章节位置、互动答案和课程完成状态会保存，掌握检测单独作为可选入口。
 - 运行数据库迁移、健康检查、自动测试、Secret Scan 和真实启动冒烟测试。
 - 在 GitHub Actions 中执行阻断检查和非阻断质量报告。

@@ -28,7 +28,7 @@ def render_document_library(service: DocumentLibraryService) -> None:
             type=["pdf", "md", "markdown", "txt"],
             accept_multiple_files=True,
             key="document_upload",
-            help="单个文件不超过 20 MB。上传只保存文件和基本元数据，不做自动解析。",
+            help="超过 20 MB 的 PDF、Markdown 和 TXT 会自动按安全边界拆分后保存；原文内容不改写。",
         )
         if st.button(
             "上传资料",
@@ -37,15 +37,23 @@ def render_document_library(service: DocumentLibraryService) -> None:
             disabled=not uploads,
         ):
             uploaded = 0
+            split_count = 0
             for item in uploads:
                 try:
-                    service.upload(filename=item.name, content=item.getvalue())
+                    documents = service.upload_documents(
+                        filename=item.name,
+                        content=item.getvalue(),
+                    )
                 except DocumentValidationError as error:
                     st.error(f"{item.name}：{error}")
                 else:
                     uploaded += 1
+                    if len(documents) > 1:
+                        split_count += len(documents)
+                        st.info(f"{item.name} 超过 20 MB，已自动拆分为 {len(documents)} 个分卷。")
             if uploaded:
-                st.success(f"已上传 {uploaded} 个文件。")
+                suffix = f"，其中自动拆分生成 {split_count} 个分卷" if split_count else ""
+                st.success(f"已上传 {uploaded} 个文件{suffix}。")
 
     documents = service.list_documents()
     st.markdown('<div class="rule"></div>', unsafe_allow_html=True)
@@ -117,7 +125,7 @@ def _render_document(service: DocumentLibraryService, document: DocumentView) ->
             )
             if st.form_submit_button("替换资料") and replacement is not None:
                 try:
-                    service.replace(
+                    documents = service.replace_documents(
                         document.document_id,
                         filename=replacement.name,
                         content=replacement.getvalue(),
@@ -125,6 +133,8 @@ def _render_document(service: DocumentLibraryService, document: DocumentView) ->
                 except (DocumentValidationError, LookupError) as error:
                     st.error(str(error))
                 else:
+                    if len(documents) > 1:
+                        st.info(f"替换内容超过 20 MB，已自动拆分为 {len(documents)} 个分卷。")
                     st.success("资料内容已替换。")
                     st.rerun()
 
