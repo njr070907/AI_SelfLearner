@@ -17,7 +17,12 @@ from ai_growth_companion.providers.base import (
     ProviderUnavailableError,
     TeachingRequest,
 )
-from ai_growth_companion.providers.deepseek_evaluation import DEEPSEEK_BASE_URL, DEEPSEEK_MODEL
+from ai_growth_companion.providers.deepseek_evaluation import (
+    DEEPSEEK_BASE_URL,
+    DEEPSEEK_MODEL,
+)
+
+DEFAULT_TEACHING_MAX_OUTPUT_TOKENS = 4_000
 
 
 class _UsageLike(Protocol):
@@ -76,13 +81,15 @@ class DeepSeekTeachingProvider:
         api_key: str,
         model: str = DEEPSEEK_MODEL,
         timeout_seconds: int = 30,
-        max_output_tokens: int = 2_000,
+        max_output_tokens: int = DEFAULT_TEACHING_MAX_OUTPUT_TOKENS,
         client: _ClientLike | None = None,
     ) -> None:
         if not api_key.strip():
             raise ValueError("DeepSeek API key is required")
         if model != DEEPSEEK_MODEL:
             raise ValueError(f"DeepSeek model must be exactly {DEEPSEEK_MODEL}")
+        if not 500 <= max_output_tokens <= 8_000:
+            raise ValueError("max_output_tokens must be between 500 and 8000")
         self.model_name = model
         self._max_output_tokens = max_output_tokens
         self._client = client or cast(
