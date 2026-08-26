@@ -294,7 +294,11 @@ class LearningService:
 
         observation_id = str(uuid4())
         decision = self.mastery_engine.decide(observation, observation_id=observation_id)
-        action = self.learning_policy.choose(observation, decision)
+        action = self.learning_policy.choose(
+            observation,
+            decision,
+            answer_text=explanation.answer_text,
+        )
         decision_id = str(uuid4())
         action_id = str(uuid4())
         source_event_id = self.repository.record_success(
@@ -549,7 +553,7 @@ class LearningService:
 
         observation_id = str(uuid4())
         decision = self.mastery_engine.decide(observation, observation_id=observation_id)
-        action = self.learning_policy.choose(observation, decision)
+        action = self.learning_policy.choose(observation, decision, answer_text=answer)
         result = self._review_outcome(observation)
         updated_item, attempt = self.review_repository.record_success(
             review_item_id=review_item_id,

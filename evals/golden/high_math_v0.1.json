@@ -3,7 +3,7 @@
   "dataset_id": "high-math-mastery-v0.1",
   "language": "zh-CN",
   "status": "approved",
-  "mastery_protocol_version": "mastery-protocol-v0.4-golden-baseline",
+  "mastery_protocol_version": "mastery-protocol-v0.5-golden-baseline",
   "purpose": "用固定、可复核的高等数学回答检验系统能否区分充分理解、部分理解、明确误区和证据不足。",
   "source_policy": {
     "raw_pdfs_in_repository": false,
@@ -418,7 +418,7 @@
         "forbidden_claims": ["不得因会背两个类型和操作步骤就认定理解定理", "不得判为 developing 或 solid"],
         "acceptable_mastery_levels": ["fragile"],
         "forbidden_mastery_levels": ["solid", "developing"],
-        "recommended_actions": ["practice", "re_learn"],
+        "recommended_actions": ["review"],
         "confidence": {"minimum": 0.65, "maximum": 0.9},
         "evaluator_note": "回答只能证明记住了适用类型和操作步骤，尚未证明理解条件或边界。下一步应给出多个未提示表达式，要求独立判断能否使用并说明理由；能够迁移后才可进入 developing。"
       },
@@ -468,7 +468,7 @@
         "forbidden_claims": ["不得将缺失条件直接解释为坚信任意分式都能用", "不得因记住求导动作而给出 developing", "不得把一次未掌握扩大成永久没有知识储备"],
         "acceptable_mastery_levels": ["no_clue"],
         "forbidden_mastery_levels": ["solid", "developing"],
-        "recommended_actions": ["re_learn"],
+        "recommended_actions": ["review"],
         "confidence": {"minimum": 0.75, "maximum": 0.95},
         "evaluator_note": "本次回答足以判定当前未掌握（no_clue），但不足以识别具体误区。应用一个 0/0 和一个可直接代入的分式做二选一追问；仍不能判断时，进入重新学习。"
       },
@@ -572,7 +572,7 @@
         "forbidden_claims": ["不得直接确认其持有“公式就是定义”的误区", "不得从会说公式名称推断掌握", "不得把一次未掌握扩大成永久没有知识储备"],
         "acceptable_mastery_levels": ["no_clue"],
         "forbidden_mastery_levels": ["solid", "developing"],
-        "recommended_actions": ["re_learn"],
+        "recommended_actions": ["review"],
         "confidence": {"minimum": 0.75, "maximum": 0.95},
         "evaluator_note": "本次回答足以判定当前未掌握（no_clue），但不足以识别具体误区。应先让学习者用三块长方形描述一次近似求和；仍不能回答时，进入重新学习。"
       },

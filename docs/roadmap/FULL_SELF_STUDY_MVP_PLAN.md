@@ -4,7 +4,7 @@
 
 ## 1. 当前判断
 
-当前仓库已经具备可靠的工程地基：SQLite 与迁移、事件历史、Mastery Engine、Learning Policy、Fake Provider、真实 DeepSeek 适配器、结构化 Schema、评测 CLI、CI、资料库基础版和学习工作区 UI 都已存在。最近一次离线回归为 188 个测试通过，Provider Factory 已接入应用组合根，把 Fake/固定 DeepSeek 模式和显式付费许可隔离，Prompt v0.2 也已经可以用 dry-run 做零成本实验。Mastery Protocol 当前版本为 v0.4，正式使用 `no_clue/re_learn`，明确错误概念统一进入 `re_learn`。
+当前仓库已经具备可靠的工程地基：SQLite 与迁移、事件历史、Mastery Engine、Learning Policy、Fake Provider、真实 DeepSeek 适配器、结构化 Schema、评测 CLI、CI、资料库基础版和学习工作区 UI 都已存在。最近一次离线回归为 189 个测试通过，Provider Factory 已接入应用组合根，把 Fake/固定 DeepSeek 模式和显式付费许可隔离，Prompt v0.2 也已经可以用 dry-run 做零成本实验。Mastery Protocol 当前版本为 v0.5，正式使用 `no_clue/re_learn`，明确错误概念进入 `re_learn`，自述忘记先进入 `review`。
 
 但从“完整自学系统 MVP”看，按新增资料库后的最终用户验收权重计算当前约完成 **90%**：资料库基础 CRUD、教学、错题、复习、反馈/趋势页面和 Fake 全链路已经可操作，Provider 安全边界也已建立；真实语义验收、发布边界和 7 天试用还没有全部完成。每次开发都会同步更新 [`MVP_PROGRESS.md`](MVP_PROGRESS.md)，避免把代码量、测试数量或单个后端 PR 误当成产品完成度。当前最重要的是完成真实 Mastery Protocol 验收和连续试用。
 
@@ -117,7 +117,7 @@ record_user_correction(event_id, correction) -> ConceptState
 1. [#31 范围与数据/服务契约](https://github.com/njr070907/AI_SelfLearner/issues/31)、[#32/#33 教学闭环](https://github.com/njr070907/AI_SelfLearner/issues/32) 已完成。
 2. [#34/#35 错题本](https://github.com/njr070907/AI_SelfLearner/issues/34) 与 [#36/#37 复习复测](https://github.com/njr070907/AI_SelfLearner/issues/36) 已完成并合并。
 3. [#38 反馈、长期状态与趋势](https://github.com/njr070907/AI_SelfLearner/issues/38) 已接入进度页面，Fake 全链路已通过验证。
-4. 继续现有的 [#24 Prompt v0.2 实验](https://github.com/njr070907/AI_SelfLearner/issues/24)、[#25 人工复核](https://github.com/njr070907/AI_SelfLearner/issues/25) 和 [#26 校准报告](https://github.com/njr070907/AI_SelfLearner/issues/26)，并按 Mastery Protocol v0.4 重新校准掌握等级与下一步动作。
+4. 继续现有的 [#24 Prompt v0.2 实验](https://github.com/njr070907/AI_SelfLearner/issues/24)、[#25 人工复核](https://github.com/njr070907/AI_SelfLearner/issues/25) 和 [#26 校准报告](https://github.com/njr070907/AI_SelfLearner/issues/26)，并按 Mastery Protocol v0.5 重新校准掌握等级与下一步动作。
 5. 最后完成 [#39 完整集成与 7 天试用](https://github.com/njr070907/AI_SelfLearner/issues/39) 的自然日试用和发布验收。
 
 ## 7. MVP 停止条件

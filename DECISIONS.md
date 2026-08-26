@@ -76,3 +76,9 @@
 - 当 `ProviderObservation.possible_misconceptions` 非空且有原答证据时，掌握等级仍按保守规则记为 `fragile`，但 Learning Policy 不再推荐 `review`，统一输出 `re_learn`。
 - 原因是明确错误概念不是普通复习需求，而是需要先重建概念，再用新例子验证；错误证据仍完整保留在事件历史和错题记录中。
 - 该动作语义变更升级为 `mastery-protocol-v0.4-golden-baseline` / `learning-policy-v0.4-golden-baseline`；v0.2 的 `review` 结果保留为历史输出，人工校准归类为 `action` 偏差。
+
+## 2026-08-26 — 自述忘记先复习，再决定是否重新学习
+
+- 当学习者明确说“忘记”“忘了”“记不全”或“想不起来”时，第一步动作固定为 `review`，而不是立即把一次记忆缺失当作完全未掌握。
+- `review` 必须附带复习题或检查点；复习回答再次经过 Mastery Engine，掌握很低时再输出 `re_learn`，否则按新的证据继续决定 `practice` 或下一步。
+- 第 14 条人工复核按此规则改为 `fragile / review`；协议/策略版本升级为 `mastery-protocol-v0.5-golden-baseline` / `learning-policy-v0.5-golden-baseline`。

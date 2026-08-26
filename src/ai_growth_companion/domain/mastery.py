@@ -9,8 +9,17 @@ from ai_growth_companion.schemas.diagnosis import (
     UnderstandingLevel,
 )
 
-DEMO_PROTOCOL_VERSION = "mastery-protocol-v0.4-golden-baseline"
-DEMO_POLICY_VERSION = "learning-policy-v0.4-golden-baseline"
+DEMO_PROTOCOL_VERSION = "mastery-protocol-v0.5-golden-baseline"
+DEMO_POLICY_VERSION = "learning-policy-v0.5-golden-baseline"
+
+FORGETFULNESS_CUES = ("忘记", "忘了", "忘掉", "想不起来", "记不全")
+
+
+def learner_reported_forgetting(answer_text: str | None) -> bool:
+    """Recognize an explicit memory-loss cue without treating uncertainty as forgetting."""
+    if not answer_text:
+        return False
+    return any(cue in answer_text for cue in FORGETFULNESS_CUES)
 
 
 class DemoMasteryEngine:
@@ -71,9 +80,16 @@ class DemoLearningPolicy:
         self,
         observation: ProviderObservation,
         decision: MasteryDecision,
+        *,
+        answer_text: str | None = None,
     ) -> LearningAction:
         """Return exactly one deterministic action for the fake experiment."""
-        if observation.possible_misconceptions:
+        if learner_reported_forgetting(answer_text):
+            action_type = ActionType.REVIEW
+            instruction = (
+                "先复习核心概念，再用一道复习题确认当前掌握程度；如果掌握仍然很低，再重新学习。"
+            )
+        elif observation.possible_misconceptions:
             action_type = ActionType.RE_LEARN
             instruction = "先重新学习并纠正错误概念，再用自己的话解释一个新例子。"
         elif decision.mastery_level is MasteryLevel.NO_CLUE:

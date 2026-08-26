@@ -140,7 +140,11 @@ def _run_case(
         observation,
         observation_id=f"{request_id}:observation",
     )
-    action = DemoLearningPolicy().choose(observation, decision)
+    action = DemoLearningPolicy().choose(
+        observation,
+        decision,
+        answer_text=case.learner_answer,
+    )
     checks = _automatic_checks(case, observation, decision.mastery_level, action.action_type)
     metadata = ProviderMetadataSnapshot(
         provider=response.metadata.provider,

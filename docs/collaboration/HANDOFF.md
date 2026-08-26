@@ -8,9 +8,9 @@
 - 评测集包含 20 个高等数学案例。v0.2 主运行 `020209Z` 为 18/20 结构成功、18/18 自动通过；两条定向复测 `020421Z` 均通过，合并后的 20 条结果为 20/20 自动量表通过。
 - 每条真实结果仍标记为“需要人工语义复核”。当前结论是：接口和数据管道稳定，但 Prompt v0.1 的语义判断存在波动，不能把自动通过数当作掌握度结论。
 - 真实 Provider 必须使用 `deepseek-v4-flash-vision-exp`。没有新的实验设计前，不要盲目重复完整付费运行。
-- UI v1 已在 PR #28–#29 合并，Prompt v0.2 候选版本在 PR #30 合并但仍需人工发布决定；PR #58/#59 已合并教学、错题本、复习复测、反馈/长期状态进度页、Fake 全链路和资料库基础版；当前离线回归为 188 个测试通过。
+- UI v1 已在 PR #28–#29 合并，Prompt v0.2 候选版本在 PR #30 合并但仍需人工发布决定；PR #58/#59 已合并教学、错题本、复习复测、反馈/长期状态进度页、Fake 全链路和资料库基础版；当前离线回归为 189 个测试通过。
 - 完整自学 MVP 按最终用户可正常使用的验收口径当前约完成 90%，预计还需 4–9 个有效工作日，另需至少 7 个自然日试用；剩余重点是真实语义人工验收、发布边界确认和 7 天试用闭环。
-- Mastery Protocol 已升级为 v0.4：`no_clue`=完全未掌握，`re_learn`=重新学习；明确错误概念统一进入 `re_learn`，旧 v0.2 运行记录必须按新协议复核，不能直接沿用旧枚举作为发布结论。
+- Mastery Protocol 已升级为 v0.5：`no_clue`=完全未掌握，`re_learn`=重新学习；明确错误概念统一进入 `re_learn`，自述忘记先进入 `review`，旧 v0.2 运行记录必须按新协议复核，不能直接沿用旧枚举作为发布结论。
 - 完整阶段、时间估算、停止条件和前后端边界见 [完整自学 MVP 开发计划](../roadmap/FULL_SELF_STUDY_MVP_PLAN.md)。
 
 ## 谁负责什么
@@ -79,7 +79,7 @@ uv run python scripts/run_golden_eval.py `
 
 ## 当前优先工作
 
-1. 完成 [v0.2 人工复核草稿](../mastery-protocol/V0_2_REVIEW_DRAFT.md) 的 20 条语义确认，并按 Mastery Protocol v0.4 记录 `no_clue/re_learn` 及错误概念的 `re_learn` 动作；参考 [AI 初审摘要](../mastery-protocol/V0_2_AI_INITIAL_REVIEW.md) 记录差异，在没有新的实验设计和费用确认前不盲目扩大付费调用。
+1. 完成 [v0.2 人工复核草稿](../mastery-protocol/V0_2_REVIEW_DRAFT.md) 的 20 条语义确认，并按 Mastery Protocol v0.5 记录 `no_clue/re_learn`、错误概念的 `re_learn` 和自述忘记的 `review` 分流；参考 [AI 初审摘要](../mastery-protocol/V0_2_AI_INITIAL_REVIEW.md) 记录差异，在没有新的实验设计和费用确认前不盲目扩大付费调用。
 2. 使用 `docs/roadmap/SEVEN_DAY_TRIAL_READINESS.md` 的固定 Fake 环境完成进入试用前的最终检查，并开始记录真实 7 个自然日。
 3. 完成 #39 的连续试用、发布检查和最终产品验收；不要把 Fake 测试结果当作真实模型质量结论。
 

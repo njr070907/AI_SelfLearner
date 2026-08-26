@@ -1,6 +1,6 @@
 # Prompt v0.2 AI 建议复核表
 
-> 这是基于最终 20 条 v0.2 结果的 AI 辅助建议，不是人工复核结论，也不会自动关闭 #25/#26。当前协议已改为 v0.4：`no_clue`=完全未掌握、`re_learn`=重新学习；明确错误概念也统一进入 `re_learn`。负责人仍需打开原始运行记录，确认 `claim`、`evidence`、`gaps` 和 `possible_misconceptions` 是否真的符合数学语义。
+> 这是基于最终 20 条 v0.2 结果的 AI 辅助建议，不是人工复核结论，也不会自动关闭 #25/#26。当前协议已改为 v0.5：`no_clue`=完全未掌握、`re_learn`=重新学习；明确错误概念统一进入 `re_learn`，自述忘记先进入 `review`。负责人仍需打开原始运行记录，确认 `claim`、`evidence`、`gaps` 和 `possible_misconceptions` 是否真的符合数学语义。
 
 ## 来源
 
@@ -26,13 +26,13 @@
 | `hm-differentiability-misconception` | 掌握一致、动作需校准 | `action` | 把连续当成必然可导，并误判 `abs(x)` 在 0 可导，误区明确；v0.4 固定动作为 `re_learn`。 |
 | `hm-differentiability-insufficient` | 候选一致 | `no_difference` | 回答过短且无正向证据，判为 `not_evident` 合理。 |
 | `hm-lhopital-strong` | 候选一致，重点确认 | `evidence_scope` | 四个覆盖点均被提及；确认条件的概括程度是否达到 strong 标准。 |
-| `hm-lhopital-partial` | 候选一致 | `no_difference` | 记得未定式和重复使用，但明确缺少可导、非零和导数比条件。 |
+| `hm-lhopital-partial` | 掌握一致、动作需校准 | `action` | 记得未定式和重复使用，但明确说“记不全”条件；v0.5 先进入 `review`，再根据复习结果决定是否 `re_learn`。 |
 | `hm-lhopital-misconception` | 掌握一致、动作需校准 | `action` | “任何分式都能用”和“不必重新检查条件”都有明确摘录；v0.4 固定动作为 `re_learn`。 |
-| `hm-lhopital-insufficient` | 候选一致 | `no_difference` | 学习者明确忘记条件，未提取无依据的正向证据。 |
+| `hm-lhopital-insufficient` | 掌握一致、动作需校准 | `action` | 学习者明确说已经忘记条件；v0.5 先进入 `review`，复习后再判断是否 `re_learn`。 |
 | `hm-definite-integral-strong` | 候选一致，重点确认 | `evidence_scope` | 四个覆盖点均有证据；确认变上限求导的直观解释是否足够。 |
 | `hm-definite-integral-partial` | 候选一致 | `no_difference` | 有分割和变上限求导证据，但缺少黎曼和严格形式、取样无关和带符号面积。 |
 | `hm-definite-integral-misconception` | 掌握一致、动作需校准 | `action` | 普通面积、原函数定义和 `F'(x)=f(a)` 三个误区均有原答支持；v0.4 固定动作为 `re_learn`。 |
-| `hm-definite-integral-insufficient` | 候选一致 | `no_difference` | 只有遗忘表述，没有正向证据，重新解释动作合理。 |
+| `hm-definite-integral-insufficient` | 掌握一致、动作需校准 | `action` | 只有遗忘表述，没有正向证据；v0.5 先进入 `review`，不能跳过复习直接输出重新学习。 |
 
 ## 使用方式
 

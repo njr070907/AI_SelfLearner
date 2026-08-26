@@ -19,7 +19,7 @@ Sprint 1：用真实 Provider 验证 `evaluator-v0.1` 能否区分充分理解�
 ## 最近验证
 
 - PR #3–#29 均已按 PR + CI 流程合并到 `main`；PR #28 建立 Liquid Glass 学习工作区，PR #29 完成动效、光效、导航指示器和下拉定位修复；两次合并后的 CI 均成功。
-- 当前工作树已接入资料库基础版；全量回归为 188 tests，Ruff、format、Mypy、Streamlit smoke、Secret Scan、黄金集校验、Prompt dry-run 和依赖审计全部通过。
+- 当前工作树已接入资料库基础版；全量回归为 189 tests，Ruff、format、Mypy、Streamlit smoke、Secret Scan、黄金集校验、Prompt dry-run 和依赖审计全部通过。
 - `localhost:8511` 已实际验收 1440×1000 与 390×844：诊断失败保留原回答、重试、错题详情、安排复习、复测排期、标记掌握、进度更新和移动端侧栏交互均通过；未触碰个人 `8501`。
 - 无费用评测验证：黄金集 20/20 案例结构有效且人工复核通过；Prompt v0.2 dry-run 渲染 20/20；Fake v0.1 全量管道 20/20 自动检查通过。另有单独记录的真实 v0.2 受控调用，不纳入无费用结论。
 - 真实运行 `deepseek-evaluator-v0.1-20260824T004542Z`：模型为指定实验模型，935/452 tokens，调用成功但自动检查 0/1；模型提取到 4 条证据，却额外记录了未列入覆盖点的缺口，导致 `fragile`/`re_explain`，与该 strong 黄金案例的 `solid`/`practice` 标准不符。
@@ -30,12 +30,12 @@ Sprint 1：用真实 Provider 验证 `evaluator-v0.1` 能否区分充分理解�
 - 剩余失败均为语义置信度或 gap 边界的随机波动，未出现新的 API、JSON、Schema 或证据摘录故障。
 - 已将该轮自动结果与黄金量表的差异写入 [`docs/mastery-protocol/REAL_SEMANTIC_CALIBRATION.md`](docs/mastery-protocol/REAL_SEMANTIC_CALIBRATION.md)；报告仍标记为“中间校准”，不替代 20 条人工语义复核。
 - 2026-08-26 使用固定 `deepseek-v4-flash-vision-exp` 完成 Prompt v0.2 受控实验：运行 `020209Z` 为 18/20 结构成功且 18/18 自动通过；两条是 `evidence_id` 类型错误，随后运行 `020421Z` 定向复测 2/2 通过。此前 3 条置信度/边界失败也在 `020147Z` 定向复测中 3/3 通过。
-- v0.2 的协议约束和边界提示已修复并通过离线测试；产品负责人随后明确将“完全未掌握/重新学习”固化为 v0.3 的 `no_clue/re_learn`，并在 v0.4 明确错误概念也统一进入 `re_learn`，因此 v0.2 旧结果需要按新协议重新校准，20 条人工语义复核和发布决定仍未完成。
+- v0.2 的协议约束和边界提示已修复并通过离线测试；产品负责人随后明确将“完全未掌握/重新学习”固化为 v0.3 的 `no_clue/re_learn`，在 v0.4 明确错误概念统一进入 `re_learn`，并在 v0.5 增加“自述忘记先复习”的分流，因此 v0.2 旧结果需要按新协议重新校准，20 条人工语义复核和发布决定仍未完成。
 - 已生成 [v0.2 人工复核草稿](docs/mastery-protocol/V0_2_REVIEW_DRAFT.md)，20 行均标记为“待确认”，没有把自动通过冒充人工结论。
 - 已生成 [v0.2 AI 初审摘要](docs/mastery-protocol/V0_2_AI_INITIAL_REVIEW.md)：20/20 自动量表通过，并按四种场景做了可追溯的形态检查；没有把 AI 初审写成人工语义结论。
 - 已生成 [v0.2 AI 建议复核表](docs/mastery-protocol/V0_2_AI_SUGGESTED_REVIEW.md)：20 条逐案例候选结论和重点疑点，仍要求负责人回看原始证据后签字。
-- 已将 Mastery Protocol 更新为 v0.4：`no_clue`=完全未掌握、`re_learn`=重新学习；明确错误概念统一推荐 `re_learn`，旧数据库值读取时兼容。
-- 聊天内人工验收已完成 14/20：第 3、7、11 条的错误概念动作按 v0.4 校准为 `re_learn`，第 4 条仍记录为 `mastery/action` 偏差，第 8、12 条正式记录为 `no_clue / re_learn`，第 9、13 条为 `solid / practice`，第 10、14 条为 `fragile / re_learn`。
+- 已将 Mastery Protocol 更新为 v0.5：`no_clue`=完全未掌握、`re_learn`=重新学习；明确错误概念统一推荐 `re_learn`，明确自述忘记先推荐 `review`，旧数据库值读取时兼容。
+- 聊天内人工验收已完成 14/20：第 3、7、11 条的错误概念动作按 v0.4 校准为 `re_learn`，第 4 条仍记录为 `mastery/action` 偏差，第 8、12 条正式记录为 `no_clue / re_learn`，第 9、13 条为 `solid / practice`，第 10 条为 `fragile / re_learn`，第 14 条改为 `fragile / review`。
 
 ## Resume Point
 

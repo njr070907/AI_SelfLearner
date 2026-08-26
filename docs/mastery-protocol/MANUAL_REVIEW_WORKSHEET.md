@@ -24,13 +24,13 @@
 | `hm-differentiability-misconception` | fragile | re_learn | 0.85–1 | fragile/review/0.9 | pass |  |  |  |
 | `hm-differentiability-insufficient` | no_clue | re_learn | 0.75–0.95 | no_clue/re_learn/0.95 | pass |  |  |  |
 | `hm-lhopital-strong` | solid | practice | 0.85–1 | solid/practice/0.9 | pass |  |  |  |
-| `hm-lhopital-partial` | fragile | practice/re_learn | 0.65–0.9 | fragile/re_learn/0.85 | pass |  |  |  |
+| `hm-lhopital-partial` | fragile | review | 0.65–0.9 | fragile/re_learn/0.85 | pass |  |  |  |
 | `hm-lhopital-misconception` | fragile | re_learn | 0.9–1 | fragile/review/0.95 | pass |  |  |  |
-| `hm-lhopital-insufficient` | no_clue | re_learn | 0.75–0.95 | no_clue/re_learn/0.9 | pass |  |  |  |
+| `hm-lhopital-insufficient` | no_clue | review | 0.75–0.95 | no_clue/re_learn/0.9 | pass |  |  |  |
 | `hm-definite-integral-strong` | solid | practice | 0.85–1 | solid/practice/0.9 | pass |  |  |  |
 | `hm-definite-integral-partial` | fragile | practice/re_learn | 0.65–0.9 | fragile/re_learn/0.85 | pass |  |  |  |
 | `hm-definite-integral-misconception` | fragile | re_learn | 0.9–1 | fragile/review/0.95 | pass |  |  |  |
-| `hm-definite-integral-insufficient` | no_clue | re_learn | 0.75–0.95 | no_clue/re_learn/0.9 | pass |  |  |  |
+| `hm-definite-integral-insufficient` | no_clue | review | 0.75–0.95 | no_clue/re_learn/0.9 | pass |  |  |  |
 
 ## 完成条件
 

@@ -1,6 +1,6 @@
 # Prompt v0.2 人工复核草稿
 
-> 这是一份机器辅助草稿，不是产品负责人已经批准的人工结论。它把最终 v0.2 批量运行和两条定向复测合并，方便逐条阅读原始回答、证据摘录和 rubric 后确认。当前协议已进入 v0.4：`no_clue` 表示“完全未掌握”，`re_learn` 表示“重新学习”，明确错误概念也固定进入 `re_learn`；表中 v0.2 的旧枚举保留为历史自动输出，不能直接当作 v0.4 结论。
+> 这是一份机器辅助草稿，不是产品负责人已经批准的人工结论。它把最终 v0.2 批量运行和两条定向复测合并，方便逐条阅读原始回答、证据摘录和 rubric 后确认。当前协议已进入 v0.5：`no_clue` 表示“完全未掌握”，`re_learn` 表示“重新学习”，明确错误概念固定进入 `re_learn`，明确自述忘记先进入 `review`；表中 v0.2 的旧枚举保留为历史自动输出，不能直接当作 v0.5 结论。
 
 ## 来源与口径
 
@@ -27,7 +27,7 @@
 | `hm-differentiability-misconception` | `020209Z` | `fragile / review / 0.90` | pass | `fragile / re_learn` | `action` | 用户确认通过；连续必然可导、左右导数取平均和“可微只是变化很小”均为明确误区，旧 `review` 按 v0.4 校准为 `re_learn`。 |
 | `hm-differentiability-insufficient` | `020209Z` | `not_evident / re_explain / 0.90` | pass | `no_clue / re_learn` | `no_difference` | 用户确认通过；旧 v0.2 枚举按 v0.4 正式协议规范化为 `no_clue / re_learn`。 |
 | `hm-lhopital-strong` | `020209Z` | `solid / practice / 0.92` | pass | 一致 | `no_difference` | 原答完整覆盖未定式、可导与分母导数条件、导数比极限及重复使用前复核；AI 判为 solid/practice 合理。 |
-| `hm-lhopital-partial` | `020209Z` | `fragile / re_explain / 0.75` | pass | `fragile / re_learn` | `no_difference` | 用户确认通过；旧 `re_explain` 按 v0.4 正式协议规范化为 `re_learn`，条件与迁移缺口匹配。 |
+| `hm-lhopital-partial` | `020209Z` | `fragile / re_explain / 0.75` | pass | `fragile / review` | `action` | 用户确认通过；回答明确说“记不全”时按 v0.5 先复习，复习后再判断是否需要 `re_learn`，旧 `re_explain` 记为动作偏差。 |
 | `hm-lhopital-misconception` | `020209Z` | `fragile / review / 0.95` | pass | 待确认 |  |  |
 | `hm-lhopital-insufficient` | `020209Z` | `not_evident / re_explain / 0.90` | pass | 待确认 |  |  |
 | `hm-definite-integral-strong` | `020421Z` | `solid / practice / 0.90` | pass | 待确认 |  |  |
