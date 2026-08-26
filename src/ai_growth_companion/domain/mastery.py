@@ -9,8 +9,8 @@ from ai_growth_companion.schemas.diagnosis import (
     UnderstandingLevel,
 )
 
-DEMO_PROTOCOL_VERSION = "mastery-protocol-v0.5-golden-baseline"
-DEMO_POLICY_VERSION = "learning-policy-v0.5-golden-baseline"
+DEMO_PROTOCOL_VERSION = "mastery-protocol-v0.6-golden-baseline"
+DEMO_POLICY_VERSION = "learning-policy-v0.6-golden-baseline"
 
 FORGETFULNESS_CUES = ("忘记", "忘了", "忘掉", "想不起来", "记不全")
 
@@ -82,16 +82,24 @@ class DemoLearningPolicy:
         decision: MasteryDecision,
         *,
         answer_text: str | None = None,
+        review_phase: bool = False,
     ) -> LearningAction:
         """Return exactly one deterministic action for the fake experiment."""
-        if learner_reported_forgetting(answer_text):
+        if review_phase and (
+            observation.possible_misconceptions
+            or observation.gaps
+            or decision.mastery_level in {MasteryLevel.NO_CLUE, MasteryLevel.FRAGILE}
+        ):
+            action_type = ActionType.RE_LEARN
+            instruction = "复习后掌握仍然不足，重新学习核心概念，再用一个新例子检查理解。"
+        elif review_phase:
+            action_type = ActionType.PRACTICE
+            instruction = "复习后已有足够证据，做一个新情境下的迁移练习。"
+        elif learner_reported_forgetting(answer_text) or observation.possible_misconceptions:
             action_type = ActionType.REVIEW
             instruction = (
-                "先复习核心概念，再用一道复习题确认当前掌握程度；如果掌握仍然很低，再重新学习。"
+                "先复习并核对关键概念，再用一道复习题确认当前掌握程度；如果仍然很低，再重新学习。"
             )
-        elif observation.possible_misconceptions:
-            action_type = ActionType.RE_LEARN
-            instruction = "先重新学习并纠正错误概念，再用自己的话解释一个新例子。"
         elif decision.mastery_level is MasteryLevel.NO_CLUE:
             action_type = ActionType.RE_LEARN
             instruction = "先重新学习核心概念，再用一个具体例子检查是否形成理解。"

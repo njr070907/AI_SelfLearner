@@ -3,7 +3,7 @@
   "dataset_id": "high-math-mastery-v0.1",
   "language": "zh-CN",
   "status": "approved",
-  "mastery_protocol_version": "mastery-protocol-v0.5-golden-baseline",
+  "mastery_protocol_version": "mastery-protocol-v0.6-golden-baseline",
   "purpose": "用固定、可复核的高等数学回答检验系统能否区分充分理解、部分理解、明确误区和证据不足。",
   "source_policy": {
     "raw_pdfs_in_repository": false,
@@ -136,7 +136,7 @@
         "forbidden_claims": ["不得把术语使用流畅当成正确理解", "不得输出双侧极限存在"],
         "acceptable_mastery_levels": ["fragile"],
         "forbidden_mastery_levels": ["solid", "developing"],
-        "recommended_actions": ["re_learn"],
+        "recommended_actions": ["review"],
         "confidence": {"minimum": 0.8, "maximum": 1.0},
         "evaluator_note": "两个错误均由原回答直接表达，应引用原句并先修正定义，不能只补充例子。"
       },
@@ -238,7 +238,7 @@
         "forbidden_claims": ["不得只说计算粗心而忽略规则误解", "不得判为 developing 或 solid"],
         "acceptable_mastery_levels": ["fragile"],
         "forbidden_mastery_levels": ["solid", "developing"],
-        "recommended_actions": ["re_learn"],
+        "recommended_actions": ["review"],
         "confidence": {"minimum": 0.85, "maximum": 1.0},
         "evaluator_note": "这是明确、可定位的概念误区；应先区分“比值趋近 1”和“函数恒等”，再处理抵消。"
       },
@@ -341,7 +341,7 @@
         "forbidden_claims": ["不得因提到连续和切线就视为有效机制", "不得判为 developing 或 solid"],
         "acceptable_mastery_levels": ["fragile"],
         "forbidden_mastery_levels": ["solid", "developing"],
-        "recommended_actions": ["re_learn"],
+        "recommended_actions": ["review"],
         "confidence": {"minimum": 0.85, "maximum": 1.0},
         "evaluator_note": "答案明确表达了三处误区，应从 |x| 左右差商重新建立反例。"
       },
@@ -443,7 +443,7 @@
         "forbidden_claims": ["不得把会执行形式求导当成会使用法则", "不得判为 developing 或 solid"],
         "acceptable_mastery_levels": ["fragile"],
         "forbidden_mastery_levels": ["solid", "developing"],
-        "recommended_actions": ["re_learn"],
+        "recommended_actions": ["review"],
         "confidence": {"minimum": 0.9, "maximum": 1.0},
         "evaluator_note": "误区由明确例子支持，应先让学习者直接代入该例并比较结果，再重建适用条件。"
       },
@@ -546,7 +546,7 @@
         "forbidden_claims": ["不得只纠正计算结果而遗漏三个概念误区", "不得判为 developing 或 solid"],
         "acceptable_mastery_levels": ["fragile"],
         "forbidden_mastery_levels": ["solid", "developing"],
-        "recommended_actions": ["re_learn"],
+        "recommended_actions": ["review"],
         "confidence": {"minimum": 0.9, "maximum": 1.0},
         "evaluator_note": "误区证据明确，应依次区分定义与计算定理、代数面积与几何面积，并用短区间解释 F'(x)。"
       },

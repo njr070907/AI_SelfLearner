@@ -1,6 +1,6 @@
 # Prompt v0.2 AI 建议复核表
 
-> 这是基于最终 20 条 v0.2 结果的 AI 辅助建议，不是人工复核结论，也不会自动关闭 #25/#26。当前协议已改为 v0.5：`no_clue`=完全未掌握、`re_learn`=重新学习；明确错误概念统一进入 `re_learn`，自述忘记先进入 `review`。负责人仍需打开原始运行记录，确认 `claim`、`evidence`、`gaps` 和 `possible_misconceptions` 是否真的符合数学语义。
+> 这是基于最终 20 条 v0.2 结果的 AI 辅助建议，不是人工复核结论，也不会自动关闭 #25/#26。当前协议已改为 v0.6：`no_clue`=完全未掌握、`re_learn`=重新学习；明确错误概念和自述忘记先进入 `review`，复习后再分流。负责人仍需打开原始运行记录，确认 `claim`、`evidence`、`gaps` 和 `possible_misconceptions` 是否真的符合数学语义。
 
 ## 来源
 
@@ -15,23 +15,23 @@
 | --- | --- | --- | --- |
 | `hm-limit-existence-strong` | 候选一致 | `no_difference` | 四条证据覆盖左右极限、点值边界和正反例。 |
 | `hm-limit-existence-partial` | 候选一致，重点确认 | `gap_boundary` | 数值例子是否足以算作完整反例；点值与极限关系未回答。 |
-| `hm-limit-existence-misconception` | 掌握一致、动作需校准 | `action` | 平均左右极限、点值决定极限是明确误区；v0.2 导向 `review`，v0.4 固定改为 `re_learn`。 |
+| `hm-limit-existence-misconception` | 候选一致 | `no_difference` | 平均左右极限、点值决定极限是明确误区；v0.6 先 `review`，复习后再决定是否 `re_learn`。 |
 | `hm-limit-existence-insufficient` | 候选一致 | `no_difference` | 没有正向证据，四个覆盖点均为缺口。 |
 | `hm-equivalent-infinitesimal-strong` | 候选一致，重点确认 | `evidence_scope` | 四个核心覆盖点都有证据；确认“无穷小前提”是否属于本题必要证据。 |
 | `hm-equivalent-infinitesimal-partial` | 候选一致 | `no_difference` | 只记住替换结论，不能解释抵消和高阶项，`fragile/re_explain` 合理。 |
-| `hm-equivalent-infinitesimal-misconception` | 掌握一致、动作需校准 | `action` | “完全相同、任意位置替换、相减为 0”均有原答摘录支持；v0.4 固定动作为 `re_learn`。 |
+| `hm-equivalent-infinitesimal-misconception` | 候选一致 | `no_difference` | “完全相同、任意位置替换、相减为 0”均有原答摘录支持；v0.6 先 `review`，复习后再决定是否 `re_learn`。 |
 | `hm-equivalent-infinitesimal-insufficient` | 候选一致 | `no_difference` | 只有公式记忆，没有定义、条件或机制证据。 |
 | `hm-differentiability-strong` | 候选一致 | `no_difference` | 五个覆盖点均有直接证据，包含 `abs(x)` 反例和局部线性近似。 |
 | `hm-differentiability-partial` | 候选一致 | `no_difference` | 掌握可导/连续方向，但明确不会解释可导可微等价和线性近似。 |
-| `hm-differentiability-misconception` | 掌握一致、动作需校准 | `action` | 把连续当成必然可导，并误判 `abs(x)` 在 0 可导，误区明确；v0.4 固定动作为 `re_learn`。 |
+| `hm-differentiability-misconception` | 候选一致 | `no_difference` | 把连续当成必然可导，并误判 `abs(x)` 在 0 可导，误区明确；v0.6 先 `review`，复习后再决定是否 `re_learn`。 |
 | `hm-differentiability-insufficient` | 候选一致 | `no_difference` | 回答过短且无正向证据，判为 `not_evident` 合理。 |
 | `hm-lhopital-strong` | 候选一致，重点确认 | `evidence_scope` | 四个覆盖点均被提及；确认条件的概括程度是否达到 strong 标准。 |
 | `hm-lhopital-partial` | 掌握一致、动作需校准 | `action` | 记得未定式和重复使用，但明确说“记不全”条件；v0.5 先进入 `review`，再根据复习结果决定是否 `re_learn`。 |
-| `hm-lhopital-misconception` | 掌握一致、动作需校准 | `action` | “任何分式都能用”和“不必重新检查条件”都有明确摘录；v0.4 固定动作为 `re_learn`。 |
+| `hm-lhopital-misconception` | 候选一致 | `no_difference` | “任何分式都能用”和“不必重新检查条件”都有明确摘录；v0.6 先 `review`，复习后再决定是否 `re_learn`。 |
 | `hm-lhopital-insufficient` | 掌握一致、动作需校准 | `action` | 学习者明确说已经忘记条件；v0.5 先进入 `review`，复习后再判断是否 `re_learn`。 |
 | `hm-definite-integral-strong` | 候选一致，重点确认 | `evidence_scope` | 四个覆盖点均有证据；确认变上限求导的直观解释是否足够。 |
 | `hm-definite-integral-partial` | 候选一致 | `no_difference` | 有分割和变上限求导证据，但缺少黎曼和严格形式、取样无关和带符号面积。 |
-| `hm-definite-integral-misconception` | 掌握一致、动作需校准 | `action` | 普通面积、原函数定义和 `F'(x)=f(a)` 三个误区均有原答支持；v0.4 固定动作为 `re_learn`。 |
+| `hm-definite-integral-misconception` | 候选一致 | `no_difference` | 普通面积、原函数定义和 `F'(x)=f(a)` 三个误区均有原答支持；v0.6 先 `review`，复习后再决定是否 `re_learn`。 |
 | `hm-definite-integral-insufficient` | 掌握一致、动作需校准 | `action` | 只有遗忘表述，没有正向证据；v0.5 先进入 `review`，不能跳过复习直接输出重新学习。 |
 
 ## 使用方式

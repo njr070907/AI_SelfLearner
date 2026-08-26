@@ -8,7 +8,7 @@ from ai_growth_companion.schemas.diagnosis import (
 )
 
 
-def test_explicit_misconception_requires_re_learning() -> None:
+def test_explicit_misconception_starts_with_review() -> None:
     observation = ProviderObservation(
         evidence=[],
         gaps=[],
@@ -26,8 +26,24 @@ def test_explicit_misconception_requires_re_learning() -> None:
 
     action = DemoLearningPolicy().choose(observation, decision)
 
+    assert action.action_type is ActionType.REVIEW
+    assert "复习" in action.instruction
+
+
+def test_misconception_after_review_moves_to_re_learning_when_still_fragile() -> None:
+    observation = ProviderObservation(
+        evidence=[],
+        gaps=[{"description": "不会解释机制", "severity": "high"}],
+        possible_misconceptions=[],
+        observation_confidence=0.9,
+        limitations=[],
+    )
+    decision = DemoMasteryEngine().decide(observation, observation_id="obs-3")
+
+    action = DemoLearningPolicy().choose(observation, decision, review_phase=True)
+
     assert action.action_type is ActionType.RE_LEARN
-    assert "重新学习" in action.instruction
+    assert "掌握仍然不足" in action.instruction
 
 
 def test_explicit_forgetting_starts_with_review_before_re_learning() -> None:

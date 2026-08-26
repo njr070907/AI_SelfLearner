@@ -82,3 +82,9 @@
 - 当学习者明确说“忘记”“忘了”“记不全”或“想不起来”时，第一步动作固定为 `review`，而不是立即把一次记忆缺失当作完全未掌握。
 - `review` 必须附带复习题或检查点；复习回答再次经过 Mastery Engine，掌握很低时再输出 `re_learn`，否则按新的证据继续决定 `practice` 或下一步。
 - 第 14 条人工复核按此规则改为 `fragile / review`；协议/策略版本升级为 `mastery-protocol-v0.5-golden-baseline` / `learning-policy-v0.5-golden-baseline`。
+
+## 2026-08-26 — 错误概念也先复习再分流
+
+- `possible_misconceptions` 非空时，初始动作也统一为 `review`，先让学习者核对错误概念并完成复习题；不能把一次错误回答直接等同于需要从头学习。
+- 复习阶段通过 `review_phase` 标记区分：复习后仍为 `no_clue`/`fragile`、仍有缺口或误区时输出 `re_learn`；复习后证据充分则进入 `practice`。
+- 该策略变更升级为 `mastery-protocol-v0.6-golden-baseline` / `learning-policy-v0.6-golden-baseline`，已同步更新 20 条黄金量表和人工复核记录。

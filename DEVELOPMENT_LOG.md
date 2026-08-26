@@ -87,3 +87,5 @@
 - 根据人工复核反馈升级 Mastery Protocol v0.4：只要 `possible_misconceptions` 有明确原答证据，掌握等级保持 `fragile`，推荐动作统一为 `re_learn`，不再使用 `review` 作为默认修复动作；更新黄金集、UI 回归和确定性策略测试。
 - 根据产品负责人对第 14 条的复核意见升级 Mastery Protocol v0.5：学习者明确说“忘记/忘了/记不全/想不起来”时先 `review`，复习回答再重新计算掌握程度，掌握很低时才转 `re_learn`；新增答案文本分流和策略测试。
 - v0.5 回归通过：189 tests、Ruff、format、Mypy；Fake 黄金集 20/20 自动通过，含明确忘记措辞的案例先输出 `review`，其余错误概念仍输出 `re_learn`。
+- v0.6 回归通过：190 tests、Ruff、format、Mypy；Fake 黄金集 20/20 自动通过，错误概念和忘记类回答先输出 `review`，复习阶段低掌握才输出 `re_learn`。
+- 根据产品负责人进一步确认，错误概念也必须先复习再复测；升级 Mastery Protocol v0.6，增加 `review_phase`：复习后仍为 `no_clue`/`fragile` 或仍有误区时才输出 `re_learn`，复习后证据充分则进入 `practice`。

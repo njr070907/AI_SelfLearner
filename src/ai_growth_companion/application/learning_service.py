@@ -298,6 +298,7 @@ class LearningService:
             observation,
             decision,
             answer_text=explanation.answer_text,
+            review_phase=explanation.answer_type == "follow_up",
         )
         decision_id = str(uuid4())
         action_id = str(uuid4())
@@ -553,7 +554,12 @@ class LearningService:
 
         observation_id = str(uuid4())
         decision = self.mastery_engine.decide(observation, observation_id=observation_id)
-        action = self.learning_policy.choose(observation, decision, answer_text=answer)
+        action = self.learning_policy.choose(
+            observation,
+            decision,
+            answer_text=answer,
+            review_phase=True,
+        )
         result = self._review_outcome(observation)
         updated_item, attempt = self.review_repository.record_success(
             review_item_id=review_item_id,
