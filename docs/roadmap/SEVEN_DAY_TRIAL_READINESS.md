@@ -48,6 +48,8 @@ uv run python scripts/seed_fake_workspace.py --seed-name frontend-demo
 uv run streamlit run app.py --server.port 8511
 ```
 
+当前团队试用环境已在 `localhost:8511` 启动并通过 HTTP 200 检查；数据库为 `data/team-8511.db`，使用 Fake Provider，网络调用和付费调用均为 0。环境启动本身不计入 Day 1，只有试用者实际完成学习闭环后才填写每日记录。
+
 ## 每日试用记录（不得预填）
 
 实际试用开始后，每个自然日由试用者填写；空白表示尚未发生，不得用 Fake 数据代替：
