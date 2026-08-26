@@ -557,7 +557,8 @@ p, li { color: var(--ink-soft); }
 .empty-state, .question-panel, .diagnosis-panel,
 .progress-row, .status-row, .mistake-detail-head, .source-answer-grid,
 .mistake-evidence-grid, .mistake-correction, [class*="st-key-wrong_item_"],
-.review-question, .review-result, [class*="st-key-review_queue_"], [data-testid="stForm"] {
+.review-question, .review-result, [class*="st-key-review_queue_"],
+.concept-state-row, .state-detail-grid, [data-testid="stForm"] {
   background: var(--surface-solid);
   border: 1px solid var(--line);
   box-shadow: var(--shadow-raised);
@@ -574,7 +575,8 @@ p, li { color: var(--ink-soft); }
     box-shadow: var(--shadow-raised), 0 0 0 1px var(--accent-soft),
       0 22px 52px color-mix(in srgb, var(--glow-hover) 12%, transparent);
   }
-  .progress-row:hover, .status-row:hover, [class*="st-key-wrong_item_"]:hover,
+  .progress-row:hover, .status-row:hover, .concept-state-row:hover,
+  [class*="st-key-wrong_item_"]:hover,
   [class*="st-key-review_queue_"]:hover {
     transform: translateY(-1px);
     border-color: color-mix(in srgb, var(--accent) 16%, var(--line-strong));
@@ -800,6 +802,39 @@ p, li { color: var(--ink-soft); }
 .queue-row { display: flex; flex-direction: column; gap: .2rem; min-width: 0; }
 .queue-row strong { color: var(--ink); font-size: .94rem; }
 .queue-row span { color: var(--ink-muted); font-size: .78rem; }
+.concept-state-row {
+  display: grid;
+  grid-template-columns: minmax(190px, 1.45fr) 1fr .7fr .8fr;
+  align-items: center;
+  gap: 1rem;
+  margin: .65rem 0;
+  padding: 1rem 1.15rem;
+  border-radius: 15px;
+  box-shadow: none;
+}
+.state-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  overflow: hidden;
+  margin: 1rem 0 1.2rem;
+  border-radius: var(--radius-panel);
+}
+.state-detail-grid > div { min-width: 0; padding: 1.25rem 1.15rem; }
+.state-detail-grid > div + div { border-left: 1px solid var(--line); }
+.state-detail-grid strong {
+  display: block;
+  color: var(--ink);
+  font-size: 1.02rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.state-detail-grid span {
+  display: block;
+  margin-top: .3rem;
+  color: var(--ink-muted);
+  font-size: .76rem;
+  line-height: 1.45;
+}
 .error-panel {
   margin: 1rem 0;
   padding: 1.35rem 1.5rem;
@@ -878,10 +913,21 @@ input:focus-visible, textarea:focus-visible, [role="combobox"]:focus-visible {
 .stButton > button:disabled { filter: saturate(.35); opacity: .58; }
 [data-baseweb="input"] > div, [data-baseweb="textarea"] > div,
 [data-baseweb="select"] > div {
-  border-color: var(--line-strong);
+  border-color: var(--line-strong) !important;
   border-radius: var(--radius-control);
-  background: var(--surface-elevated);
+  background: var(--surface-elevated) !important;
+  color: var(--ink) !important;
 }
+.react-aria-ComboBox [role="group"] {
+  border-color: var(--line-strong) !important;
+  background: var(--surface-elevated) !important;
+  color: var(--ink) !important;
+}
+[data-baseweb="select"] [role="combobox"],
+[data-baseweb="select"] p,
+[data-baseweb="select"] svg,
+.react-aria-ComboBox input[role="combobox"],
+.react-aria-ComboBox button { color: var(--ink) !important; }
 [data-testid="stTextInputRootElement"]:focus-within,
 [data-baseweb="input"]:has(input:focus),
 [data-baseweb="textarea"]:has(textarea:focus),
@@ -913,9 +959,14 @@ input::placeholder, textarea::placeholder {
   animation: view-enter-soft var(--motion-expand) var(--ease-standard) 40ms both;
 }
 [data-testid="stSelectboxVirtualDropdown"] {
+  border: 1px solid var(--line) !important;
+  background: var(--surface-elevated) !important;
+  color: var(--ink) !important;
   animation: view-pop var(--motion-fast) var(--ease-standard) both;
   transform-origin: top;
 }
+[data-testid="stSelectboxVirtualDropdown"] [role="option"],
+[role="listbox"] [role="option"] { color: var(--ink) !important; }
 [data-testid="stAlert"] { border-radius: 15px; }
 
 @media (max-width: 980px) {
@@ -953,6 +1004,26 @@ input::placeholder, textarea::placeholder {
     -webkit-backdrop-filter: saturate(1.12) blur(16px);
     backdrop-filter: saturate(1.12) blur(16px);
   }
+  [data-testid="stToolbar"] {
+    display: flex !important;
+    right: auto;
+    left: .65rem;
+  }
+  [data-testid="stToolbarActions"],
+  [data-testid="stAppDeployButton"],
+  [data-testid="stMainMenu"] { display: none; }
+  [data-testid="stExpandSidebarButton"] {
+    display: flex !important;
+    width: 40px;
+    height: 40px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--glass-strong);
+    color: var(--ink) !important;
+    box-shadow: inset 0 1px 0 var(--glass-highlight);
+  }
+  [data-testid="stExpandSidebarButton"] svg,
+  [data-testid="stExpandSidebarButton"] span { color: var(--ink) !important; }
   [data-testid="stSidebar"] {
     top: 0;
     left: 0;
@@ -1014,6 +1085,10 @@ input::placeholder, textarea::placeholder {
   .workspace-summary { grid-template-columns: 1fr 1fr; }
   .source-answer-grid, .mistake-evidence-grid, .mistake-correction { grid-template-columns: 1fr; }
   .review-result-grid { grid-template-columns: 1fr; }
+  .concept-state-row { grid-template-columns: 1fr 1fr; }
+  .state-detail-grid { grid-template-columns: 1fr 1fr; }
+  .state-detail-grid > div:nth-child(3) { border-left: 0; }
+  .state-detail-grid > div:nth-child(n + 3) { border-top: 1px solid var(--line); }
   .source-answer-grid section + section,
   .mistake-evidence-grid section + section,
   .mistake-correction section + section { border-top: 1px solid var(--line); border-left: 0; }

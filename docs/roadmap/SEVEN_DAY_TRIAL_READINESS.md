@@ -1,0 +1,64 @@
+# 7 天试用准备清单
+
+> 状态：候选版本正在验收。这里记录的是 **Ready for 7-day trial** 的进入条件，
+> 不是已经完成 7 个自然日试用的证明。
+
+## 进入试用前的产品门槛
+
+- [x] 学习：创建会话、回答、结构化诊断、重新解释、追问和失败重试。
+- [x] 错题：列表、筛选、排序、证据详情、标记掌握、安排复习和重新作答。
+- [x] 复习：到期队列、复测、反馈、下一题、失败保留回答和后端重新安排。
+- [x] 进度：展示后端长期状态、趋势、错题、复测和用户修正统计。
+- [x] Fake Provider 默认开启，演示数据脚本保持零网络、零付费调用。
+- [x] Streamlit AppTest 覆盖完整 Fake 自学闭环和刷新后的持久化状态。
+- [x] `localhost:8511` Desktop（1440 × 1000）实际浏览器验收通过，无横向溢出。
+- [x] `localhost:8511` Narrow（390 × 844）实际浏览器验收通过，移动侧栏和深色控件可用且无横向溢出。
+- [x] 仓库完整回归通过：179 tests、Ruff、format、mypy、Streamlit smoke、Secret Scan、黄金集校验、Prompt dry-run 和依赖审计。
+- [ ] 关联 #35、#37、#39 的 Pull Request 已创建并等待人工审核。
+
+## 固定试用环境
+
+团队验收环境只使用 `8511`，不复用或停止个人版本的 `8501`：
+
+```powershell
+$env:DATABASE_URL = "sqlite:///data/team-8511.db"
+$env:LLM_PROVIDER = "fake"
+$env:LLM_MODEL = "fake-mastery-v0.1"
+$env:LLM_PAID_CALLS_ALLOWED = "false"
+uv run python -m ai_growth_companion.repositories.database migrate
+uv run python scripts/seed_fake_workspace.py --seed-name frontend-demo
+uv run streamlit run app.py --server.port 8511
+```
+
+## 每日试用记录（不得预填）
+
+实际试用开始后，每个自然日由试用者填写；空白表示尚未发生，不得用 Fake 数据代替：
+
+| 自然日 | 日期 | 学习主题 | 完成闭环 | 失败恢复 | 最有价值反馈 | 主要问题 | 是否愿意次日继续 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Day 1 |  |  |  |  |  |  |  |
+| Day 2 |  |  |  |  |  |  |  |
+| Day 3 |  |  |  |  |  |  |  |
+| Day 4 |  |  |  |  |  |  |  |
+| Day 5 |  |  |  |  |  |  |  |
+| Day 6 |  |  |  |  |  |  |  |
+| Day 7 |  |  |  |  |  |  |  |
+
+完成真实 7 天后再汇总：持续使用意愿、诊断帮助程度、发现的真实误判、恢复失败、
+复习节奏问题和下一阶段决策。在此之前只能写“准备进入试用”。
+
+## 真实 DeepSeek 验证边界
+
+当前真实模型路径已具备三重显式门槛：指定 `deepseek`、固定模型
+`deepseek-v4-flash-vision-exp`、明确允许付费调用。默认应用和所有自动化测试仍使用 Fake。
+
+付费验证只能在用户再次明确授权、合法本机配置已存在时，按照
+[`README.md`](../../README.md#deepseek-真实评测会产生费用) 的单案例、零重试步骤执行。
+本轮没有修改 Key、`.env`、Provider Factory 或真实模型默认配置，也没有发起真实调用。
+
+## 已知契约限制
+
+- 正式服务契约目前没有“手动延后复习”或“任意指定下一次日期”的方法。UI 会展示禁用入口和原因，
+  不直接写数据库，也不自行计算调度日期。
+- “重新安排”展示 `submit_retest(...)` 返回的后端日期和间隔；这不是前端推算。
+- 一次真实模型验证不能替代 7 个自然日的连续试用，也不能单独证明诊断质量。

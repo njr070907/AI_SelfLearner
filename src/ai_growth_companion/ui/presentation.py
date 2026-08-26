@@ -64,6 +64,19 @@ REVIEW_ATTEMPT_STATUS_LABELS = {
     "invalid": "结果格式无效",
 }
 
+CONCEPT_TREND_LABELS = {
+    "insufficient_data": "证据还不足以判断趋势",
+    "improving": "理解正在改善",
+    "stable": "理解变化较稳定",
+    "declining": "近期证据有所回落",
+}
+
+FEEDBACK_VERDICT_LABELS = {
+    "accurate": "诊断准确",
+    "partial": "部分准确",
+    "inaccurate": "诊断不准确，需要修正",
+}
+
 SEVERITY_LABELS = {
     "low": "轻微",
     "medium": "重要",
@@ -159,6 +172,20 @@ def review_attempt_status_label(value: str | Enum) -> str:
     normalized = _value(value)
     assert normalized is not None
     return REVIEW_ATTEMPT_STATUS_LABELS.get(normalized, normalized)
+
+
+def concept_trend_label(value: str | Enum) -> str:
+    """Localize the backend projection's longitudinal trend."""
+    normalized = _value(value)
+    assert normalized is not None
+    return CONCEPT_TREND_LABELS.get(normalized, normalized)
+
+
+def feedback_verdict_label(value: str | Enum) -> str:
+    """Localize a learner feedback choice."""
+    normalized = _value(value)
+    assert normalized is not None
+    return FEEDBACK_VERDICT_LABELS.get(normalized, normalized)
 
 
 def error_message(error_code: str | None) -> str:

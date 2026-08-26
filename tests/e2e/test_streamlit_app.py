@@ -602,4 +602,117 @@ def test_review_page_keeps_dark_theme_and_narrow_layout_contract(
     assert app.session_state["ui_theme_mode"] is ThemeMode.DARK
     assert ".review-result-grid { grid-template-columns: 1fr; }" in page
     assert '.st-key-view-review [data-testid="stHorizontalBlock"]' in page
+    assert '[data-testid="stExpandSidebarButton"] {' in page
     assert "当前复习题" in page
+
+
+def test_seeded_today_page_exposes_the_four_core_workspaces(
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    app = app_for_seeded(tmp_path, monkeypatch, "ui-today-workspaces.db")
+    page = rendered_markdown(app)
+
+    assert not app.exception
+    assert "学习记录" in page
+    assert "待处理错题" in page
+    assert "今日到期复习" in page
+    assert "长期状态主题" in page
+    assert button_with_label(app, "继续学习")
+    assert button_with_label(app, "查看错题")
+    assert button_with_label(app, "开始复习")
+    assert button_with_label(app, "查看进度")
+
+
+def test_user_correction_is_saved_and_reflected_in_progress(
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    app = submit_scenario(
+        start_session(app_for(tmp_path, monkeypatch, "ui-feedback-progress.db")),
+        "partial",
+    )
+    select_with_label(app, "你的判断").select("inaccurate")
+    text_area_with_label(app, "补充说明或修正").input("诊断遗漏了我对递归终止条件的说明。")
+    app = button_with_label(app, "提交诊断反馈").click().run(timeout=10)
+
+    assert not app.exception
+    assert "反馈已保存" in app.success[0].value
+    assert "我用一个合成回答说明递归的机制、边界和例子。" in rendered_markdown(app)
+
+    app = (
+        next(item for item in app.sidebar.button if item.key == "nav_progress")
+        .click()
+        .run(timeout=10)
+    )
+    page = rendered_markdown(app)
+    assert "长期状态" in page
+    assert "修正反馈 / 全部反馈" in page
+    assert "1 / 1" in page
+    assert "递归" in page
+
+
+def test_seeded_progress_shows_backend_trends_and_longitudinal_counts(
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    app = app_for_seeded(tmp_path, monkeypatch, "ui-progress-state.db")
+    app = (
+        next(item for item in app.sidebar.button if item.key == "nav_progress")
+        .click()
+        .run(timeout=10)
+    )
+    page = rendered_markdown(app)
+
+    assert not app.exception
+    assert "长期状态" in page
+    assert "函数极限" in page
+    assert "洛必达法则" in page
+    assert "泰勒公式" in page
+    assert "理解正在改善" in page
+    assert "待处理 / 全部错题" in page
+    assert "复测正确 / 全部复测" in page
+    assert "修正反馈 / 全部反馈" in page
+
+
+def test_complete_fake_ui_loop_connects_learning_mistake_review_and_progress(
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    app = submit_scenario(
+        start_session(app_for(tmp_path, monkeypatch, "ui-complete-loop.db")),
+        "partial",
+    )
+    assert "理解还不稳定" in rendered_markdown(app)
+
+    app = open_mistakes(app)
+    assert "递归" in rendered_markdown(app)
+    app = button_with_label(app, "查看详情").click().run(timeout=10)
+    source_answer = "我用一个合成回答说明递归的机制、边界和例子。"
+    assert source_answer in rendered_markdown(app)
+
+    app = button_with_label(app, "安排复习").click().run(timeout=10)
+    assert app.session_state["active_page"] == "复习"
+    assert "递归" in rendered_markdown(app)
+    app = submit_review_scenario(app, "strong")
+    assert app.session_state["review_result"].result is ReviewOutcome.CORRECT
+    assert "后端已重新安排下次复习" in app.success[0].value
+
+    app = button_with_label(app, "标记这个错题为已掌握").click().run(timeout=10)
+    assert "今天没有到期的复习任务" in rendered_markdown(app)
+    app = app.run(timeout=10)
+    assert "今天没有到期的复习任务" in rendered_markdown(app)
+
+    app = open_mistakes(app)
+    assert "已掌握" in rendered_markdown(app)
+    assert source_answer in rendered_markdown(app)
+
+    app = (
+        next(item for item in app.sidebar.button if item.key == "nav_progress")
+        .click()
+        .run(timeout=10)
+    )
+    page = rendered_markdown(app)
+    assert "递归" in page
+    assert "1 / 1" in page
+    assert "复测正确 / 全部复测" in page

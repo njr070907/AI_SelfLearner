@@ -5,12 +5,15 @@ from datetime import UTC, datetime
 import pytest
 
 from ai_growth_companion.application.models import HistoryItem
+from ai_growth_companion.domain.feedback import ConceptTrend, FeedbackVerdict
 from ai_growth_companion.domain.review import ReviewAttemptStatus, ReviewOutcome
 from ai_growth_companion.domain.wrong_items import WrongItemStatus, WrongItemType
 from ai_growth_companion.schemas.diagnosis import ActionType, MasteryLevel
 from ai_growth_companion.ui.presentation import (
     action_label,
+    concept_trend_label,
     error_message,
+    feedback_verdict_label,
     filter_history,
     mastery_label,
     review_attempt_status_label,
@@ -117,6 +120,11 @@ def test_review_outcomes_have_chinese_labels(
 
 def test_review_failure_status_has_a_safe_label() -> None:
     assert review_attempt_status_label(ReviewAttemptStatus.FAILED) == "复测失败"
+
+
+def test_longitudinal_state_and_feedback_choices_have_chinese_labels() -> None:
+    assert concept_trend_label(ConceptTrend.IMPROVING) == "理解正在改善"
+    assert feedback_verdict_label(FeedbackVerdict.INACCURATE) == "诊断不准确，需要修正"
 
 
 def history_item(
