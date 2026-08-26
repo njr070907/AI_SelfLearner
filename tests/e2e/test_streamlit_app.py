@@ -440,6 +440,7 @@ def test_teaching_workspace_generates_a_conventional_lesson_with_interactive_che
     assert "边界" in page
     assert "极限描述函数在某点附近的变化趋势" in page
     assert "第 3 步 · 互动小测" in page
+    assert any(item.label == "查看本节参考原文" for item in app.expander)
     assert "进入掌握检测（可选）" in [item.label for item in app.button]
 
     for _ in range(3):

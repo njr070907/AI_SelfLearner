@@ -231,6 +231,7 @@ def _render_lesson(
         section_sources = _source_names(content.sources, section.source_document_ids)
         if section_sources:
             st.caption(f"本节来源：{section_sources}")
+            _render_source_excerpts(content.sources, section.source_document_ids)
 
     previous, next_step = st.columns(2)
     if previous.button(
@@ -400,3 +401,14 @@ def _source_names(sources: Sequence[LessonSource], source_ids: list[str]) -> str
         return ""
     names = {source.document_id: source.filename for source in sources}
     return ", ".join(names[source_id] for source_id in source_ids if source_id in names)
+
+
+def _render_source_excerpts(sources: Sequence[LessonSource], source_ids: list[str]) -> None:
+    """Let learners verify the source text used for the visible lesson section."""
+    selected = [source for source in sources if source.document_id in source_ids]
+    if not selected:
+        return
+    with st.expander("查看本节参考原文"):
+        for source in selected:
+            st.markdown(f"**{escape(source.filename)}**")
+            st.caption(source.excerpt)
