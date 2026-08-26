@@ -90,7 +90,7 @@ class FakeLLMProvider:
         ]
         return ProviderResponse(
             content={
-                "schema_version": "teaching-lesson-v0.1",
+                "schema_version": "teaching-lesson-v0.2",
                 "topic": request.topic,
                 "title": f"{request.topic}：从材料到理解",
                 "summary": (
@@ -136,8 +136,7 @@ class FakeLLMProvider:
                         "section_type": "example",
                         "title": "用例子复述",
                         "explanation": (
-                            "不看原文，用一个新例子复述定义、机制和边界；"
-                            "这一步完成后再进入费曼理解检查。"
+                            "不看原文，用一个新例子复述定义、机制和边界；这一步完成后再做互动小测。"
                         ),
                         "key_points": ["新例子", "关键步骤", "边界提醒"],
                         "example": f"请用一个未出现在材料中的例子说明 {request.topic}。",
@@ -147,12 +146,37 @@ class FakeLLMProvider:
                     f"如果要向初学者解释 {request.topic}，你会先讲什么？为什么？",
                     f"在什么条件下 {request.topic} 的常见做法会失效？",
                 ],
+                "interactive_checks": [
+                    {
+                        "prompt": f"下面哪一种学习方式最适合先掌握 {request.topic}？",
+                        "options": [
+                            "先理解概念和用途，再看具体例子",
+                            "只背诵材料中的最后一句总结",
+                            "跳过条件，直接记住一个固定答案",
+                        ],
+                        "correct_answer": "先理解概念和用途，再看具体例子",
+                        "explanation": (
+                            "常规学习应先建立概念，再通过例子和边界把知识连接起来；"
+                            "只背结论无法判断什么时候适用。"
+                        ),
+                    },
+                    {
+                        "prompt": f"学习 {request.topic} 时，遇到一个新例子最应该先检查什么？",
+                        "options": [
+                            "它是否满足适用条件",
+                            "它是否和教材的句子完全一样",
+                            "它是否看起来足够复杂",
+                        ],
+                        "correct_answer": "它是否满足适用条件",
+                        "explanation": "先检查条件，才能判断知识能否迁移到新情境。",
+                    },
+                ],
                 "sources": source_refs,
             },
             metadata=self._metadata(
                 request_id=request_id,
-                prompt_version="fake-teaching-v0.1",
-                schema_version="teaching-lesson-v0.1",
+                prompt_version="fake-teaching-v0.2",
+                schema_version="teaching-lesson-v0.2",
             ),
         )
 

@@ -407,7 +407,7 @@ def test_document_library_can_upload_and_list_a_text_file(
     assert any(item.label == "下载" for item in app.download_button)
 
 
-def test_teaching_workspace_generates_a_lesson_before_feynman_check(
+def test_teaching_workspace_generates_a_conventional_lesson_with_interactive_check(
     tmp_path: Path,
     monkeypatch: MonkeyPatch,
 ) -> None:
@@ -427,12 +427,19 @@ def test_teaching_workspace_generates_a_lesson_before_feynman_check(
 
     assert not app.exception
     page = rendered_markdown(app)
-    assert "第 2 步 · 阅读教学内容" in page
+    assert "第 2 步 · 阅读课程" in page
     assert "学习目标" in page
     assert "概念" in page
     assert "机制" in page
     assert "边界" in page
-    assert "第 3 步：进入费曼理解检查" in [item.label for item in app.button]
+    assert "第 3 步 · 互动小测" in page
+    assert "进入掌握检测（可选）" in [item.label for item in app.button]
+
+    radio = next(item for item in app.radio if "学习方式" in item.label)
+    app = radio.set_value("先理解概念和用途，再看具体例子").run(timeout=10)
+    app = button_with_label(app, "提交答案").click().run(timeout=10)
+    assert any("回答正确" in item.value for item in app.success)
+    assert any("正确答案" in item.value for item in app.info)
 
 
 def test_seeded_mistakes_show_all_types_and_support_filtering_and_sorting(

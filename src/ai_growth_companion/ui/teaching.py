@@ -23,14 +23,12 @@ def render_teaching_workspace(
     *,
     start_lesson: StartLesson,
 ) -> None:
-    """Render the conventional teaching flow before the diagnostic flow."""
-    st.markdown('<div class="eyebrow">教学 · 从资料生成学习内容</div>', unsafe_allow_html=True)
+    """Render a conventional lesson with explanations and interactive checks."""
+    st.markdown('<div class="eyebrow">教学 · 从资料生成课程</div>', unsafe_allow_html=True)
+    st.markdown('<h1 class="hero-title">跟着课程学，再做互动练习</h1>', unsafe_allow_html=True)
     st.markdown(
-        '<h1 class="hero-title">先把知识讲清楚，再检查你是否理解</h1>', unsafe_allow_html=True
-    )
-    st.markdown(
-        '<p class="hero-copy">上传讲义、笔记或教材后，系统会把资料整理成一份可阅读的导学。'
-        "你先学习导学，再进入费曼理解检查。</p>",
+        '<p class="hero-copy">上传讲义、笔记或教材后，系统会把资料整理成一份常规课程。'
+        "课程包含讲解、例子和即时小测；掌握检测是后续可选步骤。</p>",
         unsafe_allow_html=True,
     )
 
@@ -117,17 +115,14 @@ def render_teaching_workspace(
 def _render_teaching_steps() -> None:
     with st.container(border=True):
         st.markdown('<div class="section-label">你的学习流程</div>', unsafe_allow_html=True)
-        st.markdown(
-            "1. 选择知识资料  →  2. 生成结构化导学  →  "
-            "3. 阅读定义、机制、边界和例子  →  4. 进入费曼理解检查"
-        )
-        st.caption("AI 负责整理资料；掌握程度仍由后续证据和 Mastery Engine 判断。")
+        st.markdown("1. 选择知识资料  →  2. 生成课程  →  3. 阅读讲解和例子  →  4. 完成互动小测")
+        st.caption("AI 负责整理课程；掌握程度仍由互动结果和后续掌握检测共同判断。")
 
 
 def _render_lesson(lesson: TeachingLessonView, *, start_lesson: StartLesson) -> None:
     content = lesson.lesson
     st.markdown('<div class="rule"></div>', unsafe_allow_html=True)
-    st.markdown('<div class="section-label">第 2 步 · 阅读教学内容</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-label">第 2 步 · 阅读课程</div>', unsafe_allow_html=True)
     st.markdown(f"## {escape(content.title)}")
     source_names = ", ".join(escape(source.filename) for source in content.sources)
     st.caption(
@@ -149,12 +144,14 @@ def _render_lesson(lesson: TeachingLessonView, *, start_lesson: StartLesson) -> 
             if section.example:
                 st.markdown(f"**例子/练习：** {section.example}")
 
+    _render_interactive_checks(lesson)
+
     with st.container(border=True):
-        st.markdown("**学完后先想一想**")
+        st.markdown("**课程完成后的可选操作**")
         for question in content.check_questions:
             st.markdown(f"- {question}")
-        st.caption("读完后，再进入费曼理解检查；系统会根据你的回答判断哪里真正掌握了。")
-        if st.button("第 3 步：进入费曼理解检查", type="primary", key="lesson_start_check"):
+        st.caption("互动小测用于即时巩固；如果还想了解长期掌握情况，可以继续做独立的掌握检测。")
+        if st.button("进入掌握检测（可选）", type="primary", key="lesson_start_check"):
             error = start_lesson(
                 content.topic,
                 st.session_state.get("teaching_goal") or None,
@@ -164,3 +161,36 @@ def _render_lesson(lesson: TeachingLessonView, *, start_lesson: StartLesson) -> 
                 st.error(error)
             else:
                 st.rerun()
+
+
+def _render_interactive_checks(lesson: TeachingLessonView) -> None:
+    checks = lesson.lesson.interactive_checks
+    if not checks:
+        return
+
+    st.markdown('<div class="section-label">第 3 步 · 互动小测</div>', unsafe_allow_html=True)
+    completed = 0
+    for index, check in enumerate(checks, start=1):
+        choice_key = f"teaching_check_choice_{lesson.lesson_id}_{index}"
+        submitted_key = f"teaching_check_submitted_{lesson.lesson_id}_{index}"
+        with st.container(border=True):
+            st.markdown(f"**第 {index} 题**")
+            choice = st.radio(
+                check.prompt,
+                options=check.options,
+                index=None,
+                key=choice_key,
+            )
+            if st.button("提交答案", key=f"teaching_check_submit_{lesson.lesson_id}_{index}"):
+                if choice is None:
+                    st.warning("请先选择一个答案。")
+                else:
+                    st.session_state[submitted_key] = True
+            if st.session_state.get(submitted_key) and choice is not None:
+                completed += 1
+                if choice == check.correct_answer:
+                    st.success("回答正确")
+                else:
+                    st.error("还需要再想一想")
+                st.info(f"正确答案：{check.correct_answer}\n\n解析：{check.explanation}")
+    st.progress(completed / len(checks), text=f"互动小测进度：{completed}/{len(checks)}")

@@ -31,7 +31,7 @@
 | 阶段 | 权重 | 当前完成度 | 计入总进度 | 状态 | 验收入口 |
 | --- | ---: | ---: | ---: | --- | --- |
 | 0. 工程底座与服务契约 | 9% | 100% | 9.0% | 已完成 | [#31](https://github.com/njr070907/AI_SelfLearner/issues/31) |
-| 1. 自学教学闭环（用户可操作） | 18% | 100% | 18.0% | 已完成：资料生成导学、阅读、理解检查和诊断均可操作 | [#32](https://github.com/njr070907/AI_SelfLearner/issues/32)、[#33](https://github.com/njr070907/AI_SelfLearner/issues/33) |
+| 1. 自学教学闭环（用户可操作） | 18% | 100% | 18.0% | 已完成：资料生成课程、阅读、互动小测；掌握检测可选 | [#32](https://github.com/njr070907/AI_SelfLearner/issues/32)、[#33](https://github.com/njr070907/AI_SelfLearner/issues/33) |
 | 2. 错题本（用户可操作） | 11% | 100% | 11.0% | 已完成并通过 PR #59 合并 | [#34](https://github.com/njr070907/AI_SelfLearner/issues/34)、[#35](https://github.com/njr070907/AI_SelfLearner/issues/35) |
 | 3. 复习与复测（用户可操作） | 11% | 100% | 11.0% | 已完成并通过 PR #59 合并 | [#36](https://github.com/njr070907/AI_SelfLearner/issues/36)、[#37](https://github.com/njr070907/AI_SelfLearner/issues/37) |
 | 4. 反馈、长期状态与趋势 | 15% | 100% | 15.0% | 后端和前端进度/趋势/反馈路径已合并 | [#38](https://github.com/njr070907/AI_SelfLearner/issues/38) |
@@ -76,4 +76,4 @@ MVP 总进度：92% / 100%
 
 ## 下一次更新点
 
-2026-08-26 完成 20 条 v0.2 真实结果人工语义复核并更新阶段 5。随后补齐“上传知识 → AI 生成导学 → 阅读 → 费曼检查”的常规教学界面，并新增第 6 次迁移、教学 Schema、Fake/DeepSeek 教学 Provider、PDF 文字提取和 E2E 回归；总进度仍为 **91.6%（约 92%）**，因为剩余发布边界和 7 天试用的权重没有改变。
+2026-08-26 完成 20 条 v0.2 真实结果人工语义复核并更新阶段 5。随后补齐“上传知识 → AI 生成常规课程 → 阅读 → 互动小测”的教学界面，并新增第 6 次迁移、教学 Schema、Fake/DeepSeek 教学 Provider、PDF 文字提取和 E2E 回归；掌握检测保留为可选独立功能。总进度仍为 **91.6%（约 92%）**，因为剩余发布边界和 7 天试用的权重没有改变。

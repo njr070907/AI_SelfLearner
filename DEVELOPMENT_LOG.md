@@ -95,3 +95,4 @@
 - 根据产品负责人反馈，补齐常规教学界面：资料库文件仍由 `DocumentLibraryService` 管理，新增 `TeachingService` 和 `teaching_lessons`（迁移 0006），支持从 PDF/Markdown/TXT 提取文字、选择主题/目标/水平、生成并保存结构化导学（摘要、目标、概念、机制、边界、例子、检查问题和来源）。
 - 新增 `TeachingLesson` Schema、Fake 教学 Provider、固定 `deepseek-v4-flash-vision-exp` 的 DeepSeek 教学适配器，以及教学工作区“第 1 步选择资料 → 第 2 步阅读导学 → 第 3 步进入费曼理解检查”。扫描版 PDF 无文字层时明确提示 OCR 限制；没有启用 RAG 或向量数据库。
 - 新增 PDF/Markdown/TXT 提取、教学持久化、DeepSeek 请求契约和 Streamlit 教学页面回归测试；全量回归从 191 更新为 201 tests，Fake 模式仍零网络、零费用。
+- 根据产品负责人反馈，将教学部分从“读完后直接做费曼解释”改为常规课程流程：讲解、例子、2 道结构化互动单选题、即时判定和答案解析；掌握检测保留为可选的独立入口。教学 Schema 升级为 `teaching-lesson-v0.2`，旧 v0.1 课程仍可读取。

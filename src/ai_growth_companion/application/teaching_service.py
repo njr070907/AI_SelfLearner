@@ -90,6 +90,12 @@ class TeachingService:
                 code="TEACHING_OUTPUT_SCHEMA_INVALID",
                 retryable=False,
             ) from error
+        if not lesson.interactive_checks:
+            raise ProviderError(
+                "Teaching Provider returned no interactive checks",
+                code="TEACHING_OUTPUT_SCHEMA_INVALID",
+                retryable=False,
+            )
 
         # The selected files are the authoritative source list; the model cannot invent it.
         lesson = TeachingLesson.model_validate(

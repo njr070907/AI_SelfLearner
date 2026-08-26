@@ -1008,7 +1008,7 @@ def _start_lesson_from_teaching(
     learning_goal: str | None,
     learner_level: str | None,
 ) -> str | None:
-    """Start the diagnostic only after a generated lesson has been read."""
+    """Start the optional mastery check after a generated lesson has been read."""
     try:
         session = service.start_session(
             concept=topic,

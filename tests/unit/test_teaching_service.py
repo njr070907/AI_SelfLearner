@@ -45,6 +45,11 @@ def test_uploaded_material_becomes_a_persisted_lesson(tmp_path: Path) -> None:
         "boundary",
         "example",
     }
+    assert len(view.lesson.interactive_checks) == 2
+    assert (
+        view.lesson.interactive_checks[0].correct_answer
+        in view.lesson.interactive_checks[0].options
+    )
     assert view.lesson.sources[0].document_id == document.document_id
     assert teaching.get_lesson(view.lesson_id).lesson == view.lesson
     assert len(teaching.list_lessons()) == 1

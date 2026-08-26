@@ -4,7 +4,7 @@
 
 ## 1. 当前判断
 
-当前仓库已经具备可靠的工程地基：SQLite 与迁移、事件历史、Mastery Engine、Learning Policy、Fake Provider、真实 DeepSeek 适配器、结构化 Schema、评测 CLI、CI、资料库基础版、资料到导学的教学工作区 UI 都已存在。最近一次离线回归为 201 个测试通过，学习入口已增加“先生成并阅读导学、再进入费曼检查”的步骤；Provider Factory 已接入应用组合根，把 Fake/固定 DeepSeek 模式和显式付费许可隔离，Prompt v0.2 也已经可以用 dry-run 做零成本实验。Mastery Protocol 当前版本为 v0.6，正式使用 `no_clue/re_learn`，错误概念和自述忘记先进入 `review`，复习后低掌握再进入 `re_learn`。
+当前仓库已经具备可靠的工程地基：SQLite 与迁移、事件历史、Mastery Engine、Learning Policy、Fake Provider、真实 DeepSeek 适配器、结构化 Schema、评测 CLI、CI、资料库基础版、资料到课程的教学工作区 UI 都已存在。最近一次离线回归为 201 个测试通过，学习入口已增加“先生成并阅读课程、完成互动小测，再选择是否做掌握检测”的步骤；Provider Factory 已接入应用组合根，把 Fake/固定 DeepSeek 模式和显式付费许可隔离，Prompt v0.2 也已经可以用 dry-run 做零成本实验。Mastery Protocol 当前版本为 v0.6，正式使用 `no_clue/re_learn`，错误概念和自述忘记先进入 `review`，复习后低掌握再进入 `re_learn`。
 
 但从“完整自学系统 MVP”看，按新增资料库后的最终用户验收权重计算当前约完成 **92%**：资料库基础 CRUD、教学、错题、复习、反馈/趋势页面、Fake 全链路和 20 条真实结果人工语义复核已经完成，Provider 安全边界也已建立；发布边界和 7 天试用还没有全部完成。每次开发都会同步更新 [`MVP_PROGRESS.md`](MVP_PROGRESS.md)，避免把代码量、测试数量或单个后端 PR 误当成产品完成度。当前最重要的是完成发布边界确认和连续试用。
 
@@ -47,7 +47,7 @@
 | 4. 反馈、长期状态与趋势 | 3–4 天 | 状态重算、重复误区、趋势和用户修正事件 | 进度/趋势/反馈解释 | #38；历史可重算，原始证据不丢 |
 | 5. 真实 AI 发布与评测 | 3–5 天 | Provider 开关、固定 `deepseek-v4-flash-vision-exp`、Prompt 对照、校准和失败回退 | 真实结果展示与异常提示 | #24–#26 已完成；仍需发布边界确认后才进入产品路径 |
 | 6. 全链路集成、7 天试用与发布验收 | 5–7 天 | E2E、迁移、启动、错误恢复、数据导出/重置边界和发布检查 | 四个入口的响应式/主题/交互验收 | #39；至少一轮连续 7 天试用 |
-| 7. 本地资料库与教学来源 | 2–3 天 | 文件元数据迁移、文字提取、Teaching Schema、Fake/DeepSeek Provider、教学内容持久化与来源追踪 | 资料库 CRUD、教学入口、导学阅读和进入理解检查 | 上传→生成导学→阅读→检查 E2E 通过；不含 OCR/RAG |
+| 7. 本地资料库与教学来源 | 2–3 天 | 文件元数据迁移、文字提取、Teaching Schema、Fake/DeepSeek Provider、教学内容持久化与来源追踪 | 资料库 CRUD、教学入口、课程阅读和互动小测；掌握检测独立可选 | 上传→生成课程→阅读→互动小测 E2E 通过；不含 OCR/RAG |
 
 ## 4. 明确的前后端分工
 
