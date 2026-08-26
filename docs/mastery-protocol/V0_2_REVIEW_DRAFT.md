@@ -14,7 +14,7 @@
 
 | case_id | 最终来源 | 自动结果 | 自动检查 | 人工结论 | 差异分类 | 复核备注 |
 | --- | --- | --- | --- | --- | --- | --- |
-| `hm-limit-existence-strong` | `020209Z` | `solid / practice / 0.95` | pass | 待确认 |  |  |
+| `hm-limit-existence-strong` | `020209Z` | `solid / practice / 0.95` | pass | 一致 | `no_difference` | 原答覆盖左右极限存在且相等、点值不决定极限，并给出左右不等的反例；AI 判断合理。 |
 | `hm-limit-existence-partial` | `020421Z` | `fragile / re_explain / 0.75` | pass | 待确认 |  |  |
 | `hm-limit-existence-misconception` | `020209Z` | `fragile / review / 0.95` | pass | 待确认 |  |  |
 | `hm-limit-existence-insufficient` | `020209Z` | `not_evident / re_explain / 0.95` | pass | 待确认 |  |  |
@@ -41,4 +41,3 @@
 2. 对照黄金集每条案例的 `rubric`，只填写人工结论、差异分类和复核备注；不要因为自动通过就直接填“一致”。
 3. 差异分类使用 `mastery`、`action`、`confidence`、`evidence_scope`、`gap_boundary`、`misconception` 或 `no_difference`。
 4. 20 行全部确认后，才能决定是否把 `evaluator-v0.2` 设为默认，并关闭 #25/#26。
-
