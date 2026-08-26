@@ -91,3 +91,7 @@
 - 根据产品负责人进一步确认，错误概念也必须先复习再复测；升级 Mastery Protocol v0.6，增加 `review_phase`：复习后仍为 `no_clue`/`fragile` 或仍有误区时才输出 `re_learn`，复习后证据充分则进入 `practice`。
 - 完成 20 条 Prompt v0.2 真实结果人工语义复核：20/20 已由产品负责人在聊天中逐条确认；更新 `V0_2_REVIEW_DRAFT.md`、`REAL_SEMANTIC_CALIBRATION.md`、进度面板和 Backlog，阶段 5 从 75% 更新为 90%，总 MVP 进度约 92%。剩余为发布边界确认和至少 7 个自然日连续试用。
 - 根据试用反馈修正学习入口：用户先确定主题，进入学习准备阶段，阅读资料库/教材并记录三条要点，勾选完成后才进入费曼理解检查；新增资料库文本预览/PDF 下载入口和页面回归测试。全量回归更新为 191 tests，Fake 试用环境继续保持零网络、零付费调用。
+
+- 根据产品负责人反馈，补齐常规教学界面：资料库文件仍由 `DocumentLibraryService` 管理，新增 `TeachingService` 和 `teaching_lessons`（迁移 0006），支持从 PDF/Markdown/TXT 提取文字、选择主题/目标/水平、生成并保存结构化导学（摘要、目标、概念、机制、边界、例子、检查问题和来源）。
+- 新增 `TeachingLesson` Schema、Fake 教学 Provider、固定 `deepseek-v4-flash-vision-exp` 的 DeepSeek 教学适配器，以及教学工作区“第 1 步选择资料 → 第 2 步阅读导学 → 第 3 步进入费曼理解检查”。扫描版 PDF 无文字层时明确提示 OCR 限制；没有启用 RAG 或向量数据库。
+- 新增 PDF/Markdown/TXT 提取、教学持久化、DeepSeek 请求契约和 Streamlit 教学页面回归测试；全量回归从 191 更新为 201 tests，Fake 模式仍零网络、零费用。

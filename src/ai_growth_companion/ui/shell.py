@@ -24,6 +24,7 @@ from ai_growth_companion.ui.state import (
 NAVIGATION = (
     ("今日", "home", "nav_today"),
     ("学习", "school", "nav_learn"),
+    ("教学", "menu_book", "nav_teaching"),
     ("资料库", "folder", "nav_documents"),
     ("错题", "error", "nav_mistakes"),
     ("复习", "event_repeat", "nav_review"),

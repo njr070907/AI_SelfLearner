@@ -16,16 +16,19 @@ Sprint 1 已开始建立 Mastery Protocol 的真实评测基线。第一批 20 �
 - 将原始回答、诊断尝试和学习事件保存到 SQLite。
 - 保存追加式 Event History，并将 Current State 作为可重新计算的投影。
 - Provider 失败时保留用户回答，并可使用同一回答重试。
-- 资料库支持上传、查看、下载、重命名、替换和删除 PDF、Markdown、TXT 文件；文件保存在本地，暂不自动解析。
+- 资料库支持上传、查看、下载、重命名、替换和删除 PDF、Markdown、TXT 文件；在“教学”页选择资料后，可由 Fake 或固定 DeepSeek Provider 生成可阅读的结构化导学。
 - 运行数据库迁移、健康检查、自动测试、Secret Scan 和真实启动冒烟测试。
 - 在 GitHub Actions 中执行阻断检查和非阻断质量报告。
 
-最小闭环如下：
+现在的自学闭环如下：
 
 ```text
-知识点 → 用户回答 → Fake Provider → Schema 校验
+资料库上传 → 本地提取文字 → AI 生成教学导学 → 用户阅读
+       → 用户回答 → Fake/DeepSeek Provider → Schema 校验
        → 保存学习证据 → Mastery Engine → Learning Policy → 页面展示
 ```
+
+教学导学包含摘要、学习目标、概念、机制、适用边界、例子、检查问题和来源文件。扫描版 PDF 如果没有文字层会提示先 OCR；本 MVP 不包含 OCR、RAG 或向量数据库。
 
 其中：
 

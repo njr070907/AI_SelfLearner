@@ -24,6 +24,17 @@ class EvaluationRequest:
 
 
 @dataclass(frozen=True)
+class TeachingRequest:
+    """Untrusted uploaded knowledge and context used to draft one lesson."""
+
+    topic: str
+    source_text: str
+    sources: tuple[tuple[str, str, str], ...]
+    learning_goal: str | None = None
+    learner_level: str | None = None
+
+
+@dataclass(frozen=True)
 class ProviderMetadata:
     """Version and cost metadata saved with every provider attempt."""
 
@@ -86,4 +97,16 @@ class LLMProvider(EvaluationProvider, Protocol):
 
     def generate_question(self, request: QuestionRequest, *, request_id: str) -> ProviderResponse:
         """Generate a raw structured question candidate."""
+        ...
+
+
+class TeachingProvider(Protocol):
+    """Provider behavior required to turn uploaded knowledge into a lesson."""
+
+    provider_name: str
+    model_name: str
+    model_revision: str | None
+
+    def generate_lesson(self, request: TeachingRequest, *, request_id: str) -> ProviderResponse:
+        """Generate a raw structured lesson candidate."""
         ...

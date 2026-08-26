@@ -2,7 +2,11 @@
 
 import streamlit as st
 
-from ai_growth_companion.application.bootstrap import build_document_library, build_learning_service
+from ai_growth_companion.application.bootstrap import (
+    build_document_library,
+    build_learning_service,
+    build_teaching_service,
+)
 from ai_growth_companion.application.health import check_health
 from ai_growth_companion.config import load_settings
 from ai_growth_companion.repositories.database import Database
@@ -28,6 +32,7 @@ def main() -> None:
 
     try:
         service = build_learning_service(database, settings)
+        teaching_service = build_teaching_service(database, settings)
     except ValueError as error:
         st.error(f"Provider 配置不可用：{error}")
         st.info(
@@ -39,6 +44,7 @@ def main() -> None:
     render_application(
         service,
         document_library=document_library,
+        teaching_service=teaching_service,
         settings=settings,
         health_report=health_report,
     )

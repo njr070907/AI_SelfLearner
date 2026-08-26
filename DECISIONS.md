@@ -89,3 +89,9 @@
 - 复习阶段通过 `review_phase` 标记区分：复习后仍为 `no_clue`/`fragile`、仍有缺口或误区时输出 `re_learn`；复习后证据充分则进入 `practice`。
 - 该策略变更升级为 `mastery-protocol-v0.6-golden-baseline` / `learning-policy-v0.6-golden-baseline`，已同步更新 20 条黄金量表和人工复核记录。
 - 20 条 v0.2 真实结果已完成逐条人工语义复核并确认；v0.6 作为当前 Mastery Protocol golden baseline，人工校准工作完成，但不自动授权将 `evaluator-v0.2` 设为默认生产协议，仍需独立完成发布边界和连续试用验收。
+
+## 2026-08-26 — 资料先生成导学，再进入诊断
+
+- 资料库文件管理与教学生成分成两个服务：`DocumentLibraryService` 负责文件 CRUD，`TeachingService` 负责提取文字、调用 Teaching Provider、校验 `TeachingLesson` 并保存来源引用。
+- 教学内容必须经过 `concept`、`mechanism`、`boundary`、`example` 四类结构化章节；Provider 只整理资料，不能直接写入掌握等级，后续仍由回答证据、Mastery Engine 和 Learning Policy 判断。
+- 默认 Fake Provider 生成确定性免费导学；真实模式只允许 `deepseek-v4-flash-vision-exp`，并且必须显式允许付费调用。扫描版 PDF 没有 OCR 支持，RAG/向量数据库留到 MVP 之后。

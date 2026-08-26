@@ -96,6 +96,14 @@ def open_documents(app: AppTest) -> AppTest:
     )
 
 
+def open_teaching(app: AppTest) -> AppTest:
+    return (
+        next(item for item in app.sidebar.button if item.key == "nav_teaching")
+        .click()
+        .run(timeout=10)
+    )
+
+
 def submit_review_scenario(
     app: AppTest,
     scenario: str,
@@ -397,6 +405,34 @@ def test_document_library_can_upload_and_list_a_text_file(
     assert "limits.md" in rendered_markdown(app)
     assert any("已上传 1 个文件" in item.value for item in app.success)
     assert any(item.label == "下载" for item in app.download_button)
+
+
+def test_teaching_workspace_generates_a_lesson_before_feynman_check(
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    app = open_documents(app_for(tmp_path, monkeypatch, "ui-teaching.db"))
+    uploader = next(item for item in app.file_uploader if item.label == "选择要上传的资料")
+    app = uploader.upload(
+        "limits.md",
+        "# 函数极限\n\n极限描述函数在某点附近的变化趋势。".encode(),
+        "text/markdown",
+    ).run(timeout=10)
+    app = button_with_label(app, "上传资料").click().run(timeout=10)
+    app = open_teaching(app)
+
+    next(item for item in app.multiselect if item.label == "选择一份或多份资料").select("limits.md")
+    input_with_label(app, "这次要学习的知识主题").input("函数极限")
+    app = button_with_label(app, "生成我的教学内容").click().run(timeout=10)
+
+    assert not app.exception
+    page = rendered_markdown(app)
+    assert "第 2 步 · 阅读教学内容" in page
+    assert "学习目标" in page
+    assert "概念" in page
+    assert "机制" in page
+    assert "边界" in page
+    assert "第 3 步：进入费曼理解检查" in [item.label for item in app.button]
 
 
 def test_seeded_mistakes_show_all_types_and_support_filtering_and_sorting(

@@ -11,6 +11,7 @@ from ai_growth_companion.application.document_library import DocumentLibraryServ
 from ai_growth_companion.application.health import HealthReport, HealthState
 from ai_growth_companion.application.learning_service import LearningService
 from ai_growth_companion.application.models import DiagnosisView, HistoryItem, WorkspaceSnapshot
+from ai_growth_companion.application.teaching_service import TeachingService
 from ai_growth_companion.config import Settings
 from ai_growth_companion.domain.events import ConceptState
 from ai_growth_companion.domain.feedback import FeedbackVerdict
@@ -39,6 +40,7 @@ from ai_growth_companion.ui.shell import (
     render_top_toolbar,
 )
 from ai_growth_companion.ui.state import current_preferences, initialize_ui_state
+from ai_growth_companion.ui.teaching import render_teaching_workspace
 from ai_growth_companion.ui.theme import apply_design_system
 
 FAKE_SCENARIO_OPTIONS = tuple(SCENARIO_LABELS)
@@ -49,6 +51,7 @@ def render_application(
     service: LearningService,
     *,
     document_library: DocumentLibraryService | None = None,
+    teaching_service: TeachingService | None = None,
     settings: Settings,
     health_report: HealthReport,
 ) -> None:
@@ -76,6 +79,7 @@ def render_application(
     view_slugs = {
         "今日": "today",
         "学习": "learn",
+        "教学": "teaching",
         "资料库": "documents",
         "错题": "mistakes",
         "复习": "review",
@@ -91,6 +95,20 @@ def render_application(
                 settings=settings,
                 document_library=document_library,
             )
+        elif page == "教学":
+            if teaching_service is None or document_library is None:
+                st.error("教学服务尚未配置。")
+            else:
+                render_teaching_workspace(
+                    teaching_service,
+                    document_library,
+                    start_lesson=lambda topic, goal, level: _start_lesson_from_teaching(
+                        service,
+                        topic=topic,
+                        learning_goal=goal,
+                        learner_level=level,
+                    ),
+                )
         elif page == "资料库":
             if document_library is None:
                 st.error("资料库服务尚未配置。")
@@ -981,6 +999,28 @@ def _hide_follow_up_form() -> None:
 def _resume_session(session_id: str) -> None:
     _set_current_session(session_id)
     _navigate("学习")
+
+
+def _start_lesson_from_teaching(
+    service: LearningService,
+    *,
+    topic: str,
+    learning_goal: str | None,
+    learner_level: str | None,
+) -> str | None:
+    """Start the diagnostic only after a generated lesson has been read."""
+    try:
+        session = service.start_session(
+            concept=topic,
+            learning_goal=learning_goal,
+            learner_level=learner_level,
+            request_id=str(uuid4()),
+        )
+    except (InputValidationError, LookupError) as error:
+        return str(error)
+    _set_current_session(session.session_id)
+    _navigate("学习")
+    return None
 
 
 def _reset_flow() -> None:

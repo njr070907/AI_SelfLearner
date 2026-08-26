@@ -9,6 +9,7 @@ from ai_growth_companion.providers.base import (
     ProviderTimeoutError,
     ProviderUnavailableError,
     QuestionRequest,
+    TeachingRequest,
 )
 
 
@@ -77,6 +78,81 @@ class FakeLLMProvider:
                 request_id=request_id,
                 prompt_version="fake-question-v0.1",
                 schema_version="question-v0.1",
+            ),
+        )
+
+    def generate_lesson(self, request: TeachingRequest, *, request_id: str) -> ProviderResponse:
+        """Create a deterministic lesson card from uploaded text without network access."""
+        excerpt = " ".join(request.source_text.split())[:900]
+        source_refs = [
+            {"document_id": document_id, "filename": filename, "excerpt": source_excerpt}
+            for document_id, filename, source_excerpt in request.sources
+        ]
+        return ProviderResponse(
+            content={
+                "schema_version": "teaching-lesson-v0.1",
+                "topic": request.topic,
+                "title": f"{request.topic}：从材料到理解",
+                "summary": (
+                    f"这份导学先从材料中提炼 {request.topic} 的核心含义，再解释机制、边界和例子。"
+                    f"材料摘要：{excerpt}"
+                ),
+                "learning_objectives": [
+                    f"说清楚 {request.topic} 是什么",
+                    f"解释 {request.topic} 为什么成立或如何运作",
+                    "指出一个适用边界并举出例子",
+                ],
+                "sections": [
+                    {
+                        "section_type": "concept",
+                        "title": "先建立概念",
+                        "explanation": (
+                            f"先用自己的话回答：{request.topic} 解决什么问题？"
+                            "材料中最重要的定义或对象是什么？"
+                        ),
+                        "key_points": ["对象或定义", "要解决的问题", "与相近概念的区别"],
+                        "example": f"从材料中找一个能代表 {request.topic} 的最小例子。",
+                    },
+                    {
+                        "section_type": "mechanism",
+                        "title": "再理解核心机制",
+                        "explanation": (
+                            "把过程拆成有顺序的步骤，说明每一步为什么会发生，不要只抄结论或公式。"
+                        ),
+                        "key_points": ["输入是什么", "中间如何变化", "输出如何产生"],
+                        "example": "尝试用一个具体情境走完这条过程。",
+                    },
+                    {
+                        "section_type": "boundary",
+                        "title": "最后检查边界",
+                        "explanation": (
+                            "学习不只包括‘怎么做’，还要知道什么时候不能这样做，"
+                            "以及缺少什么条件会失效。"
+                        ),
+                        "key_points": ["适用条件", "常见误区", "失效或需要补充的情况"],
+                        "example": "构造一个看似相同、但条件不满足的反例。",
+                    },
+                    {
+                        "section_type": "example",
+                        "title": "用例子复述",
+                        "explanation": (
+                            "不看原文，用一个新例子复述定义、机制和边界；"
+                            "这一步完成后再进入费曼理解检查。"
+                        ),
+                        "key_points": ["新例子", "关键步骤", "边界提醒"],
+                        "example": f"请用一个未出现在材料中的例子说明 {request.topic}。",
+                    },
+                ],
+                "check_questions": [
+                    f"如果要向初学者解释 {request.topic}，你会先讲什么？为什么？",
+                    f"在什么条件下 {request.topic} 的常见做法会失效？",
+                ],
+                "sources": source_refs,
+            },
+            metadata=self._metadata(
+                request_id=request_id,
+                prompt_version="fake-teaching-v0.1",
+                schema_version="teaching-lesson-v0.1",
             ),
         )
 
