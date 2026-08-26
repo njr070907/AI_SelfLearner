@@ -67,3 +67,4 @@
 - 浏览器插件在当前环境不可用，使用本地 Playwright 做等价实际浏览器交互；仅出现 Streamlit iframe 的已知 feature-policy 警告，没有应用错误或页面异常。
 - 全过程保持 Fake Provider、零网络模型调用、零费用；未修改数据库迁移、Provider Factory、Mastery Engine、Learning Policy、API Key、`.env` 或真实模型配置。
 - 最终本地回归通过：179 tests、Ruff、format、mypy、Streamlit smoke、Secret Scan、20 条黄金集结构校验、20 条 Prompt dry-run（Provider 调用 0）和依赖审计（无已知漏洞）。
+- 创建 PR #59，关闭关联 #35/#37，并把 #39 保留为“已准备进入 7 天试用”的阶段关联；真实 7 个自然日发生前不关闭 #39。

@@ -14,7 +14,7 @@
 - [x] `localhost:8511` Desktop（1440 × 1000）实际浏览器验收通过，无横向溢出。
 - [x] `localhost:8511` Narrow（390 × 844）实际浏览器验收通过，移动侧栏和深色控件可用且无横向溢出。
 - [x] 仓库完整回归通过：179 tests、Ruff、format、mypy、Streamlit smoke、Secret Scan、黄金集校验、Prompt dry-run 和依赖审计。
-- [ ] 关联 #35、#37、#39 的 Pull Request 已创建并等待人工审核。
+- [x] [PR #59](https://github.com/njr070907/AI_SelfLearner/pull/59) 已关联 #35、#37、#39 并等待人工审核。
 
 ## 固定试用环境
 
