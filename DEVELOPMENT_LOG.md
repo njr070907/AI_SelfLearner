@@ -122,3 +122,4 @@
 - 将常规教学报告计算从 Streamlit UI 提升到 `TeachingService` 的 typed contract，增加来源资料数和最新答题口径；教学单测与 Streamlit E2E 通过，全量回归保持为 210 tests。
 - 系统状态页接入本地导出按钮，使用同一 `UserExportService` 生成可下载 ZIP；新增 AppTest 覆盖并完成全量回归，当前为 211 tests。
 - 修复文本资料安全边界：小于 20 MB 的 Markdown/TXT 教学提取也严格要求 UTF-8，新增非 UTF-8 回归测试；全量回归更新为 212 tests。
+- 真实资料教学验收：使用固定 `deepseek-v4-flash-vision-exp` 对 `Calculus_part_01_pages_0001-0150.pdf` 的 `limits` 主题做单次受控请求，因受限前 30,000 字不足以支持主题而被 `TEACHING_CONTENT_NOT_RELEVANT` 安全拒绝且未落库；未自动重试。随后对主题相关的 `Calculus_part_02_pages_0151-0300.pdf` 做独立单次请求，成功生成 4 类章节和 3 道互动题，答案与来源 ID 结构检查通过，初步内容围绕极限主题；不把一个分卷的初步检查外推为全量发布结论。结果详见 `docs/mastery-protocol/TEACHING_REAL_ACCEPTANCE_20260826.md`。
