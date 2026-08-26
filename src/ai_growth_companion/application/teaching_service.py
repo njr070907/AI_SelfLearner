@@ -128,6 +128,12 @@ class TeachingService:
                 code="TEACHING_OUTPUT_SCHEMA_INVALID",
                 retryable=False,
             )
+        if not self._mentions_topic(lesson, normalized_topic):
+            raise ProviderError(
+                "Teaching Provider returned content unrelated to the requested topic",
+                code="TEACHING_CONTENT_NOT_RELEVANT",
+                retryable=False,
+            )
 
         # The selected files are the authoritative source list; the model cannot invent it.
         selected_source_ids = {document_id for document_id, _, _ in source_refs}
@@ -250,6 +256,14 @@ class TeachingService:
                 retryable=False,
             )
         return normalized or sorted(selected_source_ids)
+
+    @staticmethod
+    def _mentions_topic(lesson: TeachingLesson, topic: str) -> bool:
+        """Reject obviously generic output while leaving semantic review to humans."""
+        searchable = " ".join(
+            [lesson.title, lesson.summary, *lesson.learning_objectives]
+        ).casefold()
+        return topic.casefold() in searchable
 
     def _view(
         self,

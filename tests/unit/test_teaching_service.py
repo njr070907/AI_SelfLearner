@@ -6,6 +6,7 @@ import pytest
 
 from ai_growth_companion.application.document_library import DocumentLibraryService
 from ai_growth_companion.application.teaching_service import TeachingInputError, TeachingService
+from ai_growth_companion.providers.base import ProviderError, ProviderResponse, TeachingRequest
 from ai_growth_companion.providers.fake import FakeLLMProvider
 from ai_growth_companion.repositories.database import Database, run_migrations
 from ai_growth_companion.repositories.document_repository import SQLiteDocumentRepository
@@ -27,6 +28,18 @@ def service_for(tmp_path: Path) -> tuple[TeachingService, DocumentLibraryService
         FakeLLMProvider(),
         SQLiteLessonProgressRepository(database),
     ), documents
+
+
+class UnrelatedTeachingProvider(FakeLLMProvider):
+    """Return valid structure with a deliberately unrelated teaching summary."""
+
+    def generate_lesson(self, request: TeachingRequest, *, request_id: str) -> ProviderResponse:
+        response = super().generate_lesson(request, request_id=request_id)
+        payload = dict(response.content)
+        payload["title"] = "完全无关的课程"
+        payload["summary"] = "这是一份没有提到用户主题的通用摘要。"
+        payload["learning_objectives"] = ["完成一个通用学习目标"]
+        return ProviderResponse(content=payload, metadata=response.metadata)
 
 
 def test_uploaded_material_becomes_a_persisted_lesson(tmp_path: Path) -> None:
@@ -80,6 +93,29 @@ def test_teaching_requires_a_topic_and_a_source(tmp_path: Path) -> None:
 
     with pytest.raises(TeachingInputError, match="至少选择"):
         teaching.generate_lesson(topic="函数极限", document_ids=(), request_id="teaching-test-3")
+
+
+def test_teaching_rejects_obviously_unrelated_provider_content(tmp_path: Path) -> None:
+    _default_teaching, documents = service_for(tmp_path)
+    database = Database(f"sqlite:///{(tmp_path / 'unrelated.db').as_posix()}")
+    run_migrations(database)
+    teaching = TeachingService(
+        documents,
+        SQLiteLessonRepository(database),
+        UnrelatedTeachingProvider(),
+        SQLiteLessonProgressRepository(database),
+    )
+    document = documents.upload(
+        filename="topic.md", content="# 函数极限\n\n极限描述变化趋势。".encode()
+    )
+
+    with pytest.raises(ProviderError, match="unrelated|not relevant|不相关") as captured:
+        teaching.generate_lesson(
+            topic="函数极限",
+            document_ids=(document.document_id,),
+            request_id="teaching-unrelated-1",
+        )
+    assert captured.value.code == "TEACHING_CONTENT_NOT_RELEVANT"
 
 
 def test_lesson_activity_progress_is_persisted_and_idempotent(tmp_path: Path) -> None:
