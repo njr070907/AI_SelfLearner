@@ -15,7 +15,7 @@ from ai_growth_companion.application.teaching_service import (
     TeachingService,
 )
 from ai_growth_companion.providers.base import ProviderError
-from ai_growth_companion.schemas.teaching import LessonSource
+from ai_growth_companion.schemas.teaching import LessonSource, TopicSourceSelection
 
 StartLesson = Callable[[str, str | None, str | None], str | None]
 
@@ -47,24 +47,74 @@ def render_teaching_workspace(
         return
 
     document_labels = {document.document_id: document.filename for document in documents}
+
+    previous_topic = st.session_state.get("teaching_topic_value", "")
+    previous_source_mode = st.session_state.get("teaching_source_mode", "auto")
+
     with st.container(border=True):
         st.markdown(
             '<div class="section-label">第 1 步 · 选择知识来源</div>', unsafe_allow_html=True
         )
-        selected_ids = tuple(
-            st.multiselect(
-                "选择一份或多份资料",
-                options=tuple(document_labels),
-                format_func=document_labels.__getitem__,
-                key="teaching_selected_documents",
-                help="教学内容只会根据你选择的资料生成，并保留来源文件记录。",
-            )
+
+        source_mode = st.radio(
+            "资料选择方式",
+            options=["auto", "manual"],
+            format_func=lambda x: {"auto": "智能推荐", "manual": "手动选择"}[x],
+            key="teaching_source_mode",
+            horizontal=True,
         )
+
         topic = st.text_input(
             "这次要学习的知识主题",
             key="teaching_topic",
             placeholder="例如：函数极限、梯度下降、机会成本",
         )
+
+        topic_changed = topic.strip() != previous_topic and previous_topic != ""
+        if topic_changed:
+            st.session_state.pop("teaching_source_recommendation", None)
+            st.session_state.pop("teaching_confirmed_sources", None)
+
+        selected_ids: tuple[str, ...] = ()
+
+        if source_mode == "auto":
+            recommendation = st.session_state.get("teaching_source_recommendation")
+
+            if topic.strip() and (
+                recommendation is None
+                or recommendation.topic != topic.strip()
+                or topic_changed
+            ):
+                try:
+                    with st.spinner("正在分析资料库并推荐相关来源……"):
+                        recommendation = teaching_service.recommend_sources(
+                            topic.strip(), limit=3
+                        )
+                        st.session_state.teaching_source_recommendation = recommendation
+                        st.session_state.teaching_topic_value = topic.strip()
+                except Exception as error:
+                    st.error(f"推荐来源时出错：{error}")
+                    recommendation = None
+
+            if recommendation is not None:
+                _render_source_recommendation(
+                    recommendation, document_labels, teaching_service
+                )
+                selected_ids = tuple(
+                    st.session_state.get("teaching_confirmed_sources", [])
+                )
+        else:
+            selected_ids = tuple(
+                st.multiselect(
+                    "选择一份或多份资料",
+                    options=tuple(document_labels),
+                    format_func=document_labels.__getitem__,
+                    key="teaching_selected_documents",
+                    help="教学内容只会根据你选择的资料生成，并保留来源文件记录。",
+                )
+            )
+            if topic.strip():
+                st.session_state.teaching_topic_value = topic.strip()
         goal = st.text_input(
             "学习目标（可选）",
             key="teaching_goal",
@@ -118,6 +168,58 @@ def render_teaching_workspace(
         teaching_service=teaching_service,
         start_lesson=start_lesson,
     )
+
+
+def _render_source_recommendation(
+    recommendation: TopicSourceSelection,
+    document_labels: dict[str, str],
+    teaching_service: TeachingService,
+) -> None:
+    """Render the auto-recommended source selection with confidence-based UI."""
+    confidence_labels = {
+        "high": "高置信度",
+        "medium": "中置信度",
+        "low": "低置信度",
+    }
+    confidence_colors = {
+        "high": "green",
+        "medium": "orange",
+        "low": "red",
+    }
+
+    if recommendation.requires_manual_selection:
+        st.warning("未找到与主题高度相关的资料，请手动选择来源。")
+        return
+
+    with st.expander(f"系统推荐来源（{confidence_labels[recommendation.confidence]}）", expanded=True):
+        if recommendation.matches:
+            for match in recommendation.matches:
+                color = confidence_colors[recommendation.confidence]
+                st.markdown(
+                    f"**{match.filename}** :gray[匹配度 {match.score:.0%}]"
+                )
+                if match.matched_terms:
+                    st.caption(f"匹配关键词：{', '.join(match.matched_terms[:5])}")
+                if match.rationale:
+                    st.caption(match.rationale)
+        else:
+            st.info("未找到匹配的资料，请手动选择。")
+
+        if recommendation.requires_confirmation:
+            st.info("推荐置信度较低，建议确认或调整选择。")
+
+        confirmed = st.multiselect(
+            "确认或调整推荐的资料",
+            options=tuple(document_labels),
+            default=[
+                doc_id
+                for doc_id in recommendation.selected_document_ids
+                if doc_id in document_labels
+            ],
+            format_func=document_labels.__getitem__,
+            key="teaching_confirmed_sources",
+            help="你可以调整系统推荐的资料选择。",
+        )
 
 
 def _render_existing_lessons(teaching_service: TeachingService) -> None:
