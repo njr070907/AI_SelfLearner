@@ -6,7 +6,7 @@
 
 当前仓库已经具备可靠的工程地基：SQLite 与迁移、事件历史、Mastery Engine、Learning Policy、Fake Provider、真实 DeepSeek 适配器、结构化 Schema、评测 CLI、CI 和第一版学习工作区 UI 都已存在。最近一次离线回归为 143 个测试通过，Provider Factory 已接入应用组合根，把 Fake/固定 DeepSeek 模式和显式付费许可隔离，Prompt v0.2 也已经可以用 dry-run 做零成本实验。
 
-但从“完整自学系统 MVP”看，按最终用户可正常使用的阶段权重计算当前约完成 **56%**：教学、错题、复习、反馈/趋势和 Provider 安全边界的后端能力已经建立，Fake 后端整条路径也已验证，Provider 选择已接入应用组合根，但用户页面、真实语义验收和 7 天试用还没有全部完成。每次开发都会同步更新 [`MVP_PROGRESS.md`](MVP_PROGRESS.md)，避免把代码量、测试数量或单个后端 PR 误当成产品完成度。当前最重要的是把 Mastery Protocol 变成用户能从头走到尾的一条完整路径。
+但从“完整自学系统 MVP”看，按最终用户可正常使用的阶段权重计算当前约完成 **89%**：教学、错题、复习、反馈/趋势页面和 Fake 全链路已经合并，Provider 安全边界也已建立；真实语义验收、发布边界和 7 天试用还没有全部完成。每次开发都会同步更新 [`MVP_PROGRESS.md`](MVP_PROGRESS.md)，避免把代码量、测试数量或单个后端 PR 误当成产品完成度。当前最重要的是完成真实 Mastery Protocol 验收和连续试用。
 
 ## 2. MVP 范围
 
@@ -35,7 +35,7 @@
 
 按每天 4–6 个有效开发小时估算，总计 **27–42 个工作日，约 6–10 个日历周**。如果每天只有 2–3 小时，预计为 10–16 周。时间是可调整的工程估算，不是付费模型调用承诺。
 
-当前已完成范围约 56%（这是最终功能验收权重，不是已经经过的时间），按剩余阶段拆分估算还需要 **12–20 个有效工作日**：前后端并行、每天 4–6 小时约 4–6 个日历周，每天 2–3 小时约 6–9 周。真实模型人工复核和 7 天试用可能拉长日历时间。
+当前已完成范围约 89%（这是最终功能验收权重，不是已经经过的时间），按合并页面后的剩余工作估算还需要 **5–10 个有效工作日**，另需至少 7 个自然日连续试用。真实模型人工复核和发布验收可能拉长日历时间。
 
 | 阶段 | 预计用时 | 后端/协议交付 | 前端 UI 交付 | 阶段验收 |
 | --- | --- | --- | --- | --- |
@@ -111,13 +111,11 @@ record_user_correction(event_id, correction) -> ConceptState
 
 建议按依赖顺序领取，不要把所有页面同时做成互相猜测的假接口：
 
-1. [#31 范围与数据/服务契约](https://github.com/njr070907/AI_SelfLearner/issues/31)
-2. 后端 [#32 教学闭环](https://github.com/njr070907/AI_SelfLearner/issues/32) 与前端 [#33 学习页](https://github.com/njr070907/AI_SelfLearner/issues/33) 并行。
-3. 后端 [#34 错题本服务](https://github.com/njr070907/AI_SelfLearner/issues/34) 完成后，前端做 [#35 错题本页面](https://github.com/njr070907/AI_SelfLearner/issues/35)。
-4. 后端 [#36 复习调度](https://github.com/njr070907/AI_SelfLearner/issues/36) 完成后，前端做 [#37 复习页](https://github.com/njr070907/AI_SelfLearner/issues/37)。
-5. 后端 [#38 长期状态与趋势](https://github.com/njr070907/AI_SelfLearner/issues/38)，前端同步接入进度展示。
-6. 在 Fake 闭环稳定后，再继续现有的 [#24 Prompt v0.2 实验](https://github.com/njr070907/AI_SelfLearner/issues/24)、[#25 人工复核](https://github.com/njr070907/AI_SelfLearner/issues/25) 和 [#26 校准报告](https://github.com/njr070907/AI_SelfLearner/issues/26)。
-7. 最后完成 [#39 完整集成与 7 天试用](https://github.com/njr070907/AI_SelfLearner/issues/39)。
+1. [#31 范围与数据/服务契约](https://github.com/njr070907/AI_SelfLearner/issues/31)、[#32/#33 教学闭环](https://github.com/njr070907/AI_SelfLearner/issues/32) 已完成。
+2. [#34/#35 错题本](https://github.com/njr070907/AI_SelfLearner/issues/34) 与 [#36/#37 复习复测](https://github.com/njr070907/AI_SelfLearner/issues/36) 已完成并合并。
+3. [#38 反馈、长期状态与趋势](https://github.com/njr070907/AI_SelfLearner/issues/38) 已接入进度页面，Fake 全链路已通过验证。
+4. 继续现有的 [#24 Prompt v0.2 实验](https://github.com/njr070907/AI_SelfLearner/issues/24)、[#25 人工复核](https://github.com/njr070907/AI_SelfLearner/issues/25) 和 [#26 校准报告](https://github.com/njr070907/AI_SelfLearner/issues/26)。
+5. 最后完成 [#39 完整集成与 7 天试用](https://github.com/njr070907/AI_SelfLearner/issues/39) 的自然日试用和发布验收。
 
 ## 7. MVP 停止条件
 

@@ -20,17 +20,17 @@
 
 ## P0 — 完整自学 MVP
 
-这是当前从“工程底座”走向“用户可以正常使用的完整自学产品”的主队列。#33 合并后当前总进度约 **66%**，预计还需 **10–18 个有效工作日**；完整阶段、权重、时间估算、接口边界和停止条件见 [`docs/roadmap/FULL_SELF_STUDY_MVP_PLAN.md`](docs/roadmap/FULL_SELF_STUDY_MVP_PLAN.md) 和 [`docs/roadmap/MVP_PROGRESS.md`](docs/roadmap/MVP_PROGRESS.md)。后端完成但前端未接入的能力只计阶段的一半，未合并代码不计入完成度。
+这是当前从“工程底座”走向“用户可以正常使用的完整自学产品”的主队列。PR #59 已合并后，按最终用户验收重新校准的总进度约 **89%**，预计还需 **5–10 个有效工作日**，另需至少 7 个自然日试用；完整阶段、权重、时间估算、接口边界和停止条件见 [`docs/roadmap/FULL_SELF_STUDY_MVP_PLAN.md`](docs/roadmap/FULL_SELF_STUDY_MVP_PLAN.md) 和 [`docs/roadmap/MVP_PROGRESS.md`](docs/roadmap/MVP_PROGRESS.md)。
 
 - [x] [#31](https://github.com/njr070907/AI_SelfLearner/issues/31) 锁定完整自学 MVP 范围与数据/服务契约。
 - [x] [#32](https://github.com/njr070907/AI_SelfLearner/issues/32) 后端：实现完整教学闭环 API 与领域模型。
 - [x] [#33](https://github.com/njr070907/AI_SelfLearner/issues/33) 前端：实现学习教学流程页面（PR #58）。
 - [x] [#34](https://github.com/njr070907/AI_SelfLearner/issues/34) 后端：实现错题本数据模型与服务。
-- [ ] [#35](https://github.com/njr070907/AI_SelfLearner/issues/35) 前端：实现错题本页面。
+- [x] [#35](https://github.com/njr070907/AI_SelfLearner/issues/35) 前端：实现错题本页面（PR #59）。
 - [x] [#36](https://github.com/njr070907/AI_SelfLearner/issues/36) 后端：实现复习调度与复测。
-- [ ] [#37](https://github.com/njr070907/AI_SelfLearner/issues/37) 前端：实现复习队列与复测页面。
+- [x] [#37](https://github.com/njr070907/AI_SelfLearner/issues/37) 前端：实现复习队列与复测页面（PR #59）。
 - [x] [#38](https://github.com/njr070907/AI_SelfLearner/issues/38) 后端：实现反馈、长期状态与趋势。
-- [ ] [#39](https://github.com/njr070907/AI_SelfLearner/issues/39) 集成教学、错题、复习、进度并完成 7 天试用。
+- [ ] [#39](https://github.com/njr070907/AI_SelfLearner/issues/39) 集成教学、错题、复习、进度并完成 7 天试用（Fake 全链路已合并，连续试用与发布验收待完成）。
 
 分工：当前 Codex 负责后端与学习核心；GitHub 合作者主要负责前端 UI；仓库所有者负责产品规则和最终验收。前端必须通过服务契约调用后端，不直接访问 SQL 或 Provider。
 

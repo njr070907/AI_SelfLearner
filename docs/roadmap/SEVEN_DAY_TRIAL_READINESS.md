@@ -1,6 +1,6 @@
 # 7 天试用准备清单
 
-> 状态：候选版本正在验收。这里记录的是 **Ready for 7-day trial** 的进入条件，
+> 状态：PR #59 已合并，候选版本已通过进入试用前的工程验收。这里记录的是 **Ready for 7-day trial** 的进入条件，
 > 不是已经完成 7 个自然日试用的证明。
 
 ## 进入试用前的产品门槛
@@ -14,7 +14,7 @@
 - [x] `localhost:8511` Desktop（1440 × 1000）实际浏览器验收通过，无横向溢出。
 - [x] `localhost:8511` Narrow（390 × 844）实际浏览器验收通过，移动侧栏和深色控件可用且无横向溢出。
 - [x] 仓库完整回归通过：179 tests、Ruff、format、mypy、Streamlit smoke、Secret Scan、黄金集校验、Prompt dry-run 和依赖审计。
-- [x] [PR #59](https://github.com/njr070907/AI_SelfLearner/pull/59) 已关联 #35、#37、#39 并等待人工审核。
+- [x] [PR #59](https://github.com/njr070907/AI_SelfLearner/pull/59) 已合并，#35/#37 已完成，#39 进入连续试用与发布验收阶段。
 
 ## 固定试用环境
 

@@ -68,3 +68,5 @@
 - 全过程保持 Fake Provider、零网络模型调用、零费用；未修改数据库迁移、Provider Factory、Mastery Engine、Learning Policy、API Key、`.env` 或真实模型配置。
 - 最终本地回归通过：179 tests、Ruff、format、mypy、Streamlit smoke、Secret Scan、20 条黄金集结构校验、20 条 Prompt dry-run（Provider 调用 0）和依赖审计（无已知漏洞）。
 - 创建 PR #59，关闭关联 #35/#37，并把 #39 保留为“已准备进入 7 天试用”的阶段关联；真实 7 个自然日发生前不关闭 #39。
+- PR #59 已合并到 `main`（合并提交 `7549113`）。在合并后的 `main` 上复核 179 tests、Ruff、format、Mypy、Streamlit smoke、Secret Scan、20 条黄金集结构校验和 20 条 Prompt dry-run 均通过；正式进度更新为约 89%。
+- 合并后阶段 1–4 的用户路径计为完成，阶段 6 的 Fake UI 全链路/启动/错误恢复部分计为 50%；剩余为真实 DeepSeek 语义验收、发布边界和至少 7 个自然日连续试用。
