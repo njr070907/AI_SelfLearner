@@ -12,7 +12,7 @@ Sprint 1：用真实 Provider 验证 `evaluator-v0.1` 能否区分充分理解�
 
 ## 当前状态
 
-- 分支：`codex/accept-self-study-mvp`（与 `origin/main` 同步，最新提交 `912436d`）
+- 分支：`codex/accept-self-study-mvp`（与 `origin/main` 同步，最新提交 `387b634`）
 - 任务：DeepSeek `deepseek-v4-flash-vision-exp` 的评测基线、资料库基础 CRUD、教学、错题本、复习复测、反馈/长期状态页面、Fake 全链路和 20 条人工语义复核均已完成。发布边界和实际 7 个自然日试用仍未完成。
 - 约束：默认 Fake；真实运行必须显式确认；每个案例零重试；任何成功结果仍需人工语义复核。
 
