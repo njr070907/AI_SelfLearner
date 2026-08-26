@@ -125,16 +125,21 @@ def _render_existing_lessons(teaching_service: TeachingService) -> None:
     if not lessons:
         return
 
+    _render_learning_report(lessons)
     st.markdown('<div class="section-label">我的课程</div>', unsafe_allow_html=True)
     for lesson in lessons:
         activity_count = len(lesson.lesson.interactive_checks)
         completed_count = lesson.progress.completed_activity_count
         status = "已完成" if lesson.progress.completed_at is not None else "学习中"
+        latest_attempts = _latest_attempts(lesson)
+        answered_count = len(latest_attempts)
+        correct_count = sum(1 for attempt in latest_attempts.values() if attempt.is_correct)
+        result = f" · 小测 {correct_count}/{answered_count}" if answered_count else ""
         with st.container(border=True):
             st.markdown(f"**{escape(lesson.lesson.title)}**")
             st.caption(
                 f"主题：{escape(lesson.lesson.topic)} · {status} · "
-                f"互动进度 {completed_count}/{activity_count}"
+                f"互动进度 {completed_count}/{activity_count}{result}"
             )
             if st.button(
                 "打开课程" if lesson.progress.completed_at is not None else "继续课程",
@@ -143,6 +148,29 @@ def _render_existing_lessons(teaching_service: TeachingService) -> None:
             ):
                 st.session_state.teaching_lesson_id = lesson.lesson_id
                 st.rerun()
+
+
+def _render_learning_report(lessons: Sequence[TeachingLessonView]) -> None:
+    """Summarize course activity without presenting it as a mastery decision."""
+    completed_courses = sum(lesson.progress.completed_at is not None for lesson in lessons)
+    total_activities = sum(len(lesson.lesson.interactive_checks) for lesson in lessons)
+    answered_attempts = [
+        attempt for lesson in lessons for attempt in _latest_attempts(lesson).values()
+    ]
+    correct_answers = sum(attempt.is_correct for attempt in answered_attempts)
+    completion_rate = (
+        round(len(answered_attempts) / total_activities * 100) if total_activities else 0
+    )
+    accuracy = round(correct_answers / len(answered_attempts) * 100) if answered_attempts else 0
+    with st.container(border=True):
+        st.markdown('<div class="section-label">学习报告</div>', unsafe_allow_html=True)
+        st.markdown(
+            f"已生成课程 **{len(lessons)}** 门 · 已完成 **{completed_courses}** 门 · "
+            f"互动题完成率 **{completion_rate}%** · 已答题正确率 **{accuracy}%**"
+        )
+        st.caption(
+            "这里统计的是常规课程的阅读/互动记录，不直接代表长期掌握度；掌握结论请看掌握检测和复习记录。"
+        )
 
 
 def _render_teaching_steps() -> None:

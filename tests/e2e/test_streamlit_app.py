@@ -498,6 +498,8 @@ def test_teaching_progress_can_complete_and_resume_the_lesson(
     app.session_state["teaching_lesson_id"] = None
     app = app.run(timeout=10)
     assert "我的课程" in rendered_markdown(app)
+    assert "学习报告" in rendered_markdown(app)
+    assert "互动题完成率" in rendered_markdown(app)
     assert button_with_label(app, "打开课程")
 
 
