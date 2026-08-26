@@ -103,6 +103,7 @@ def render_teaching_workspace(
 
     lesson_id = st.session_state.get("teaching_lesson_id")
     if not isinstance(lesson_id, str):
+        _render_existing_lessons(teaching_service)
         _render_teaching_steps()
         return
     try:
@@ -116,6 +117,32 @@ def render_teaching_workspace(
         teaching_service=teaching_service,
         start_lesson=start_lesson,
     )
+
+
+def _render_existing_lessons(teaching_service: TeachingService) -> None:
+    """Offer database-backed courses so a refresh does not hide prior learning."""
+    lessons = teaching_service.list_lessons(limit=12)
+    if not lessons:
+        return
+
+    st.markdown('<div class="section-label">我的课程</div>', unsafe_allow_html=True)
+    for lesson in lessons:
+        activity_count = len(lesson.lesson.interactive_checks)
+        completed_count = lesson.progress.completed_activity_count
+        status = "已完成" if lesson.progress.completed_at is not None else "学习中"
+        with st.container(border=True):
+            st.markdown(f"**{escape(lesson.lesson.title)}**")
+            st.caption(
+                f"主题：{escape(lesson.lesson.topic)} · {status} · "
+                f"互动进度 {completed_count}/{activity_count}"
+            )
+            if st.button(
+                "打开课程" if lesson.progress.completed_at is not None else "继续课程",
+                key=f"teaching_resume_{lesson.lesson_id}",
+                type="primary" if lesson.progress.completed_at is None else "secondary",
+            ):
+                st.session_state.teaching_lesson_id = lesson.lesson_id
+                st.rerun()
 
 
 def _render_teaching_steps() -> None:

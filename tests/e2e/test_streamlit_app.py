@@ -493,6 +493,11 @@ def test_teaching_progress_can_complete_and_resume_the_lesson(
     assert any("这门课程已经完成" in item.value for item in app.success)
     assert button_with_label(app, "进入掌握检测（可选）")
 
+    app.session_state["teaching_lesson_id"] = None
+    app = app.run(timeout=10)
+    assert "我的课程" in rendered_markdown(app)
+    assert button_with_label(app, "打开课程")
+
 
 def test_seeded_mistakes_show_all_types_and_support_filtering_and_sorting(
     tmp_path: Path,
