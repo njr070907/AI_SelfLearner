@@ -27,7 +27,7 @@
 | `hm-differentiability-misconception` | `020209Z` | `fragile / review / 0.90` | pass | `fragile / re_learn` | `action` | 用户确认通过；连续必然可导、左右导数取平均和“可微只是变化很小”均为明确误区，旧 `review` 按 v0.4 校准为 `re_learn`。 |
 | `hm-differentiability-insufficient` | `020209Z` | `not_evident / re_explain / 0.90` | pass | `no_clue / re_learn` | `no_difference` | 用户确认通过；旧 v0.2 枚举按 v0.4 正式协议规范化为 `no_clue / re_learn`。 |
 | `hm-lhopital-strong` | `020209Z` | `solid / practice / 0.92` | pass | 一致 | `no_difference` | 原答完整覆盖未定式、可导与分母导数条件、导数比极限及重复使用前复核；AI 判为 solid/practice 合理。 |
-| `hm-lhopital-partial` | `020209Z` | `fragile / re_explain / 0.75` | pass | 待确认 |  |  |
+| `hm-lhopital-partial` | `020209Z` | `fragile / re_explain / 0.75` | pass | `fragile / re_learn` | `no_difference` | 用户确认通过；旧 `re_explain` 按 v0.4 正式协议规范化为 `re_learn`，条件与迁移缺口匹配。 |
 | `hm-lhopital-misconception` | `020209Z` | `fragile / review / 0.95` | pass | 待确认 |  |  |
 | `hm-lhopital-insufficient` | `020209Z` | `not_evident / re_explain / 0.90` | pass | 待确认 |  |  |
 | `hm-definite-integral-strong` | `020421Z` | `solid / practice / 0.90` | pass | 待确认 |  |  |
