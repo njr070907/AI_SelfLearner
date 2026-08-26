@@ -7,6 +7,7 @@ from uuid import uuid4
 import streamlit as st
 
 from ai_growth_companion.application.document_library import DocumentLibraryService
+from ai_growth_companion.application.source_selector import TopicSourceSelection
 from ai_growth_companion.application.teaching_service import (
     TeachingActivityAttemptView,
     TeachingInputError,
@@ -15,7 +16,7 @@ from ai_growth_companion.application.teaching_service import (
     TeachingService,
 )
 from ai_growth_companion.providers.base import ProviderError
-from ai_growth_companion.schemas.teaching import LessonSource, TopicSourceSelection
+from ai_growth_companion.schemas.teaching import LessonSource
 
 StartLesson = Callable[[str, str | None, str | None], str | None]
 
@@ -49,7 +50,6 @@ def render_teaching_workspace(
     document_labels = {document.document_id: document.filename for document in documents}
 
     previous_topic = st.session_state.get("teaching_topic_value", "")
-    previous_source_mode = st.session_state.get("teaching_source_mode", "auto")
 
     with st.container(border=True):
         st.markdown(
@@ -81,14 +81,12 @@ def render_teaching_workspace(
             recommendation = st.session_state.get("teaching_source_recommendation")
 
             if topic.strip() and (
-                recommendation is None
-                or recommendation.topic != topic.strip()
-                or topic_changed
+                recommendation is None or recommendation.topic != topic.strip() or topic_changed
             ):
                 try:
                     with st.spinner("正在分析资料库并推荐相关来源……"):
                         recommendation = teaching_service.recommend_sources(
-                            topic.strip(), limit=3
+                            topic=topic.strip(), limit=3
                         )
                         st.session_state.teaching_source_recommendation = recommendation
                         st.session_state.teaching_topic_value = topic.strip()
@@ -97,12 +95,8 @@ def render_teaching_workspace(
                     recommendation = None
 
             if recommendation is not None:
-                _render_source_recommendation(
-                    recommendation, document_labels, teaching_service
-                )
-                selected_ids = tuple(
-                    st.session_state.get("teaching_confirmed_sources", [])
-                )
+                _render_source_recommendation(recommendation, document_labels, teaching_service)
+                selected_ids = tuple(st.session_state.get("teaching_confirmed_sources", []))
         else:
             selected_ids = tuple(
                 st.multiselect(
@@ -181,34 +175,30 @@ def _render_source_recommendation(
         "medium": "中置信度",
         "low": "低置信度",
     }
-    confidence_colors = {
-        "high": "green",
-        "medium": "orange",
-        "low": "red",
-    }
 
     if recommendation.requires_manual_selection:
         st.warning("未找到与主题高度相关的资料，请手动选择来源。")
         return
 
-    with st.expander(f"系统推荐来源（{confidence_labels[recommendation.confidence]}）", expanded=True):
+    with st.expander(
+        f"系统推荐来源（{confidence_labels[recommendation.confidence]}）", expanded=True
+    ):
         if recommendation.matches:
             for match in recommendation.matches:
-                color = confidence_colors[recommendation.confidence]
-                st.markdown(
-                    f"**{match.filename}** :gray[匹配度 {match.score:.0%}]"
-                )
+                st.markdown(f"**{match.filename}** :gray[匹配分数 {match.score}]")
                 if match.matched_terms:
                     st.caption(f"匹配关键词：{', '.join(match.matched_terms[:5])}")
                 if match.rationale:
                     st.caption(match.rationale)
+                if match.page_range:
+                    st.caption(f"页码范围：{match.page_range}")
         else:
             st.info("未找到匹配的资料，请手动选择。")
 
         if recommendation.requires_confirmation:
             st.info("推荐置信度较低，建议确认或调整选择。")
 
-        confirmed = st.multiselect(
+        st.multiselect(
             "确认或调整推荐的资料",
             options=tuple(document_labels),
             default=[

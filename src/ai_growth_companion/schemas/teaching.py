@@ -46,32 +46,6 @@ class LessonInteraction(BaseModel):
         return self
 
 
-class TopicSourceMatch(BaseModel):
-    """One candidate source document matched to a topic."""
-
-    model_config = ConfigDict(frozen=True)
-
-    document_id: str = Field(min_length=1, max_length=100)
-    filename: str = Field(min_length=1, max_length=255)
-    score: float = Field(ge=0.0, le=1.0)
-    matched_terms: list[str] = Field(default_factory=list, max_length=20)
-    rationale: str = Field(default="", max_length=500)
-    page_range: str | None = Field(default=None, max_length=100)
-
-
-class TopicSourceSelection(BaseModel):
-    """Source recommendation result for a given topic."""
-
-    model_config = ConfigDict(frozen=True)
-
-    topic: str = Field(min_length=1, max_length=200)
-    confidence: Literal["high", "medium", "low"]
-    requires_manual_selection: bool = False
-    requires_confirmation: bool = False
-    selected_document_ids: list[str] = Field(default_factory=list, max_length=20)
-    matches: list[TopicSourceMatch] = Field(default_factory=list, max_length=20)
-
-
 class TeachingLesson(BaseModel):
     """A complete, source-grounded lesson card safe for the UI to render."""
 
