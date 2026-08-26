@@ -12,7 +12,7 @@ Sprint 1：用真实 Provider 验证 `evaluator-v0.1` 能否区分充分理解�
 
 ## 当前状态
 
-- 分支：`main`（PR #59 已合并，合并提交 `7549113`）
+- 分支：`codex/accept-self-study-mvp`（与 `origin/main` 同步，最新提交 `fb89f67`）
 - 任务：DeepSeek `deepseek-v4-flash-vision-exp` 的评测基线、资料库基础 CRUD、教学、错题本、复习复测、反馈/长期状态页面和 Fake 全链路均已完成。真实 DeepSeek 语义验收、发布边界和实际 7 个自然日试用仍未完成。
 - 约束：默认 Fake；真实运行必须显式确认；每个案例零重试；任何成功结果仍需人工语义复核。
 
@@ -32,10 +32,11 @@ Sprint 1：用真实 Provider 验证 `evaluator-v0.1` 能否区分充分理解�
 - 2026-08-26 使用固定 `deepseek-v4-flash-vision-exp` 完成 Prompt v0.2 受控实验：运行 `020209Z` 为 18/20 结构成功且 18/18 自动通过；两条是 `evidence_id` 类型错误，随后运行 `020421Z` 定向复测 2/2 通过。此前 3 条置信度/边界失败也在 `020147Z` 定向复测中 3/3 通过。
 - v0.2 的协议约束和边界提示已修复并通过离线测试，但完整批量结果仍有随机结构波动，20 条人工语义复核和发布决定仍未完成；v0.2 暂不设为默认。
 - 已生成 [v0.2 人工复核草稿](docs/mastery-protocol/V0_2_REVIEW_DRAFT.md)，20 行均标记为“待确认”，没有把自动通过冒充人工结论。
+- 已生成 [v0.2 AI 初审摘要](docs/mastery-protocol/V0_2_AI_INITIAL_REVIEW.md)：20/20 自动量表通过，并按四种场景做了可追溯的形态检查；没有把 AI 初审写成人工语义结论。
 
 ## Resume Point
 
-`main` 已包含 PR #59 的 #35 错题本、#37 复习复测和 #39 Fake 全链路集成；资料库基础版、反馈/纠正、长期状态进度页、桌面/窄屏交互和错误恢复均已通过验收。随后仍需完成 20 条人工语义复核、发布边界确认，并按 `docs/roadmap/SEVEN_DAY_TRIAL_READINESS.md` 开始实际 7 天试用。
+`origin/main` 已包含 PR #59 的 #35 错题本、#37 复习复测和 #39 Fake 全链路集成；资料库基础版、反馈/纠正、长期状态进度页、桌面/窄屏交互和错误恢复均已通过验收。随后仍需完成 20 条人工语义复核、发布边界确认，并按 `docs/roadmap/SEVEN_DAY_TRIAL_READINESS.md` 开始实际 7 天试用。
 
 GitHub 工作项：
 

@@ -78,3 +78,5 @@
 - PR #59 已合并到 `main`（合并提交 `7549113`）。在合并后的 `main` 上复核 179 tests、Ruff、format、Mypy、Streamlit smoke、Secret Scan、20 条黄金集结构校验和 20 条 Prompt dry-run 均通过；正式进度更新为约 89%。
 - 合并后阶段 1–4 的用户路径计为完成，阶段 6 的 Fake UI 全链路/启动/错误恢复部分计为 50%；剩余为真实 DeepSeek 语义验收、发布边界和至少 7 个自然日连续试用。
 - 基于既有 `deepseek-evaluator-v0.1-20260824T015320Z` 运行记录完成无费用中间校准报告：20/20 结构成功、17/20 自动通过，3 个差异集中在强答案边界和置信度区间；未发起新的真实调用。
+- 将主运行 `020209Z` 与定向复测 `020421Z` 合并为 v0.2 最终 20 条结果，生成 `docs/mastery-protocol/V0_2_REVIEW_DRAFT.md` 与 `V0_2_AI_INITIAL_REVIEW.md`。机器辅助检查显示四类场景均无类别串线、自动量表 20/20 通过；人工结论、差异分类和发布决定仍保持待确认。
+- 完整回归再次通过：186 tests，Ruff 与 `git diff --check` 通过；提交 `fb89f67` 已同步到 `origin/main` 与协作分支。
