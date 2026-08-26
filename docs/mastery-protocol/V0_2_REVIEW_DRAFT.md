@@ -22,7 +22,7 @@
 | `hm-equivalent-infinitesimal-partial` | `020209Z` | `fragile / re_explain / 0.80` | pass | 一致 | `no_difference` | 原答只复述乘除可替换、加减需谨慎，明确无法解释和计算；判为 fragile，动作按 v0.3 规范化为 `re_learn`，合理。 |
 | `hm-equivalent-infinitesimal-misconception` | `020209Z` | `fragile / review / 0.95` | pass | `fragile / re_learn` | `action` | 用户确认明确错误概念应推荐重新学习；掌握等级保持 fragile，旧 `review` 按 v0.4 记为动作偏差。 |
 | `hm-equivalent-infinitesimal-insufficient` | `020209Z` | `not_evident / re_explain / 0.95` | pass | `no_clue / re_learn` | `no_difference` | 用户确认通过；旧 v0.2 枚举按 v0.4 正式协议规范化为 `no_clue / re_learn`。 |
-| `hm-differentiability-strong` | `020209Z` | `solid / practice / 0.95` | pass | 待确认 |  |  |
+| `hm-differentiability-strong` | `020209Z` | `solid / practice / 0.95` | pass | 一致 | `no_difference` | 原答完整覆盖一元可导/可微等价、可导推出连续、`|x|` 反例和微分的局部线性近似；AI 判为 solid/practice 合理。 |
 | `hm-differentiability-partial` | `020209Z` | `fragile / re_explain / 0.80` | pass | 待确认 |  |  |
 | `hm-differentiability-misconception` | `020209Z` | `fragile / review / 0.90` | pass | 待确认 |  |  |
 | `hm-differentiability-insufficient` | `020209Z` | `not_evident / re_explain / 0.90` | pass | 待确认 |  |  |
