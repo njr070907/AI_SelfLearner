@@ -59,6 +59,11 @@ def test_uploaded_material_becomes_a_persisted_lesson(tmp_path: Path) -> None:
     assert view.lesson.sources[0].document_id == document.document_id
     assert view.lesson.sections[0].source_document_ids == [document.document_id]
     assert view.lesson.interactive_checks[0].source_document_ids == [document.document_id]
+    source_fact = "极限描述函数在某点附近的变化趋势。"
+    assert source_fact in view.lesson.summary
+    assert source_fact in view.lesson.sections[0].explanation
+    assert source_fact in view.lesson.sections[2].explanation
+    assert source_fact in view.lesson.interactive_checks[0].explanation
     assert teaching.get_lesson(view.lesson_id).lesson == view.lesson
     assert len(teaching.list_lessons()) == 1
 

@@ -136,6 +136,7 @@ class FakeLLMProvider:
                         "section_type": "boundary",
                         "title": "最后检查边界",
                         "explanation": (
+                            f"资料中的关键提醒是：{source_fact[:160]}\n\n"
                             "学习不只包括‘怎么做’，还要知道什么时候不能这样做，"
                             "以及缺少什么条件会失效。"
                         ),
@@ -147,7 +148,8 @@ class FakeLLMProvider:
                         "section_type": "example",
                         "title": "用例子复述",
                         "explanation": (
-                            "不看原文，用一个新例子复述定义、机制和边界；这一步完成后再做互动小测。"
+                            f"先回到资料中的“{source_fact[:120]}”，再用一个新例子复述定义、机制和边界；"
+                            "这一步完成后再做互动小测。"
                         ),
                         "key_points": ["新例子", "关键步骤", "边界提醒"],
                         "example": f"请用一个未出现在材料中的例子说明 {request.topic}。",
@@ -169,7 +171,7 @@ class FakeLLMProvider:
                         "correct_answer": "先理解概念和用途，再看具体例子",
                         "explanation": (
                             "常规学习应先建立概念，再通过例子和边界把知识连接起来；"
-                            "只背结论无法判断什么时候适用。"
+                            f"只背结论无法判断什么时候适用。资料中的关键内容是：{source_fact[:120]}"
                         ),
                         "source_document_ids": source_ids,
                     },
@@ -181,7 +183,10 @@ class FakeLLMProvider:
                             "它是否看起来足够复杂",
                         ],
                         "correct_answer": "它是否满足适用条件",
-                        "explanation": "先检查条件，才能判断知识能否迁移到新情境。",
+                        "explanation": (
+                            f"先检查条件，才能判断知识能否迁移到新情境；资料中的相关内容是："
+                            f"{source_fact[:120]}"
+                        ),
                         "source_document_ids": source_ids,
                     },
                 ],
