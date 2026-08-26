@@ -12,7 +12,7 @@ Sprint 1：用真实 Provider 验证 `evaluator-v0.1` 能否区分充分理解�
 
 ## 当前状态
 
-- 分支：`codex/accept-self-study-mvp`（与 `origin/main` 同步，最新提交 `fb89f67`）
+- 分支：`codex/accept-self-study-mvp`（与 `origin/main` 同步，最新提交 `90ffb04`）
 - 任务：DeepSeek `deepseek-v4-flash-vision-exp` 的评测基线、资料库基础 CRUD、教学、错题本、复习复测、反馈/长期状态页面和 Fake 全链路均已完成。真实 DeepSeek 语义验收、发布边界和实际 7 个自然日试用仍未完成。
 - 约束：默认 Fake；真实运行必须显式确认；每个案例零重试；任何成功结果仍需人工语义复核。
 
@@ -35,7 +35,7 @@ Sprint 1：用真实 Provider 验证 `evaluator-v0.1` 能否区分充分理解�
 - 已生成 [v0.2 AI 初审摘要](docs/mastery-protocol/V0_2_AI_INITIAL_REVIEW.md)：20/20 自动量表通过，并按四种场景做了可追溯的形态检查；没有把 AI 初审写成人工语义结论。
 - 已生成 [v0.2 AI 建议复核表](docs/mastery-protocol/V0_2_AI_SUGGESTED_REVIEW.md)：20 条逐案例候选结论和重点疑点，仍要求负责人回看原始证据后签字。
 - 已将 Mastery Protocol 更新为 v0.3：`no_clue`=完全未掌握、`re_learn`=重新学习；旧数据库值读取时兼容，新的诊断只生成新枚举。第 4 条已按新协议归类为掌握等级/动作偏差。
-- 聊天内人工验收已完成 4/20：前 3 条为一致，第 4 条按 v0.3 记录为 `mastery/action` 模型判断偏差。
+- 聊天内人工验收已完成 5/20：前 3 条与第 5 条为一致，第 4 条按 v0.3 记录为 `mastery/action` 模型判断偏差。
 
 ## Resume Point
 

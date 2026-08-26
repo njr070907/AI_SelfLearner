@@ -18,7 +18,7 @@
 | `hm-limit-existence-partial` | `020421Z` | `fragile / re_explain / 0.75` | pass | 一致 | `no_difference` | 原答覆盖左右趋同与不同时的判断，未解释原因且未回答点值关系；判为 fragile/re_explain 符合 partial 标准。 |
 | `hm-limit-existence-misconception` | `020209Z` | `fragile / review / 0.95` | pass | 一致 | `no_difference` | 原答明确包含“左右极限取平均”和“点值决定极限”两个错误观点；AI 识别完整，判为 fragile/review 合理。 |
 | `hm-limit-existence-insufficient` | `020209Z` | `not_evident / re_explain / 0.95` | pass | 完全未掌握 / 重新学习 | `mastery; action` | 按 v0.3 底层协议，正式枚举应为 `no_clue / re_learn`；v0.2 自动输出仍是旧枚举，因此本条记录为模型/协议判断偏差，需重新校准。 |
-| `hm-equivalent-infinitesimal-strong` | `020209Z` | `solid / practice / 0.85` | pass | 待确认 |  |  |
+| `hm-equivalent-infinitesimal-strong` | `020209Z` | `solid / practice / 0.85` | pass | 一致 | `no_difference` | 原答说明等价定义、乘除替换条件、加减抵消和高阶差异；AI 判为 solid/practice 合理。 |
 | `hm-equivalent-infinitesimal-partial` | `020209Z` | `fragile / re_explain / 0.80` | pass | 待确认 |  |  |
 | `hm-equivalent-infinitesimal-misconception` | `020209Z` | `fragile / review / 0.95` | pass | 待确认 |  |  |
 | `hm-equivalent-infinitesimal-insufficient` | `020209Z` | `not_evident / re_explain / 0.95` | pass | 待确认 |  |  |
