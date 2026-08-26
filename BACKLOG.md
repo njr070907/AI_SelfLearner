@@ -20,7 +20,7 @@
 
 ## P0 — 完整自学 MVP
 
-这是当前从“工程底座”走向“用户可以正常使用的完整自学产品”的主队列。资料库 CRUD、资料到结构化导学的教学工作区和 20 条人工语义复核已完成；按最终用户验收重新校准的总进度约 **92%**，预计还需 **1–3 个有效工作日**，另需至少 7 个自然日试用；完整阶段、权重、时间估算、接口边界和停止条件见 [`docs/roadmap/FULL_SELF_STUDY_MVP_PLAN.md`](docs/roadmap/FULL_SELF_STUDY_MVP_PLAN.md) 和 [`docs/roadmap/MVP_PROGRESS.md`](docs/roadmap/MVP_PROGRESS.md)。
+这是当前从“工程底座”走向“用户可以正常使用的完整自学产品”的主队列。资料库 CRUD、资料到结构化导学的教学工作区、课程进度/报告和 20 条人工语义复核已完成；按最终用户验收重新校准的总进度约 **86%**，预计还需 **5–8 个有效工作日**，另需至少 7 个自然日试用；完整阶段、权重、时间估算、接口边界和停止条件见 [`docs/roadmap/FULL_SELF_STUDY_MVP_PLAN.md`](docs/roadmap/FULL_SELF_STUDY_MVP_PLAN.md) 和 [`docs/roadmap/MVP_PROGRESS.md`](docs/roadmap/MVP_PROGRESS.md)。
 
 - [x] [#31](https://github.com/njr070907/AI_SelfLearner/issues/31) 锁定完整自学 MVP 范围与数据/服务契约。
 - [x] [#32](https://github.com/njr070907/AI_SelfLearner/issues/32) 后端：实现完整教学闭环 API 与领域模型。

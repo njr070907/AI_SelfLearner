@@ -13,15 +13,15 @@
 - [x] Streamlit AppTest 覆盖完整 Fake 自学闭环和刷新后的持久化状态。
 - [x] `localhost:8511` Desktop（1440 × 1000）实际浏览器验收通过，无横向溢出。
 - [x] `localhost:8511` Narrow（390 × 844）实际浏览器验收通过，移动侧栏和深色控件可用且无横向溢出。
-- [x] 仓库完整回归通过：201 tests、Ruff、format、mypy、Streamlit smoke、Secret Scan、黄金集校验、Prompt dry-run 和依赖审计。
+- [x] 仓库完整回归通过：203 tests、Ruff、format、mypy、Streamlit smoke、Secret Scan、黄金集校验、Prompt dry-run 和依赖审计。
 - [x] DeepSeek `deepseek-v4-flash-vision-exp` v0.2 20 条真实结果已完成逐条人工语义复核，并按 Mastery Protocol v0.6 归档差异。
 - [x] [PR #59](https://github.com/njr070907/AI_SelfLearner/pull/59) 已合并，#35/#37 已完成，#39 进入连续试用与发布验收阶段。
 
 ## 2026-08-26 试用前预检
 
-- 使用隔离数据库 `tmp/trial-preflight.db` 完成迁移：版本 `0 -> 5`，5 个迁移全部成功。
+- 使用隔离数据库 `tmp/trial-preflight.db` 完成迁移：当时版本 `0 -> 5`，5 个迁移全部成功；后续新增教学进度迁移至 7，因此开始正式试用前必须在新的隔离库再次执行迁移预检。
 - 使用 `preflight-check` 种子生成演示工作区：4 条历史、3 个知识状态、3 个错题、3 个到期复习项目；未删除已有数据，网络调用 0，付费调用 0。
-- 应用健康检查：liveness、readiness、Fake Provider 均为 `healthy`，数据库版本 5/5。
+- 应用健康检查：旧预检中的 liveness、readiness、Fake Provider 均为 `healthy`，数据库版本 5/5；当前代码要求正式试用前确认数据库版本 7/7。
 - `evaluator-v0.2` dry-run：20 个 Prompt envelope 全部渲染成功，Provider 调用 0，预计费用 `$0`。
 - 协议 v0.6 预检：Fake 全量评测 20/20 自动通过，正式输出包含 `no_clue/re_learn`，错误概念和自述忘记先进入 `review`，复习后低掌握再进入 `re_learn`；旧 v0.2 数据库继续可读并可追加新记录。
 - 该预检证明 Fake 试用环境可以启动，不代表真实 DeepSeek 语义已经通过，也不计入 7 个自然日。
@@ -48,7 +48,7 @@ uv run python scripts/seed_fake_workspace.py --seed-name frontend-demo
 uv run streamlit run app.py --server.port 8511
 ```
 
-当前团队试用环境已在 `localhost:8511` 启动并通过 HTTP 200 检查；数据库为 `data/team-8511.db`，使用 Fake Provider，网络调用和付费调用均为 0。环境启动本身不计入 Day 1，只有试用者实际完成学习闭环后才填写每日记录。
+团队试用环境可按上述命令在 `localhost:8511` 启动并通过 HTTP 200 检查；旧环境数据库可能仍停留在迁移 5，正式试用前需先执行迁移并确认当前版本为 7。环境启动本身不计入 Day 1，只有试用者实际完成学习闭环后才填写每日记录。
 
 ## 每日试用记录（不得预填）
 
