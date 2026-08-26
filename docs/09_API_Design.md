@@ -144,12 +144,12 @@ Provider 选择由后端工厂统一控制：Fake 模式免费且默认；真实
 
 仅对失败诊断可用。请求携带 `Idempotency-Key`；同一 Key 不重复创建诊断。重试保留旧失败记录。
 
-## 10. 导出与删除（P1）
+## 10. 导出与删除（P1，导出本地 CLI 已实现）
 
 - `GET /api/v1/users/me/export?format=json|markdown`
 - `DELETE /api/v1/users/me/data`
 
-删除属于高影响操作，应二次确认并明确范围；导出应包含原始数据、派生状态和版本信息。
+当前本地 MVP 已通过 `scripts/export_user_data.py` 提供 ZIP 导出：包含原始数据、派生状态、Schema 版本、资料文件和校验清单；未来 API/UI 接入应复用同一服务。删除属于高影响操作，应二次确认并明确范围。
 
 ## 10.1 错题本
 

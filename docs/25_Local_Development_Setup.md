@@ -110,3 +110,10 @@ pytest
 
 个人实验期间定期复制 `data/companion.db` 到受控备份位置；复制前停止写入或使用 SQLite 一致备份方式。备份同样包含个人数据，不上传公共仓库。
 
+也可以生成包含数据库用户数据和本地资料文件的自描述导出包：
+
+```powershell
+uv run python scripts/export_user_data.py
+```
+
+导出包写入被 Git 忽略的 `exports/`，运行后应检查 `manifest.json` 中的 Schema 版本、资料缺失警告和 SHA-256。

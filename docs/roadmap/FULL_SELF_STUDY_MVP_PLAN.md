@@ -4,7 +4,7 @@
 
 ## 1. 当前判断
 
-当前仓库已经具备可靠的工程地基：SQLite 与迁移、事件历史、Mastery Engine、Learning Policy、Fake Provider、真实 DeepSeek 适配器、结构化 Schema、评测 CLI、CI、资料库基础版、资料到课程的教学工作区 UI 都已存在。最近一次离线回归为 208 个测试通过，学习入口已增加“先生成并阅读课程、完成互动小测，再选择是否做掌握检测”的步骤，并能恢复课程、显示课程完成小结和基础跨课程报告；资料库超过 20 MB 的 PDF、Markdown、TXT 会默认安全分卷导入，新增和替换入口统一处理；Provider Factory 已接入应用组合根，把 Fake/固定 DeepSeek 模式和显式付费许可隔离，Prompt v0.2 也已经可以用 dry-run 做零成本实验。Mastery Protocol 当前版本为 v0.6，正式使用 `no_clue/re_learn`，错误概念和自述忘记先进入 `review`，复习后低掌握再进入 `re_learn`。
+当前仓库已经具备可靠的工程地基：SQLite 与迁移、事件历史、Mastery Engine、Learning Policy、Fake Provider、真实 DeepSeek 适配器、结构化 Schema、评测 CLI、CI、资料库基础版、资料到课程的教学工作区 UI 都已存在。最近一次离线回归为 210 个测试通过，学习入口已增加“先生成并阅读课程、完成互动小测，再选择是否做掌握检测”的步骤，并能恢复课程、显示课程完成小结和基础跨课程报告；资料库超过 20 MB 的 PDF、Markdown、TXT 会默认安全分卷导入，新增和替换入口统一处理；本地用户数据导出已提供带清单和校验的 ZIP CLI；Provider Factory 已接入应用组合根，把 Fake/固定 DeepSeek 模式和显式付费许可隔离，Prompt v0.2 也已经可以用 dry-run 做零成本实验。Mastery Protocol 当前版本为 v0.6，正式使用 `no_clue/re_learn`，错误概念和自述忘记先进入 `review`，复习后低掌握再进入 `re_learn`。
 
 但从“完整自学系统 MVP”看，当前进度以 [`MVP_PROGRESS.md`](MVP_PROGRESS.md) 的最新口径为准，约完成 **86%**：资料库基础 CRUD、常规教学、课程进度与完成小结、基础跨课程报告、错题、复习、反馈/趋势页面、Fake 全链路和 20 条真实结果人工语义复核已经完成，Provider 安全边界也已建立；资料内容质量、报告深化、发布边界和 7 天试用还没有全部完成。每次开发都会同步更新 [`MVP_PROGRESS.md`](MVP_PROGRESS.md)，避免把代码量、测试数量或单个后端 PR 误当成产品完成度。
 

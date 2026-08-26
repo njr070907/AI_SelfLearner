@@ -57,6 +57,14 @@ uv run streamlit run app.py
 
 浏览器通常会自动打开 `http://localhost:8501`。Sprint 0 默认配置可以直接运行，不需要创建 `.env`，也不需要 API Key。
 
+导出当前本地用户的数据（学习事件、诊断、错题、复习、课程进度和资料文件）到被 Git 忽略的 `exports/`：
+
+```powershell
+uv run python scripts/export_user_data.py
+```
+
+导出包是自描述 ZIP，包含 `manifest.json`、分表 JSON、资料文件和 SHA-256 校验值；如果资料文件已从磁盘丢失，导出仍会保留元数据并在清单中明确警告。
+
 如需修改本地配置，可先复制示例文件：
 
 ```powershell
