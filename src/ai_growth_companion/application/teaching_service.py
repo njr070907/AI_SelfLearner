@@ -7,15 +7,28 @@ from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict
 
-from ai_growth_companion.application.document_library import DocumentLibraryService
+from ai_growth_companion.application.document_library import (
+    DocumentLibraryService,
+    DocumentValidationError,
+)
 from ai_growth_companion.application.knowledge_extraction import extract_knowledge
 from ai_growth_companion.application.models import DocumentView
+from ai_growth_companion.application.pdf_visual import (
+    MAX_VISION_PAGES,
+    render_pdf_pages,
+    select_pdf_pages,
+)
 from ai_growth_companion.application.source_selector import (
     TopicSourceSelection,
     TopicSourceSelector,
 )
 from ai_growth_companion.domain.events import LOCAL_USER_ID
-from ai_growth_companion.providers.base import ProviderError, TeachingProvider, TeachingRequest
+from ai_growth_companion.providers.base import (
+    ProviderError,
+    TeachingPageImage,
+    TeachingProvider,
+    TeachingRequest,
+)
 from ai_growth_companion.repositories.lesson_progress_repository import (
     LessonProgressRecord,
     SQLiteLessonProgressRepository,
@@ -119,23 +132,56 @@ class TeachingService:
         learning_goal: str | None = None,
         learner_level: str | None = None,
         request_id: str,
+        use_vision: bool = False,
     ) -> TeachingLessonView:
         normalized_topic = topic.strip()
         if not normalized_topic:
             raise TeachingInputError("请填写要学习的知识主题")
         if not document_ids:
             raise TeachingInputError("请至少选择一份知识资料")
+        if use_vision and not self.provider.supports_vision:
+            raise TeachingInputError("当前 Provider 不支持视觉读取，请切换到 DeepSeek 教学模式")
 
         source_documents: list[DocumentView] = []
         source_parts: list[str] = []
         source_refs: list[tuple[str, str, str]] = []
+        visual_pages: list[TeachingPageImage] = []
         for document_id in document_ids:
             document, content = self.document_library.read(document_id)
-            extracted = extract_knowledge(document.filename, content)
+            extracted = None
+            try:
+                extracted = extract_knowledge(document.filename, content)
+            except DocumentValidationError:
+                if not use_vision or document.extension != ".pdf":
+                    raise
             source_documents.append(document)
-            source_excerpt = " ".join(extracted.text.split())[:1_800]
+            source_excerpt = (
+                " ".join(extracted.text.split())[:1_800]
+                if extracted is not None
+                else "原始 PDF 页面将通过视觉输入读取。"
+            )
             source_refs.append((document.document_id, document.filename, source_excerpt))
-            source_parts.append(f"【{document.filename}】\n{extracted.text}")
+            if extracted is not None:
+                source_parts.append(f"【{document.filename}】\n{extracted.text}")
+            if use_vision and document.extension == ".pdf":
+                remaining = MAX_VISION_PAGES - len(visual_pages)
+                if remaining > 0:
+                    page_numbers = select_pdf_pages(
+                        content,
+                        topic=normalized_topic,
+                        max_pages=remaining,
+                    )
+                    visual_pages.extend(
+                        render_pdf_pages(
+                            content,
+                            document_id=document.document_id,
+                            filename=document.filename,
+                            page_numbers=page_numbers,
+                        )
+                    )
+
+        if use_vision and not visual_pages:
+            raise TeachingInputError("视觉读取模式至少需要选择一份 PDF 资料")
 
         response = self.provider.generate_lesson(
             TeachingRequest(
@@ -144,6 +190,7 @@ class TeachingService:
                 sources=tuple(source_refs),
                 learning_goal=learning_goal.strip() if learning_goal else None,
                 learner_level=learner_level,
+                visual_pages=tuple(visual_pages),
             ),
             request_id=request_id,
         )
@@ -196,6 +243,7 @@ class TeachingService:
                 ],
             }
         )
+        self._validate_lesson_quality(lesson)
         lesson_id = str(uuid4())
         record = self.repository.create(
             lesson_id=lesson_id,
@@ -434,6 +482,55 @@ class TeachingService:
             [lesson.title, lesson.summary, *lesson.learning_objectives]
         ).casefold()
         return topic.casefold() in searchable
+
+    @staticmethod
+    def _validate_lesson_quality(lesson: TeachingLesson) -> None:
+        """Reject structurally valid but visibly incomplete or garbled lessons."""
+        expected_types = ("concept", "mechanism", "boundary", "example")
+        actual_types = tuple(section.section_type for section in lesson.sections)
+        if actual_types != expected_types:
+            raise ProviderError(
+                "教学内容缺少完整的概念、机制、边界和例子章节",
+                code="TEACHING_CONTENT_QUALITY_INVALID",
+                retryable=False,
+            )
+        if len(lesson.summary.strip()) < 30 or len(lesson.learning_objectives) < 2:
+            raise ProviderError(
+                "教学内容摘要或学习目标过短",
+                code="TEACHING_CONTENT_QUALITY_INVALID",
+                retryable=False,
+            )
+        for section in lesson.sections:
+            if len(section.explanation.strip()) < 40 or len(section.key_points) < 2:
+                raise ProviderError(
+                    "教学章节内容过短，未形成可阅读的讲解",
+                    code="TEACHING_CONTENT_QUALITY_INVALID",
+                    retryable=False,
+                )
+            if not section.example or len(section.example.strip()) < 10:
+                raise ProviderError(
+                    "教学章节缺少可用例子或练习",
+                    code="TEACHING_CONTENT_QUALITY_INVALID",
+                    retryable=False,
+                )
+            if "\ufffd" in section.explanation or "\ufffd" in section.example:
+                raise ProviderError(
+                    "教学章节包含乱码",
+                    code="TEACHING_CONTENT_QUALITY_INVALID",
+                    retryable=False,
+                )
+        if not 2 <= len(lesson.interactive_checks) <= 4:
+            raise ProviderError(
+                "互动小测数量必须为 2–4 道",
+                code="TEACHING_CONTENT_QUALITY_INVALID",
+                retryable=False,
+            )
+        if "\ufffd" in lesson.summary or "\ufffd" in lesson.title:
+            raise ProviderError(
+                "教学标题或摘要包含乱码",
+                code="TEACHING_CONTENT_QUALITY_INVALID",
+                retryable=False,
+            )
 
     def _view(
         self,

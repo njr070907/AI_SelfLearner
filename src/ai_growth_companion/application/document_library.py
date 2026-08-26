@@ -420,6 +420,13 @@ class DocumentLibraryService:
         if len(content) > MAX_DOCUMENT_BYTES:
             raise DocumentValidationError("文件大小不能超过 20 MB")
         extension = Path(normalized).suffix.lower()
+        if extension in {".md", ".markdown", ".txt"}:
+            try:
+                content.decode("utf-8")
+            except UnicodeDecodeError as error:
+                raise DocumentValidationError(
+                    "Markdown/TXT 必须使用 UTF-8 编码，无法安全保存教学资料"
+                ) from error
         mime_type = MIME_TYPES.get(
             extension,
             mimetypes.types_map.get(extension, "application/octet-stream"),

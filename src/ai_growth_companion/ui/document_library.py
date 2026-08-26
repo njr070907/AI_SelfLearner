@@ -100,10 +100,17 @@ def _render_document(service: DocumentLibraryService, document: DocumentView) ->
                 pass
             else:
                 with st.expander("查看文本预览"):
-                    preview = content[:20_000].decode("utf-8", errors="replace")
-                    st.code(preview, language="markdown" if document.extension != ".txt" else None)
-                    if len(content) > 20_000:
-                        st.caption("预览已截取前 20,000 个字节，下载文件可查看完整内容。")
+                    try:
+                        preview = content[:20_000].decode("utf-8")
+                    except UnicodeDecodeError:
+                        st.error("该文本资料不是有效的 UTF-8，无法安全预览。请替换文件。")
+                    else:
+                        st.code(
+                            preview,
+                            language="markdown" if document.extension != ".txt" else None,
+                        )
+                        if len(content) > 20_000:
+                            st.caption("预览已截取前 20,000 个字节，下载文件可查看完整内容。")
 
         edit, replace, remove = st.columns(3)
         with edit.form(key=f"document_rename_form_{document.document_id}"):

@@ -60,6 +60,11 @@ def render_teaching_workspace(
                 help="教学内容只会根据你选择的资料生成，并保留来源文件记录。",
             )
         )
+        has_selected_pdf = any(
+            document.document_id in selected_ids and document.extension == ".pdf"
+            for document in documents
+        )
+        vision_available = teaching_service.provider.supports_vision
         topic = st.text_input(
             "这次要学习的知识主题",
             key="teaching_topic",
@@ -81,6 +86,16 @@ def render_teaching_workspace(
             }[value],
             key="teaching_level",
         )
+        use_vision = st.checkbox(
+            "使用视觉读取 PDF 页面",
+            value=False,
+            disabled=not has_selected_pdf or not vision_available,
+            key="teaching_use_vision",
+            help=(
+                "仅对本次选中的 PDF 页面发送图片；适合扫描版、乱码或公式较多的资料。"
+                "当前模型端点必须支持图片输入；Fake Provider 不会伪装成视觉模式。"
+            ),
+        )
         if st.button(
             "生成我的教学内容",
             type="primary",
@@ -95,8 +110,12 @@ def render_teaching_workspace(
                         learning_goal=goal or None,
                         learner_level=level or None,
                         request_id=str(uuid4()),
+                        use_vision=use_vision,
                     )
-            except (TeachingInputError, ProviderError, LookupError) as error:
+            except ProviderError as error:
+                st.error(str(error))
+                st.caption(f"错误代码：{error.code}")
+            except (TeachingInputError, LookupError) as error:
                 st.error(str(error))
             else:
                 st.session_state.teaching_lesson_id = lesson.lesson_id

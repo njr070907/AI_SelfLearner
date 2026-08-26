@@ -19,6 +19,7 @@ def app_for(tmp_path: Path, monkeypatch: MonkeyPatch, name: str) -> AppTest:
     database_url = f"sqlite:///{(tmp_path / name).as_posix()}"
     monkeypatch.setenv("DATABASE_URL", database_url)
     monkeypatch.setenv("LLM_PROVIDER", "fake")
+    monkeypatch.setenv("LLM_PAID_CALLS_ALLOWED", "false")
     load_settings.cache_clear()
     run_migrations(Database(database_url))
     return AppTest.from_file(APP_PATH).run(timeout=10)

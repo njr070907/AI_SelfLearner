@@ -32,6 +32,18 @@ class TeachingRequest:
     sources: tuple[tuple[str, str, str], ...]
     learning_goal: str | None = None
     learner_level: str | None = None
+    visual_pages: tuple["TeachingPageImage", ...] = ()
+
+
+@dataclass(frozen=True)
+class TeachingPageImage:
+    """One local PDF page rendered for an explicitly requested vision call."""
+
+    document_id: str
+    filename: str
+    page_number: int
+    media_type: str
+    content: bytes
 
 
 @dataclass(frozen=True)
@@ -106,6 +118,7 @@ class TeachingProvider(Protocol):
     provider_name: str
     model_name: str
     model_revision: str | None
+    supports_vision: bool
 
     def generate_lesson(self, request: TeachingRequest, *, request_id: str) -> ProviderResponse:
         """Generate a raw structured lesson candidate."""

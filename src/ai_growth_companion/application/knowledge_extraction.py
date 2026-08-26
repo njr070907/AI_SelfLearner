@@ -46,6 +46,10 @@ def extract_knowledge(filename: str, content: bytes) -> ExtractedKnowledge:
     normalized = "\n".join(line.rstrip() for line in text.splitlines()).strip()
     if not normalized:
         raise DocumentValidationError("资料中没有可提取的文字；扫描版 PDF 需要先 OCR")
+    if "\ufffd" in normalized:
+        raise DocumentValidationError(
+            "PDF 文字层包含乱码，无法安全生成教学内容；请改用视觉读取或先 OCR"
+        )
     truncated = len(normalized) > MAX_TEACHING_SOURCE_CHARS
     return ExtractedKnowledge(
         text=normalized[:MAX_TEACHING_SOURCE_CHARS],

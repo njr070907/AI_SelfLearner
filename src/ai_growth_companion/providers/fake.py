@@ -29,6 +29,7 @@ class FakeLLMProvider:
     """Return predictable fixtures without calling a network or paid model."""
 
     provider_name: str = "fake"
+    supports_vision = False
     model_name: str = "fake-mastery-v0.1"
     model_revision: str | None = "deterministic-1"
 

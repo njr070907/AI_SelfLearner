@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import json
 from time import perf_counter
 from typing import Protocol, cast
@@ -53,7 +54,7 @@ class _ChatCompletionsLike(Protocol):
         self,
         *,
         model: str,
-        messages: list[dict[str, str]],
+        messages: list[dict[str, object]],
         response_format: dict[str, str],
         max_tokens: int,
         stream: bool,
@@ -73,6 +74,7 @@ class DeepSeekTeachingProvider:
     """Generate one structured lesson with fixed model and zero automatic retries."""
 
     provider_name = "deepseek"
+    supports_vision = True
     model_revision: str | None = None
 
     def __init__(
@@ -143,7 +145,11 @@ class DeepSeekTeachingProvider:
                 provider=self.provider_name,
                 model=self.model_name,
                 model_revision=(response.model if response.model != self.model_name else None),
-                prompt_version="teaching-v0.2+deepseek-json",
+                prompt_version=(
+                    "teaching-v0.3+deepseek-vision-json"
+                    if request.visual_pages
+                    else "teaching-v0.2+deepseek-json"
+                ),
                 schema_version="teaching-lesson-v0.2",
                 latency_ms=round((perf_counter() - started) * 1000),
                 usage={
@@ -169,6 +175,11 @@ class DeepSeekTeachingProvider:
             "correct_answer、explanation、source_document_ids。source_document_ids "
             "只能使用输入资料的 document_id；不要编造来源。"
         )
+        if request.visual_pages:
+            system += (
+                "部分资料以原始 PDF 页面图片提供。必须阅读图片中的文字、公式、表格和图示，"
+                "图片内容优先于不完整的文字提取；看不清的内容不要猜测。"
+            )
         user = json.dumps(
             {
                 "topic": request.topic,
@@ -179,13 +190,49 @@ class DeepSeekTeachingProvider:
                     for document_id, filename, excerpt in request.sources
                 ],
                 "source_text": request.source_text,
+                "visual_pages": [
+                    {
+                        "document_id": page.document_id,
+                        "filename": page.filename,
+                        "page_number": page.page_number,
+                    }
+                    for page in request.visual_pages
+                ],
             },
             ensure_ascii=False,
         )
+        user_content: str | list[dict[str, object]] = user
+        if request.visual_pages:
+            content_parts: list[dict[str, object]] = [
+                {"type": "text", "text": user},
+            ]
+            for page in request.visual_pages:
+                encoded = base64.b64encode(page.content).decode("ascii")
+                content_parts.append(
+                    {
+                        "type": "text",
+                        "text": (
+                            f"下面是 {page.filename} 的第 {page.page_number} 页。"
+                            "请将它作为本次资料的原始页面依据。"
+                        ),
+                    }
+                )
+                content_parts.append(
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:{page.media_type};base64,{encoded}",
+                        },
+                    }
+                )
+            user_content = content_parts
         try:
             return self._client.chat.completions.create(
                 model=self.model_name,
-                messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
+                messages=[
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": user_content},
+                ],
                 response_format={"type": "json_object"},
                 max_tokens=self._max_output_tokens,
                 stream=False,
@@ -200,6 +247,12 @@ class DeepSeekTeachingProvider:
         except openai.APIConnectionError as error:
             raise ProviderUnavailableError from error
         except openai.APIStatusError as error:
+            if request.visual_pages and error.status_code in {400, 404, 415, 422}:
+                raise ProviderError(
+                    "当前 DeepSeek 端点未接受视觉输入，请确认该模型和接口已启用图片能力",
+                    code="LLM_VISION_REQUEST_REJECTED",
+                    retryable=False,
+                ) from error
             raise ProviderError(
                 "The provider rejected the teaching request",
                 code="LLM_REQUEST_REJECTED",
