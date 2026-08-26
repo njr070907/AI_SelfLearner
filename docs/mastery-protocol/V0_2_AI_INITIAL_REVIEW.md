@@ -49,7 +49,7 @@
 
 ## 下一步门槛
 
-人工复核仍以 [V0_2_REVIEW_DRAFT.md](./V0_2_REVIEW_DRAFT.md) 为唯一填写入口。20 行全部完成“人工结论 / 差异分类 / 复核备注”后，才可以做以下产品决策：
+人工复核仍以 [V0_2_REVIEW_DRAFT.md](./V0_2_REVIEW_DRAFT.md) 为唯一填写入口。逐案例的 AI 辅助建议见 [V0_2_AI_SUGGESTED_REVIEW.md](./V0_2_AI_SUGGESTED_REVIEW.md)，但其中的“候选一致”也不能直接复制为人工结论。20 行全部完成“人工结论 / 差异分类 / 复核备注”后，才可以做以下产品决策：
 
 1. 是否将 `evaluator-v0.2` 设为默认评估协议。
 2. 是否关闭对应的语义校准任务。

@@ -81,3 +81,4 @@
 - 将主运行 `020209Z` 与定向复测 `020421Z` 合并为 v0.2 最终 20 条结果，生成 `docs/mastery-protocol/V0_2_REVIEW_DRAFT.md` 与 `V0_2_AI_INITIAL_REVIEW.md`。机器辅助检查显示四类场景均无类别串线、自动量表 20/20 通过；人工结论、差异分类和发布决定仍保持待确认。
 - 完整回归再次通过：186 tests，Ruff 与 `git diff --check` 通过；提交 `fb89f67` 已同步到 `origin/main` 与协作分支。
 - 完成试用前隔离环境预检：`tmp/trial-preflight.db` 从 0 迁移到 5，Fake 种子生成 4 条历史/3 个知识状态/3 个错题/3 个到期复习；健康检查全部 healthy，v0.2 dry-run 20/20 且零网络、零费用。该结果已写入 7 天试用准备清单，不替代真实试用。
+- 增加 `V0_2_AI_SUGGESTED_REVIEW.md`，按 20 个 `case_id` 给出 AI 初审候选结论和人工重点关注项；未填写人工复核列，未改变 v0.2 发布门槛。

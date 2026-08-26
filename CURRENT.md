@@ -33,6 +33,7 @@ Sprint 1：用真实 Provider 验证 `evaluator-v0.1` 能否区分充分理解�
 - v0.2 的协议约束和边界提示已修复并通过离线测试，但完整批量结果仍有随机结构波动，20 条人工语义复核和发布决定仍未完成；v0.2 暂不设为默认。
 - 已生成 [v0.2 人工复核草稿](docs/mastery-protocol/V0_2_REVIEW_DRAFT.md)，20 行均标记为“待确认”，没有把自动通过冒充人工结论。
 - 已生成 [v0.2 AI 初审摘要](docs/mastery-protocol/V0_2_AI_INITIAL_REVIEW.md)：20/20 自动量表通过，并按四种场景做了可追溯的形态检查；没有把 AI 初审写成人工语义结论。
+- 已生成 [v0.2 AI 建议复核表](docs/mastery-protocol/V0_2_AI_SUGGESTED_REVIEW.md)：20 条逐案例候选结论和重点疑点，仍要求负责人回看原始证据后签字。
 
 ## Resume Point
 
