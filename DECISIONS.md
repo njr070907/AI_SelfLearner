@@ -70,3 +70,9 @@
 - 产品正式枚举改为 `no_clue`（完全未掌握）和 `re_learn`（重新学习），不再把 `not_evident/re_explain` 作为新协议输出。
 - `mastery-protocol-v0.3-golden-baseline` 与 `learning-policy-v0.3-golden-baseline` 承载该语义变更；旧数据库和旧事件在读取时做兼容映射，避免破坏历史证据。
 - v0.2 真实运行记录仍作为历史实验保存；人工复核时，旧枚举与 v0.3 正式枚举不一致要归类为 `mastery`/`action` 偏差。
+
+## 2026-08-26 — 明确错误概念统一进入重新学习
+
+- 当 `ProviderObservation.possible_misconceptions` 非空且有原答证据时，掌握等级仍按保守规则记为 `fragile`，但 Learning Policy 不再推荐 `review`，统一输出 `re_learn`。
+- 原因是明确错误概念不是普通复习需求，而是需要先重建概念，再用新例子验证；错误证据仍完整保留在事件历史和错题记录中。
+- 该动作语义变更升级为 `mastery-protocol-v0.4-golden-baseline` / `learning-policy-v0.4-golden-baseline`；v0.2 的 `review` 结果保留为历史输出，人工校准归类为 `action` 偏差。

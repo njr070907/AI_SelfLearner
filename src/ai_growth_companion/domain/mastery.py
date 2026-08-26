@@ -9,8 +9,8 @@ from ai_growth_companion.schemas.diagnosis import (
     UnderstandingLevel,
 )
 
-DEMO_PROTOCOL_VERSION = "mastery-protocol-v0.3-golden-baseline"
-DEMO_POLICY_VERSION = "learning-policy-v0.3-golden-baseline"
+DEMO_PROTOCOL_VERSION = "mastery-protocol-v0.4-golden-baseline"
+DEMO_POLICY_VERSION = "learning-policy-v0.4-golden-baseline"
 
 
 class DemoMasteryEngine:
@@ -74,8 +74,8 @@ class DemoLearningPolicy:
     ) -> LearningAction:
         """Return exactly one deterministic action for the fake experiment."""
         if observation.possible_misconceptions:
-            action_type = ActionType.REVIEW
-            instruction = "先核对并修正报告中的可能误区，再用自己的话重新解释。"
+            action_type = ActionType.RE_LEARN
+            instruction = "先重新学习并纠正错误概念，再用自己的话解释一个新例子。"
         elif decision.mastery_level is MasteryLevel.NO_CLUE:
             action_type = ActionType.RE_LEARN
             instruction = "先重新学习核心概念，再用一个具体例子检查是否形成理解。"

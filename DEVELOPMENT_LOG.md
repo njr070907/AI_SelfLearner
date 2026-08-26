@@ -84,3 +84,4 @@
 - 增加 `V0_2_AI_SUGGESTED_REVIEW.md`，按 20 个 `case_id` 给出 AI 初审候选结论和人工重点关注项；未填写人工复核列，未改变 v0.2 发布门槛。
 - 根据产品负责人复核意见升级 Mastery Protocol：`no_clue` 表示“完全未掌握”，`re_learn` 表示“重新学习”；协议/策略版本升至 v0.3，UI、黄金集、Schema、测试和旧数据库读取兼容同步更新。第 4 条人工结论改归类为 `mastery/action` 偏差。
 - v0.3 完整回归通过：187 tests、Ruff、Mypy；Fake 20/20 自动通过，新的 `no_clue/re_learn` 已在真实应用组合根生效，旧 v5 数据库追加写入预检通过。
+- 根据人工复核反馈升级 Mastery Protocol v0.4：只要 `possible_misconceptions` 有明确原答证据，掌握等级保持 `fragile`，推荐动作统一为 `re_learn`，不再使用 `review` 作为默认修复动作；更新黄金集、UI 回归和确定性策略测试。

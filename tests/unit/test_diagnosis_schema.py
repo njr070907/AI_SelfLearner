@@ -74,14 +74,14 @@ def test_v03_no_clue_and_re_learn_are_canonical_with_legacy_read_compatibility()
         confidence=0.95,
         evidence_ids=[],
         reason="没有足够证据",
-        protocol_version="mastery-protocol-v0.3-golden-baseline",
+        protocol_version="mastery-protocol-v0.4-golden-baseline",
     )
     action = LearningAction(
         action_type="re_explain",
         instruction="重新学习核心概念",
         reason="完全未掌握",
         evidence_ids=[],
-        policy_version="learning-policy-v0.3-golden-baseline",
+        policy_version="learning-policy-v0.4-golden-baseline",
     )
 
     assert decision.mastery_level is MasteryLevel.NO_CLUE

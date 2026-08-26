@@ -35,7 +35,7 @@
 | 2. 错题本（用户可操作） | 11% | 100% | 11.0% | 已完成并通过 PR #59 合并 | [#34](https://github.com/njr070907/AI_SelfLearner/issues/34)、[#35](https://github.com/njr070907/AI_SelfLearner/issues/35) |
 | 3. 复习与复测（用户可操作） | 11% | 100% | 11.0% | 已完成并通过 PR #59 合并 | [#36](https://github.com/njr070907/AI_SelfLearner/issues/36)、[#37](https://github.com/njr070907/AI_SelfLearner/issues/37) |
 | 4. 反馈、长期状态与趋势 | 15% | 100% | 15.0% | 后端和前端进度/趋势/反馈路径已合并 | [#38](https://github.com/njr070907/AI_SelfLearner/issues/38) |
-| 5. 真实 AI 发布与评测 | 14% | 75% | 10.5% | 固定模型、Provider 安全边界和 v0.2 受控实验已有；协议已升级 v0.3，需完成旧结果重校准、20 条人工语义验收和发布决定 | [#24](https://github.com/njr070907/AI_SelfLearner/issues/24)、[#25](https://github.com/njr070907/AI_SelfLearner/issues/25)、[#26](https://github.com/njr070907/AI_SelfLearner/issues/26) |
+| 5. 真实 AI 发布与评测 | 14% | 75% | 10.5% | 固定模型、Provider 安全边界和 v0.2 受控实验已有；协议已升级 v0.4，需完成旧结果重校准、20 条人工语义验收和发布决定 | [#24](https://github.com/njr070907/AI_SelfLearner/issues/24)、[#25](https://github.com/njr070907/AI_SelfLearner/issues/25)、[#26](https://github.com/njr070907/AI_SelfLearner/issues/26) |
 | 6. 全链路集成、7 天试用与发布验收 | 14% | 50% | 7.0% | Fake UI 全链路、迁移/启动/错误恢复已验收；7 天试用和发布检查待完成 | [#39](https://github.com/njr070907/AI_SelfLearner/issues/39) |
 | 7. 本地资料库基础版 | 8% | 100% | 8.0% | 上传、查看、下载、重命名、替换、删除已完成；不含自动解析/RAG | 本次新增 |
 | **合计** | **100%** |  | **89.5%** | **约 90%** |  |

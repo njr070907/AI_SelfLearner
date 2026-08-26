@@ -13,7 +13,7 @@
 - [x] Streamlit AppTest 覆盖完整 Fake 自学闭环和刷新后的持久化状态。
 - [x] `localhost:8511` Desktop（1440 × 1000）实际浏览器验收通过，无横向溢出。
 - [x] `localhost:8511` Narrow（390 × 844）实际浏览器验收通过，移动侧栏和深色控件可用且无横向溢出。
-- [x] 仓库完整回归通过：187 tests、Ruff、format、mypy、Streamlit smoke、Secret Scan、黄金集校验、Prompt dry-run 和依赖审计。
+- [x] 仓库完整回归通过：188 tests、Ruff、format、mypy、Streamlit smoke、Secret Scan、黄金集校验、Prompt dry-run 和依赖审计。
 - [x] [PR #59](https://github.com/njr070907/AI_SelfLearner/pull/59) 已合并，#35/#37 已完成，#39 进入连续试用与发布验收阶段。
 
 ## 2026-08-26 试用前预检
@@ -22,7 +22,7 @@
 - 使用 `preflight-check` 种子生成演示工作区：4 条历史、3 个知识状态、3 个错题、3 个到期复习项目；未删除已有数据，网络调用 0，付费调用 0。
 - 应用健康检查：liveness、readiness、Fake Provider 均为 `healthy`，数据库版本 5/5。
 - `evaluator-v0.2` dry-run：20 个 Prompt envelope 全部渲染成功，Provider 调用 0，预计费用 `$0`。
-- 协议 v0.3 预检：Fake 全量评测 20/20 自动通过，正式输出包含 `no_clue/re_learn`；旧 v0.2 数据库继续可读并可追加新记录。
+- 协议 v0.4 预检：Fake 全量评测 20/20 自动通过，正式输出包含 `no_clue/re_learn`，明确错误概念统一进入 `re_learn`；旧 v0.2 数据库继续可读并可追加新记录。
 - 该预检证明 Fake 试用环境可以启动，不代表真实 DeepSeek 语义已经通过，也不计入 7 个自然日。
 
 ## 固定试用环境

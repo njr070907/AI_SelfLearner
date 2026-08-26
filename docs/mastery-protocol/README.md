@@ -1,7 +1,7 @@
 # Mastery Protocol
 
 > 状态：Sprint 1 黄金基线
-> 版本：`mastery-protocol-v0.3-golden-baseline`
+> 版本：`mastery-protocol-v0.4-golden-baseline`
 > 所有者：Founder / Product Owner  
 > 重要说明：当前版本只定义可实验边界，不代表掌握判断规则已经通过真实用户验证。
 
@@ -65,6 +65,8 @@ Learning Policy 只选择一个主要动作：
 
 每个动作包含 `instruction`、`reason`、`evidence_ids` 和策略版本。用户可以接受、跳过或纠正，跳过不能被解释为负面人格或动机证据。
 
+确定性策略的优先级是：明确错误概念 → `re_learn`；没有证据 → `re_learn`；有机制或边界缺口 → `re_learn`；只有覆盖核心机制且没有缺口时 → `practice`。`review` 保留给明确的复习场景，不再作为错误概念的默认修复动作。
+
 ## 6. 事件历史与当前状态
 
 数据库同时保存：
@@ -102,6 +104,6 @@ Fake 场景至少覆盖：`strong`、`partial`、`misconception`、`insufficient
 
 首轮复核进一步确定：规则、公式和题目已提示例子的复述只能支持 `fragile`；`partial` 回答类型不自动映射为 `developing`；无法识别具体误区时，仍可根据明确的不会解释或应用，高置信度判定当前 `no_clue`（完全未掌握）；下一步使用 `re_learn`（重新学习）；任何一次结果都不得推断为永久知识储备或能力结论。
 
-`mastery-protocol-v0.3-golden-baseline` 已将这些决定写入确定性基线：单次回答仍有机制或边界缺口时最多为 `fragile`；`developing` 需要后续未提示任务中的迁移证据。`observation_confidence` 只表示观察提取的可靠性，所以“明确表示不会”可以同时产生高置信度观察和 `no_clue` 决定。
+`mastery-protocol-v0.4-golden-baseline` 已将这些决定写入确定性基线：单次回答仍有机制或边界缺口时最多为 `fragile`；明确错误概念时仍为 `fragile`，但下一步固定为 `re_learn`；`developing` 需要后续未提示任务中的迁移证据。`observation_confidence` 只表示观察提取的可靠性，所以“明确表示不会”可以同时产生高置信度观察和 `no_clue` 决定。
 
-旧数据库和旧事件中的 `not_evident/re_explain` 会在读取时兼容映射为 `no_clue/re_learn`；新代码只生成 v0.3 枚举，避免破坏已有学习历史。
+旧数据库和旧事件中的 `not_evident/re_explain` 会在读取时兼容映射为 `no_clue/re_learn`；新代码只生成 v0.4 协议下的正式枚举，避免破坏已有学习历史。

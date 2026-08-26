@@ -154,7 +154,7 @@ def test_user_can_complete_fake_diagnosis_in_rendered_app(
     ("scenario", "mastery_copy", "action_copy"),
     [
         ("partial", "理解还不稳定", "重新学习"),
-        ("misconception", "理解还不稳定", "复习概念"),
+        ("misconception", "理解还不稳定", "重新学习"),
         ("insufficient_evidence", "完全未掌握", "重新学习"),
     ],
 )
