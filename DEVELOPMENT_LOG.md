@@ -109,3 +109,4 @@
 - 为教学服务增加最小主题锚点门槛：标题、摘要或学习目标完全不提用户主题时拒绝保存并返回 `TEACHING_CONTENT_NOT_RELEVANT`；新增故意跑题 Provider 的单元测试，全量回归更新为 204 tests，真实语义验收仍未替代。
 - 教学章节增加“查看本节参考原文”折叠区，把结构化来源摘录直接放在当前讲解旁；不新增数据库字段，不把来源展示误作语义正确性证明。
 - 使用临时 SQLite 和临时端口重新运行 `scripts/smoke_streamlit.py`，真实 Streamlit 进程启动并返回 HTTP 200；迁移 7/7 和 Fake 模式均保持零网络、零付费。
+- 产品负责人授权使用现有 Key 后，固定 `deepseek-v4-flash-vision-exp` 适配器单次真实请求成功返回结构化教学 JSON（286 输入、1085 输出、1371 总 tokens）；端到端 TeachingService 本轮未落库，未把适配器成功冒充完整教学验收，详见 `TEACHING_REAL_ACCEPTANCE_20260826.md`。
