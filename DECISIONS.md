@@ -88,3 +88,4 @@
 - `possible_misconceptions` 非空时，初始动作也统一为 `review`，先让学习者核对错误概念并完成复习题；不能把一次错误回答直接等同于需要从头学习。
 - 复习阶段通过 `review_phase` 标记区分：复习后仍为 `no_clue`/`fragile`、仍有缺口或误区时输出 `re_learn`；复习后证据充分则进入 `practice`。
 - 该策略变更升级为 `mastery-protocol-v0.6-golden-baseline` / `learning-policy-v0.6-golden-baseline`，已同步更新 20 条黄金量表和人工复核记录。
+- 20 条 v0.2 真实结果已完成逐条人工语义复核并确认；v0.6 作为当前 Mastery Protocol golden baseline，人工校准工作完成，但不自动授权将 `evaluator-v0.2` 设为默认生产协议，仍需独立完成发布边界和连续试用验收。

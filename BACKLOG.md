@@ -20,7 +20,7 @@
 
 ## P0 — 完整自学 MVP
 
-这是当前从“工程底座”走向“用户可以正常使用的完整自学产品”的主队列。资料库基础版已完成；按最终用户验收重新校准的总进度约 **90%**，预计还需 **4–9 个有效工作日**，另需至少 7 个自然日试用；完整阶段、权重、时间估算、接口边界和停止条件见 [`docs/roadmap/FULL_SELF_STUDY_MVP_PLAN.md`](docs/roadmap/FULL_SELF_STUDY_MVP_PLAN.md) 和 [`docs/roadmap/MVP_PROGRESS.md`](docs/roadmap/MVP_PROGRESS.md)。
+这是当前从“工程底座”走向“用户可以正常使用的完整自学产品”的主队列。资料库基础版和 20 条人工语义复核已完成；按最终用户验收重新校准的总进度约 **92%**，预计还需 **1–3 个有效工作日**，另需至少 7 个自然日试用；完整阶段、权重、时间估算、接口边界和停止条件见 [`docs/roadmap/FULL_SELF_STUDY_MVP_PLAN.md`](docs/roadmap/FULL_SELF_STUDY_MVP_PLAN.md) 和 [`docs/roadmap/MVP_PROGRESS.md`](docs/roadmap/MVP_PROGRESS.md)。
 
 - [x] [#31](https://github.com/njr070907/AI_SelfLearner/issues/31) 锁定完整自学 MVP 范围与数据/服务契约。
 - [x] [#32](https://github.com/njr070907/AI_SelfLearner/issues/32) 后端：实现完整教学闭环 API 与领域模型。
@@ -42,8 +42,8 @@
 - [x] 汇总 Prompt v0.1 的首条误判：模型把未列出的 ε-δ 深入理解当作 gap；适配器已加入 coverage scope guard，保留 `evaluator-v0.1` 版本并等待下一轮受控验证。
 - [ ] 根据稳定真实输出决定是否正式发布 Prompt v0.2。
 - [x] [#24] 完成 Prompt v0.2 语义稳定性实验：固定模型、零重试、受控小样本/完整批量、误判分类和定向修复；仍不代表已发布。
-- [ ] [#25] 完成 20 条真实结果人工语义复核，记录自动结论与人工结论的差异。
-- [ ] [#26] 建立自动结果与人工结论的脱敏校准报告。
+- [x] [#25] 完成 20 条真实结果人工语义复核，记录自动结论与人工结论的差异。
+- [x] [#26] 建立自动结果与人工结论的脱敏校准报告。
 - [x] 生成 v0.2 AI 初审摘要：仅记录自动量表与场景形态检查，明确保留人工语义复核门槛。
 - [x] 生成 v0.2 逐案例 AI 建议复核表，帮助负责人优先检查边界案例；不替代人工结论。
 - [x] 根据产品负责人确认，将 Mastery Protocol 正式枚举更新为 `no_clue` / `re_learn`，并补充旧数据读取兼容与测试。

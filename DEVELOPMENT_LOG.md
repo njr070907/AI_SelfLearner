@@ -89,3 +89,4 @@
 - v0.5 回归通过：189 tests、Ruff、format、Mypy；Fake 黄金集 20/20 自动通过，含明确忘记措辞的案例先输出 `review`，其余错误概念仍输出 `re_learn`。
 - v0.6 回归通过：190 tests、Ruff、format、Mypy；Fake 黄金集 20/20 自动通过，错误概念和忘记类回答先输出 `review`，复习阶段低掌握才输出 `re_learn`。
 - 根据产品负责人进一步确认，错误概念也必须先复习再复测；升级 Mastery Protocol v0.6，增加 `review_phase`：复习后仍为 `no_clue`/`fragile` 或仍有误区时才输出 `re_learn`，复习后证据充分则进入 `practice`。
+- 完成 20 条 Prompt v0.2 真实结果人工语义复核：20/20 已由产品负责人在聊天中逐条确认；更新 `V0_2_REVIEW_DRAFT.md`、`REAL_SEMANTIC_CALIBRATION.md`、进度面板和 Backlog，阶段 5 从 75% 更新为 90%，总 MVP 进度约 92%。剩余为发布边界确认和至少 7 个自然日连续试用。

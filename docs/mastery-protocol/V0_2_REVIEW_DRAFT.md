@@ -1,6 +1,6 @@
-# Prompt v0.2 人工复核草稿
+# Prompt v0.2 人工复核结果
 
-> 这是一份机器辅助草稿，不是产品负责人已经批准的人工结论。它把最终 v0.2 批量运行和两条定向复测合并，方便逐条阅读原始回答、证据摘录和 rubric 后确认。当前协议已进入 v0.6：`no_clue` 表示“完全未掌握”，`re_learn` 表示“重新学习”，明确错误概念和明确自述忘记都先进入 `review`，复习后再决定是否 `re_learn`；表中 v0.2 的旧枚举保留为历史自动输出，不能直接当作 v0.6 结论。
+> 这份记录已完成 20 条人工语义复核。它把最终 v0.2 批量运行和两条定向复测合并，并保留原始自动结果、人工结论和差异分类，作为 v0.6 校准依据。当前协议已进入 v0.6：`no_clue` 表示“完全未掌握”，`re_learn` 表示“重新学习”，明确错误概念和明确自述忘记都先进入 `review`，复习后再决定是否 `re_learn`；表中 v0.2 的旧枚举保留为历史自动输出，不能直接当作 v0.6 结论。
 
 ## 来源与口径
 
@@ -10,7 +10,7 @@
 - 合并后 20 条案例均有成功且自动量表通过的最终结果；其中两条使用定向复测结果覆盖主运行中的类型失败。
 - `自动通过` 只代表结构、证据摘录、掌握等级、动作和置信度符合当前自动 rubric，不代表人工语义已经确认。
 
-## 逐案例待确认清单
+## 逐案例人工复核清单（20/20 已完成）
 
 | case_id | 最终来源 | 自动结果 | 自动检查 | 人工结论 | 差异分类 | 复核备注 |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -33,11 +33,11 @@
 | `hm-definite-integral-strong` | `020421Z` | `solid / practice / 0.90` | pass | 一致 | `no_difference` | 用户确认通过；回答完整覆盖黎曼和构造、取样与极限独立性、带符号面积和微积分基本定理，判为 solid/practice 合理。 |
 | `hm-definite-integral-partial` | `020209Z` | `fragile / re_explain / 0.85` | pass | `fragile / re_learn` | `no_difference` | 用户确认通过；回答只掌握几何直观和求导公式，缺少黎曼和构造、取样无关性、带符号面积和求导机制；没有明确忘记触发词，按 v0.6 重新学习。 |
 | `hm-definite-integral-misconception` | `020209Z` | `fragile / review / 0.95` | pass | `fragile / review` | `no_difference` | 用户确认通过；回答包含定积分非负、定义等同原函数计算、变上限导数取 f(a) 三个明确误区，按 v0.6 先复习再复测。 |
-| `hm-definite-integral-insufficient` | `020209Z` | `not_evident / re_explain / 0.90` | pass | 待确认 |  |  |
+| `hm-definite-integral-insufficient` | `020209Z` | `not_evident / re_explain / 0.90` | pass | `no_clue / review` | `mastery; action` | 用户确认通过；明确说“都忘了”，当前掌握按 `no_clue` 记录，但按 v0.6 先复习，再根据复测决定是否 `re_learn`。 |
 
 ## 复核规则
 
 1. 打开 `evals/runs/` 中对应运行记录，阅读原始回答、`evidence.answer_excerpt`、`gaps`、`possible_misconceptions` 和 `limitations`。
 2. 对照黄金集每条案例的 `rubric`，只填写人工结论、差异分类和复核备注；不要因为自动通过就直接填“一致”。
 3. 差异分类使用 `mastery`、`action`、`confidence`、`evidence_scope`、`gap_boundary`、`misconception` 或 `no_difference`。
-4. 20 行全部确认后，才能决定是否把 `evaluator-v0.2` 设为默认，并关闭 #25/#26。
+4. 20 行已全部确认；#25/#26 的人工复核与校准工作已完成。是否把 `evaluator-v0.2` 设为默认，仍需单独完成发布边界确认，不由本表自动决定。

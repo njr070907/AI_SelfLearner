@@ -106,4 +106,4 @@ Fake 场景至少覆盖：`strong`、`partial`、`misconception`、`insufficient
 
 `mastery-protocol-v0.6-golden-baseline` 已将这些决定写入确定性基线：单次回答仍有机制或边界缺口时最多为 `fragile`；明确错误概念和自述忘记都先进入 `review`，复习结果再决定是否转 `re_learn`；`developing` 需要后续未提示任务中的迁移证据。`observation_confidence` 只表示观察提取的可靠性，所以“明确表示不会”可以同时产生高置信度观察和 `no_clue` 决定。
 
-旧数据库和旧事件中的 `not_evident/re_explain` 会在读取时兼容映射为 `no_clue/re_learn`；新代码只生成 v0.5 协议下的正式枚举，避免破坏已有学习历史。
+旧数据库和旧事件中的 `not_evident/re_explain` 会在读取时兼容映射为 `no_clue/re_learn`；新代码只生成 v0.6 协议下的正式枚举，避免破坏已有学习历史。

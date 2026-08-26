@@ -15,3 +15,5 @@
 - 教学页面、错题本、复习复测、反馈/纠正、长期状态进度页和 Fake 自学全链路（PR #58、PR #59）。
 - 合并后的 `main` 通过 179 tests、Ruff、format、Mypy、Streamlit smoke、Secret Scan、黄金集结构校验、Prompt dry-run 和 pip-audit。
 - 本地资料库基础版：新增 SQLite 迁移、生成安全存储名的文件服务、上传/查看/下载/重命名/替换/删除页面与相关回归测试；支持 PDF、Markdown、TXT，单文件上限 20 MB，明确不自动解析或调用 RAG。
+- Prompt v0.2 真实结果 20/20 条人工语义复核完成；按 Mastery Protocol v0.6 记录 `no_clue`/`re_learn` 正式枚举及错误概念、明确遗忘先 `review` 的分流，自动结果与人工结论差异已归档。
+- 真实语义校准报告已从中间稿更新为最终人工复核记录；#25/#26 的复核和校准工作完成，但 v0.2 仍需发布边界确认后才可设为默认。

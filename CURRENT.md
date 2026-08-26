@@ -6,14 +6,14 @@ Sprint 1：用真实 Provider 验证 `evaluator-v0.1` 能否区分充分理解�
 
 ## MVP 总进度
 
-**约 90% / 100%** · **阶段 1–4 与阶段 7 资料库基础版已经完成**；Fake 全链路已验收，真实语义验收、发布边界和连续试用仍待完成。预计还需 **4–9 个有效工作日**，另需真实经过至少 7 个自然日；自动化测试不能替代连续试用。
+**约 92% / 100%** · **阶段 1–4 与阶段 7 资料库基础版已经完成，20 条真实结果人工语义复核也已完成**；Fake 全链路已验收，发布边界和连续试用仍待完成。预计还需 **1–3 个有效工作日**，另需真实经过至少 7 个自然日；自动化测试不能替代连续试用。
 
-完整阶段权重和计算方式见 [`docs/roadmap/MVP_PROGRESS.md`](docs/roadmap/MVP_PROGRESS.md)。这是按最终用户可正常使用的功能验收权重，不按代码量或已经经过的时间计算；当前 90% 不代表日历时间已经过去 90%。
+完整阶段权重和计算方式见 [`docs/roadmap/MVP_PROGRESS.md`](docs/roadmap/MVP_PROGRESS.md)。这是按最终用户可正常使用的功能验收权重，不按代码量或已经经过的时间计算；当前 92% 不代表日历时间已经过去 92%。
 
 ## 当前状态
 
 - 分支：`codex/accept-self-study-mvp`（与 `origin/main` 同步，最新提交 `c6f4113`）
-- 任务：DeepSeek `deepseek-v4-flash-vision-exp` 的评测基线、资料库基础 CRUD、教学、错题本、复习复测、反馈/长期状态页面和 Fake 全链路均已完成。真实 DeepSeek 语义验收、发布边界和实际 7 个自然日试用仍未完成。
+- 任务：DeepSeek `deepseek-v4-flash-vision-exp` 的评测基线、资料库基础 CRUD、教学、错题本、复习复测、反馈/长期状态页面、Fake 全链路和 20 条人工语义复核均已完成。发布边界和实际 7 个自然日试用仍未完成。
 - 约束：默认 Fake；真实运行必须显式确认；每个案例零重试；任何成功结果仍需人工语义复核。
 
 ## 最近验证
@@ -28,10 +28,10 @@ Sprint 1：用真实 Provider 验证 `evaluator-v0.1` 能否区分充分理解�
 - `deepseek-evaluator-v0.1-20260824T011349Z`：4/4 成功、自动检查 4/4 通过、3936/1233 tokens；四个场景分别得到 `solid/practice`、`fragile/re_explain`、`fragile/review`、`not_evident/re_explain`。
 - v0.1 的完整 20 案例真实调用均成功；多轮回归自动检查在 17–19/20 之间波动，基线运行 `deepseek-evaluator-v0.1-20260824T015320Z` 为 20/20 结构成功、17/20 自动通过、25274/7049 tokens。
 - 剩余失败均为语义置信度或 gap 边界的随机波动，未出现新的 API、JSON、Schema 或证据摘录故障。
-- 已将该轮自动结果与黄金量表的差异写入 [`docs/mastery-protocol/REAL_SEMANTIC_CALIBRATION.md`](docs/mastery-protocol/REAL_SEMANTIC_CALIBRATION.md)；报告仍标记为“中间校准”，不替代 20 条人工语义复核。
+- 已将该轮自动结果与黄金量表的差异写入 [`docs/mastery-protocol/REAL_SEMANTIC_CALIBRATION.md`](docs/mastery-protocol/REAL_SEMANTIC_CALIBRATION.md)；报告已更新为人工复核完成后的校准记录，发布边界仍单独保留。
 - 2026-08-26 使用固定 `deepseek-v4-flash-vision-exp` 完成 Prompt v0.2 受控实验：运行 `020209Z` 为 18/20 结构成功且 18/18 自动通过；两条是 `evidence_id` 类型错误，随后运行 `020421Z` 定向复测 2/2 通过。此前 3 条置信度/边界失败也在 `020147Z` 定向复测中 3/3 通过。
-- v0.2 的协议约束和边界提示已修复并通过离线测试；产品负责人随后明确将“完全未掌握/重新学习”固化为 v0.3 的 `no_clue/re_learn`，在 v0.4–v0.5 完善错误概念和自述忘记的复习分流，并在 v0.6 统一为“先复习、复测后再决定是否重新学习”，因此 v0.2 旧结果需要按新协议重新校准，20 条人工语义复核和发布决定仍未完成。
-- 已生成 [v0.2 人工复核草稿](docs/mastery-protocol/V0_2_REVIEW_DRAFT.md)，20 行均标记为“待确认”，没有把自动通过冒充人工结论。
+- v0.2 的协议约束和边界提示已修复并通过离线测试；产品负责人随后明确将“完全未掌握/重新学习”固化为 v0.3 的 `no_clue/re_learn`，在 v0.4–v0.5 完善错误概念和自述忘记的复习分流，并在 v0.6 统一为“先复习、复测后再决定是否重新学习”。
+- 已完成 [v0.2 人工复核结果](docs/mastery-protocol/V0_2_REVIEW_DRAFT.md)：20/20 条逐案例确认，差异已按 v0.6 正式枚举和复习分流规则记录；不把自动通过冒充人工结论。
 - 已生成 [v0.2 AI 初审摘要](docs/mastery-protocol/V0_2_AI_INITIAL_REVIEW.md)：20/20 自动量表通过，并按四种场景做了可追溯的形态检查；没有把 AI 初审写成人工语义结论。
 - 已生成 [v0.2 AI 建议复核表](docs/mastery-protocol/V0_2_AI_SUGGESTED_REVIEW.md)：20 条逐案例候选结论和重点疑点，仍要求负责人回看原始证据后签字。
 - 已将 Mastery Protocol 更新为 v0.6：`no_clue`=完全未掌握、`re_learn`=重新学习；明确错误概念和明确自述忘记都先推荐 `review`，复习后掌握仍低再转 `re_learn`，旧数据库值读取时兼容。
@@ -39,7 +39,7 @@ Sprint 1：用真实 Provider 验证 `evaluator-v0.1` 能否区分充分理解�
 
 ## Resume Point
 
-`origin/main` 已包含 PR #59 的 #35 错题本、#37 复习复测和 #39 Fake 全链路集成；资料库基础版、反馈/纠正、长期状态进度页、桌面/窄屏交互和错误恢复均已通过验收。随后仍需完成 20 条人工语义复核、发布边界确认，并按 `docs/roadmap/SEVEN_DAY_TRIAL_READINESS.md` 开始实际 7 天试用。
+`origin/main` 已包含 PR #59 的 #35 错题本、#37 复习复测和 #39 Fake 全链路集成；资料库基础版、反馈/纠正、长期状态进度页、桌面/窄屏交互、错误恢复和 20 条人工语义复核均已通过验收。随后仍需完成发布边界确认，并按 `docs/roadmap/SEVEN_DAY_TRIAL_READINESS.md` 开始实际 7 天试用。
 
 GitHub 工作项：
 
