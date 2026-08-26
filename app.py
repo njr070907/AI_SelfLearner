@@ -2,7 +2,7 @@
 
 import streamlit as st
 
-from ai_growth_companion.application.bootstrap import build_learning_service
+from ai_growth_companion.application.bootstrap import build_document_library, build_learning_service
 from ai_growth_companion.application.health import check_health
 from ai_growth_companion.config import load_settings
 from ai_growth_companion.repositories.database import Database
@@ -35,8 +35,10 @@ def main() -> None:
             "LLM_PAID_CALLS_ALLOWED=true。"
         )
         st.stop()
+    document_library = build_document_library(database)
     render_application(
         service,
+        document_library=document_library,
         settings=settings,
         health_report=health_report,
     )

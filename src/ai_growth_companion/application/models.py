@@ -133,6 +133,20 @@ class FeedbackView(ViewModel):
     created_at: datetime
 
 
+class DocumentView(ViewModel):
+    """Safe document metadata exposed to the UI without a filesystem path."""
+
+    document_id: str
+    filename: str
+    extension: str
+    mime_type: str
+    size_bytes: int
+    sha256: str
+    status: str
+    created_at: datetime
+    updated_at: datetime
+
+
 class WorkspaceSnapshot(ViewModel):
     """One read model for the home, progress, wrong-item, and review pages."""
 

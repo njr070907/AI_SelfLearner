@@ -14,3 +14,4 @@
 - UI 动效、光效、导航指示器、下拉定位和深色主题对比度修复（PR #29）。
 - 教学页面、错题本、复习复测、反馈/纠正、长期状态进度页和 Fake 自学全链路（PR #58、PR #59）。
 - 合并后的 `main` 通过 179 tests、Ruff、format、Mypy、Streamlit smoke、Secret Scan、黄金集结构校验、Prompt dry-run 和 pip-audit。
+- 本地资料库基础版：新增 SQLite 迁移、生成安全存储名的文件服务、上传/查看/下载/重命名/替换/删除页面与相关回归测试；支持 PDF、Markdown、TXT，单文件上限 20 MB，明确不自动解析或调用 RAG。

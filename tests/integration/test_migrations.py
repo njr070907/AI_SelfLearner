@@ -45,7 +45,13 @@ def test_initial_migration_creates_event_and_projection_tables(tmp_path: Path) -
         }
         foreign_keys_enabled = connection.execute("PRAGMA foreign_keys").fetchone()[0]
 
-    assert {"learning_events", "concept_states", "provider_observations", "wrong_items"} <= tables
+    assert {
+        "learning_events",
+        "concept_states",
+        "provider_observations",
+        "wrong_items",
+        "documents",
+    } <= tables
     assert foreign_keys_enabled == 1
 
 

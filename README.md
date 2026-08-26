@@ -16,6 +16,7 @@ Sprint 1 已开始建立 Mastery Protocol 的真实评测基线。第一批 20 �
 - 将原始回答、诊断尝试和学习事件保存到 SQLite。
 - 保存追加式 Event History，并将 Current State 作为可重新计算的投影。
 - Provider 失败时保留用户回答，并可使用同一回答重试。
+- 资料库支持上传、查看、下载、重命名、替换和删除 PDF、Markdown、TXT 文件；文件保存在本地，暂不自动解析。
 - 运行数据库迁移、健康检查、自动测试、Secret Scan 和真实启动冒烟测试。
 - 在 GitHub Actions 中执行阻断检查和非阻断质量报告。
 

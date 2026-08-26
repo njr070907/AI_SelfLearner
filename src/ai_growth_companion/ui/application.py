@@ -7,6 +7,7 @@ from uuid import uuid4
 
 import streamlit as st
 
+from ai_growth_companion.application.document_library import DocumentLibraryService
 from ai_growth_companion.application.health import HealthReport, HealthState
 from ai_growth_companion.application.learning_service import LearningService
 from ai_growth_companion.application.models import DiagnosisView, HistoryItem, WorkspaceSnapshot
@@ -16,6 +17,7 @@ from ai_growth_companion.domain.feedback import FeedbackVerdict
 from ai_growth_companion.domain.session import InputValidationError, InvalidSessionState
 from ai_growth_companion.domain.wrong_items import WrongItemStatus
 from ai_growth_companion.providers.fake import FakeScenario
+from ai_growth_companion.ui.document_library import render_document_library
 from ai_growth_companion.ui.mistake_notebook import render_mistake_notebook
 from ai_growth_companion.ui.motion import render_pointer_glow
 from ai_growth_companion.ui.presentation import (
@@ -46,6 +48,7 @@ DEFAULT_FAKE_SCENARIO_INDEX = FAKE_SCENARIO_OPTIONS.index(FakeScenario.PARTIAL)
 def render_application(
     service: LearningService,
     *,
+    document_library: DocumentLibraryService | None = None,
     settings: Settings,
     health_report: HealthReport,
 ) -> None:
@@ -73,6 +76,7 @@ def render_application(
     view_slugs = {
         "今日": "today",
         "学习": "learn",
+        "资料库": "documents",
         "错题": "mistakes",
         "复习": "review",
         "进度": "progress",
@@ -83,6 +87,11 @@ def render_application(
             _render_today(service)
         elif page == "学习":
             _render_learning_flow(service, settings=settings)
+        elif page == "资料库":
+            if document_library is None:
+                st.error("资料库服务尚未配置。")
+            else:
+                render_document_library(document_library)
         elif page == "错题":
             render_mistake_notebook(
                 service,

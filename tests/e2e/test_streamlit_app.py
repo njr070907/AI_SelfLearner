@@ -88,6 +88,14 @@ def open_review(app: AppTest) -> AppTest:
     )
 
 
+def open_documents(app: AppTest) -> AppTest:
+    return (
+        next(item for item in app.sidebar.button if item.key == "nav_documents")
+        .click()
+        .run(timeout=10)
+    )
+
+
 def submit_review_scenario(
     app: AppTest,
     scenario: str,
@@ -338,6 +346,34 @@ def test_mistake_notebook_has_a_clear_empty_state(
     assert "错题" in [item.label for item in app.sidebar.button]
     assert "复习" in [item.label for item in app.sidebar.button]
     assert "进度" in [item.label for item in app.sidebar.button]
+
+
+def test_document_library_has_upload_empty_state_and_navigation(
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    app = open_documents(app_for(tmp_path, monkeypatch, "ui-documents-empty.db"))
+
+    assert not app.exception
+    assert "资料库" in rendered_markdown(app)
+    assert any("资料库还是空的" in item.value for item in app.info)
+    assert "上传资料" in [item.label for item in app.button]
+    assert "资料库" in [item.label for item in app.sidebar.button]
+
+
+def test_document_library_can_upload_and_list_a_text_file(
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    app = open_documents(app_for(tmp_path, monkeypatch, "ui-documents-upload.db"))
+    uploader = next(item for item in app.file_uploader if item.label == "选择要上传的资料")
+    app = uploader.upload("limits.md", b"# Limits\n", "text/markdown").run(timeout=10)
+    app = button_with_label(app, "上传资料").click().run(timeout=10)
+
+    assert not app.exception
+    assert "limits.md" in rendered_markdown(app)
+    assert any("已上传 1 个文件" in item.value for item in app.success)
+    assert any(item.label == "下载" for item in app.download_button)
 
 
 def test_seeded_mistakes_show_all_types_and_support_filtering_and_sorting(
