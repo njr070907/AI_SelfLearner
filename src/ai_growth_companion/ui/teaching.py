@@ -11,6 +11,7 @@ from ai_growth_companion.application.teaching_service import (
     TeachingActivityAttemptView,
     TeachingInputError,
     TeachingLessonView,
+    TeachingReportView,
     TeachingService,
 )
 from ai_growth_companion.providers.base import ProviderError
@@ -125,7 +126,7 @@ def _render_existing_lessons(teaching_service: TeachingService) -> None:
     if not lessons:
         return
 
-    _render_learning_report(lessons)
+    _render_learning_report(teaching_service.get_learning_report(limit=len(lessons)))
     st.markdown('<div class="section-label">我的课程</div>', unsafe_allow_html=True)
     for lesson in lessons:
         activity_count = len(lesson.lesson.interactive_checks)
@@ -150,23 +151,16 @@ def _render_existing_lessons(teaching_service: TeachingService) -> None:
                 st.rerun()
 
 
-def _render_learning_report(lessons: Sequence[TeachingLessonView]) -> None:
+def _render_learning_report(report: TeachingReportView) -> None:
     """Summarize course activity without presenting it as a mastery decision."""
-    completed_courses = sum(lesson.progress.completed_at is not None for lesson in lessons)
-    total_activities = sum(len(lesson.lesson.interactive_checks) for lesson in lessons)
-    answered_attempts = [
-        attempt for lesson in lessons for attempt in _latest_attempts(lesson).values()
-    ]
-    correct_answers = sum(attempt.is_correct for attempt in answered_attempts)
-    completion_rate = (
-        round(len(answered_attempts) / total_activities * 100) if total_activities else 0
-    )
-    accuracy = round(correct_answers / len(answered_attempts) * 100) if answered_attempts else 0
     with st.container(border=True):
         st.markdown('<div class="section-label">学习报告</div>', unsafe_allow_html=True)
         st.markdown(
-            f"已生成课程 **{len(lessons)}** 门 · 已完成 **{completed_courses}** 门 · "
-            f"互动题完成率 **{completion_rate}%** · 已答题正确率 **{accuracy}%**"
+            f"已生成课程 **{report.lesson_count}** 门 · "
+            f"已完成 **{report.completed_lesson_count}** 门 · "
+            f"互动题完成率 **{report.completion_rate}%** · "
+            f"已答题正确率 **{report.accuracy}%** · "
+            f"来源资料 **{report.source_document_count}** 份"
         )
         st.caption(
             "这里统计的是常规课程的阅读/互动记录，不直接代表长期掌握度；掌握结论请看掌握检测和复习记录。"

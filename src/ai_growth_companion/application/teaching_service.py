@@ -1,6 +1,7 @@
 """Application service for source-grounded lesson generation."""
 
 import json
+from collections.abc import Sequence
 from datetime import datetime
 from uuid import uuid4
 
@@ -61,6 +62,19 @@ class TeachingLessonView(BaseModel):
     prompt_version: str
     created_at: datetime
     progress: TeachingProgressView
+
+
+class TeachingReportView(BaseModel):
+    """Backend-owned course activity report, separate from mastery decisions."""
+
+    lesson_count: int
+    completed_lesson_count: int
+    total_activity_count: int
+    answered_activity_count: int
+    correct_activity_count: int
+    completion_rate: int
+    accuracy: int
+    source_document_count: int
 
 
 class TeachingService:
@@ -189,6 +203,48 @@ class TeachingService:
         return tuple(
             self._view(record, self._existing_documents(record.source_document_ids))
             for record in records
+        )
+
+    def get_learning_report(self, *, limit: int = 20) -> TeachingReportView:
+        """Return a consistent report for the conventional teaching workspace."""
+        return self.build_learning_report(self.list_lessons(limit=limit))
+
+    @staticmethod
+    def build_learning_report(lessons: Sequence[TeachingLessonView]) -> TeachingReportView:
+        """Calculate report metrics from persisted latest attempts, not UI state."""
+        latest_attempts: dict[tuple[str, int], TeachingActivityAttemptView] = {}
+        total_activity_count = 0
+        completed_lesson_count = 0
+        source_document_ids: set[str] = set()
+        for lesson in lessons:
+            total_activity_count += len(lesson.lesson.interactive_checks)
+            completed_lesson_count += lesson.progress.completed_at is not None
+            source_document_ids.update(source.document_id for source in lesson.lesson.sources)
+            for attempt in lesson.progress.attempts:
+                key = (lesson.lesson_id, attempt.activity_index)
+                previous = latest_attempts.get(key)
+                if previous is None or attempt.created_at > previous.created_at:
+                    latest_attempts[key] = attempt
+
+        answered_activity_count = len(latest_attempts)
+        correct_activity_count = sum(attempt.is_correct for attempt in latest_attempts.values())
+        return TeachingReportView(
+            lesson_count=len(lessons),
+            completed_lesson_count=completed_lesson_count,
+            total_activity_count=total_activity_count,
+            answered_activity_count=answered_activity_count,
+            correct_activity_count=correct_activity_count,
+            completion_rate=(
+                round(answered_activity_count / total_activity_count * 100)
+                if total_activity_count
+                else 0
+            ),
+            accuracy=(
+                round(correct_activity_count / answered_activity_count * 100)
+                if answered_activity_count
+                else 0
+            ),
+            source_document_count=len(source_document_ids),
         )
 
     def record_activity_attempt(

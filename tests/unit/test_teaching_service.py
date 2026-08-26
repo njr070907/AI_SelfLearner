@@ -255,3 +255,13 @@ def test_lesson_activity_progress_is_persisted_and_idempotent(tmp_path: Path) ->
     assert completed.completed_at is not None
     assert completed.completed_activity_indexes == (1, 2)
     assert teaching.get_lesson(lesson.lesson_id).progress == completed
+
+    report = teaching.get_learning_report()
+    assert report.lesson_count == 1
+    assert report.completed_lesson_count == 1
+    assert report.total_activity_count == 2
+    assert report.answered_activity_count == 2
+    assert report.correct_activity_count == 1
+    assert report.completion_rate == 100
+    assert report.accuracy == 50
+    assert report.source_document_count == 1
