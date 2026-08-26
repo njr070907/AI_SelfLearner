@@ -12,3 +12,5 @@
 - 固定模型真实单案例的审计产物与失败原因已保存到本地 `evals/runs/`（该目录不进入 Git）。
 - Liquid Glass 学习工作区、主题/状态/展示层和 UI E2E 覆盖（PR #28）。
 - UI 动效、光效、导航指示器、下拉定位和深色主题对比度修复（PR #29）。
+- 教学页面、错题本、复习复测、反馈/纠正、长期状态进度页和 Fake 自学全链路（PR #58、PR #59）。
+- 合并后的 `main` 通过 179 tests、Ruff、format、Mypy、Streamlit smoke、Secret Scan、黄金集结构校验、Prompt dry-run 和 pip-audit。

@@ -146,7 +146,7 @@ record_user_correction(event_id, correction) -> ConceptState
 ## 9. 当前下一步
 
 - 后端：开始 #38 长期状态、用户修正和趋势服务，复用教学、错题和复习事件历史。
-- 前端协作者：领取 #33/#35/#37，接入学习、错题和复习页；先使用 Fake fixtures，不等待真实 AI。
+- 前端协作者：#33/#35/#37 页面已经通过 PR #58/#59 合并；后续协作重点转为真实试用反馈和产品验收。
 - 产品负责人：在 #31 中确认“掌握/部分掌握/证据不足/误区”和反馈文案的可接受定义。
 
 相关交接说明见 [`docs/collaboration/HANDOFF.md`](../collaboration/HANDOFF.md)，执行队列见 [`BACKLOG.md`](../../BACKLOG.md)。
