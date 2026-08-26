@@ -123,3 +123,4 @@
 - 系统状态页接入本地导出按钮，使用同一 `UserExportService` 生成可下载 ZIP；新增 AppTest 覆盖并完成全量回归，当前为 211 tests。
 - 修复文本资料安全边界：小于 20 MB 的 Markdown/TXT 教学提取也严格要求 UTF-8，新增非 UTF-8 回归测试；全量回归更新为 212 tests。
 - 真实资料教学验收：使用固定 `deepseek-v4-flash-vision-exp` 对 `Calculus_part_01_pages_0001-0150.pdf` 的 `limits` 主题做单次受控请求，因受限前 30,000 字不足以支持主题而被 `TEACHING_CONTENT_NOT_RELEVANT` 安全拒绝且未落库；未自动重试。随后对主题相关的 `Calculus_part_02_pages_0151-0300.pdf` 做独立单次请求，成功生成 4 类章节和 3 道互动题，答案与来源 ID 结构检查通过，初步内容围绕极限主题；不把一个分卷的初步检查外推为全量发布结论。结果详见 `docs/mastery-protocol/TEACHING_REAL_ACCEPTANCE_20260826.md`。
+- 为解决“大资料必须人工寻找分卷”的问题，新增 `TopicSourceSelector` 与 `TeachingService.recommend_sources()`：对 PDF 首页/中页/末页或文本抽样做本地主题匹配，支持有限中英主题别名，返回页码、匹配分数、命中词、置信度和可审计 document IDs；进程内按文件 SHA-256 缓存抽样，不引入 RAG/向量数据库。实际 22 个分卷验证通过；中置信度自动预选并提示确认，低置信度才强制手动选源。新增 4 个选源契约测试，前端接入仍由协作者完成。

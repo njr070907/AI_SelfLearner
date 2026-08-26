@@ -27,6 +27,18 @@
 
 前端页面可优先调用 `LearningService.get_workspace_snapshot()` 获取一致的 `history`、`concept_states`、`wrong_items` 和 `review_queue`；它只负责组合后端结果，不应在 UI 中重新计算掌握等级、错误分类或复习间隔。
 
+教学资料现在还提供主题选源契约：
+
+```python
+selection = teaching_service.recommend_sources(
+    topic=topic,
+    document_ids=None,  # None=扫描全部资料；传入 tuple 可限制在用户选定范围
+    limit=3,
+)
+```
+
+返回 `TopicSourceSelection`，包含 `matches`（文件名、页码范围、匹配分数、命中词和解释）、`selected_document_ids`、`confidence`、`requires_confirmation` 和 `requires_manual_selection`。推荐器只做本地文字抽样，不调用模型；高置信度可直接使用，中置信度应展示推荐并允许用户增删，低置信度必须让用户手动选择。前端最终仍把用户确认的 document IDs 传给 `TeachingService.generate_lesson()`，不能自行读取文件或重新计算来源。
+
 ## 新成员首次操作
 
 ```powershell

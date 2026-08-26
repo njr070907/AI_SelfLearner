@@ -10,6 +10,10 @@ from pydantic import BaseModel, ConfigDict
 from ai_growth_companion.application.document_library import DocumentLibraryService
 from ai_growth_companion.application.knowledge_extraction import extract_knowledge
 from ai_growth_companion.application.models import DocumentView
+from ai_growth_companion.application.source_selector import (
+    TopicSourceSelection,
+    TopicSourceSelector,
+)
 from ai_growth_companion.domain.events import LOCAL_USER_ID
 from ai_growth_companion.providers.base import ProviderError, TeachingProvider, TeachingRequest
 from ai_growth_companion.repositories.lesson_progress_repository import (
@@ -91,6 +95,21 @@ class TeachingService:
         self.repository = repository
         self.provider = provider
         self.progress_repository = progress_repository
+        self.source_selector = TopicSourceSelector(document_library)
+
+    def recommend_sources(
+        self,
+        *,
+        topic: str,
+        document_ids: tuple[str, ...] | None = None,
+        limit: int = 3,
+    ) -> TopicSourceSelection:
+        """Recommend relevant chunks while keeping manual selection available."""
+        return self.source_selector.recommend(
+            topic=topic,
+            document_ids=document_ids,
+            limit=limit,
+        )
 
     def generate_lesson(
         self,
