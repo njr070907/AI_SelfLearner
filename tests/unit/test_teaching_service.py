@@ -66,6 +66,19 @@ class AlternateTeachingProvider(FakeLLMProvider):
         return ProviderResponse(content=payload, metadata=response.metadata)
 
 
+class PositionalSectionTeachingProvider(FakeLLMProvider):
+    """Emit four ordered sections without a section type to exercise the narrow fallback."""
+
+    def generate_lesson(self, request: TeachingRequest, *, request_id: str) -> ProviderResponse:
+        response = super().generate_lesson(request, request_id=request_id)
+        payload = dict(response.content)
+        payload["sections"] = [
+            {key: value for key, value in section.items() if key not in {"section_type", "type"}}
+            for section in payload["sections"]
+        ]
+        return ProviderResponse(content=payload, metadata=response.metadata)
+
+
 def test_uploaded_material_becomes_a_persisted_lesson(tmp_path: Path) -> None:
     teaching, documents = service_for(tmp_path)
     document = documents.upload(
@@ -167,6 +180,26 @@ def test_teaching_normalizes_common_provider_field_variants(tmp_path: Path) -> N
         == (lesson.lesson.interactive_checks[0].options[0])
     )
     assert lesson.lesson.sources[0].document_id == document.document_id
+
+
+def test_teaching_normalizes_ordered_sections_without_type(tmp_path: Path) -> None:
+    teaching, documents = service_for(tmp_path, provider=PositionalSectionTeachingProvider())
+    document = documents.upload(
+        filename="topic.md", content="# 函数极限\n\n极限描述变化趋势。".encode()
+    )
+
+    lesson = teaching.generate_lesson(
+        topic="函数极限",
+        document_ids=(document.document_id,),
+        request_id="teaching-normalize-positional-1",
+    )
+
+    assert [section.section_type for section in lesson.lesson.sections] == [
+        "concept",
+        "mechanism",
+        "boundary",
+        "example",
+    ]
 
 
 def test_lesson_activity_progress_is_persisted_and_idempotent(tmp_path: Path) -> None:

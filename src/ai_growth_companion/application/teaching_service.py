@@ -282,12 +282,18 @@ class TeachingService:
         ]
 
         normalized_sections: list[dict[str, object]] = []
-        for raw_section in payload.get("sections", []):
+        raw_sections = payload.get("sections", [])
+        section_types = ("concept", "mechanism", "boundary", "example")
+        for index, raw_section in enumerate(raw_sections if isinstance(raw_sections, list) else []):
             if not isinstance(raw_section, dict):
                 continue
             section = dict(raw_section)
             if "section_type" not in section and "type" in section:
                 section["section_type"] = section.pop("type")
+            elif "section_type" not in section and len(raw_sections) == len(section_types):
+                # Some JSON responses omit the field while still following the four-section
+                # order required by the prompt. Only infer this exact, constrained shape.
+                section["section_type"] = section_types[index]
             normalized_sections.append(section)
         payload["sections"] = normalized_sections
 

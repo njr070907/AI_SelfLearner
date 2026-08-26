@@ -13,7 +13,7 @@
 - [x] Streamlit AppTest 覆盖完整 Fake 自学闭环和刷新后的持久化状态。
 - [x] `localhost:8511` Desktop（1440 × 1000）实际浏览器验收通过，无横向溢出。
 - [x] `localhost:8511` Narrow（390 × 844）实际浏览器验收通过，移动侧栏和深色控件可用且无横向溢出。
-- [x] 仓库完整回归通过：205 tests、Ruff、format、mypy、Streamlit smoke、Secret Scan、黄金集校验、Prompt dry-run 和依赖审计。
+- [x] 仓库完整回归通过：206 tests、Ruff、format、mypy、Streamlit smoke、Secret Scan、黄金集校验、Prompt dry-run 和依赖审计。
 - [x] DeepSeek `deepseek-v4-flash-vision-exp` v0.2 20 条真实结果已完成逐条人工语义复核，并按 Mastery Protocol v0.6 归档差异。
 - [x] [PR #59](https://github.com/njr070907/AI_SelfLearner/pull/59) 已合并，#35/#37 已完成，#39 进入连续试用与发布验收阶段。
 
