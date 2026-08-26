@@ -156,9 +156,10 @@ class DeepSeekTeachingProvider:
             "结构为 schema_version、topic、title、summary、learning_objectives、sections、"
             "check_questions、interactive_checks、sources。sections 必须包含 "
             "concept、mechanism、boundary、example 四类，"
-            "每段有 title、explanation、key_points 和可选 example。"
+            "每段有 title、explanation、key_points、可选 example 和 source_document_ids。"
             "interactive_checks 必须有 2–4 道单选题，每道有 prompt、options、"
-            "correct_answer、explanation。sources 只使用输入的资料。"
+            "correct_answer、explanation、source_document_ids。source_document_ids "
+            "只能使用输入资料的 document_id；不要编造来源。"
         )
         user = json.dumps(
             {

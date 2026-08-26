@@ -24,7 +24,7 @@
 
 - [x] [#31](https://github.com/njr070907/AI_SelfLearner/issues/31) 锁定完整自学 MVP 范围与数据/服务契约。
 - [x] [#32](https://github.com/njr070907/AI_SelfLearner/issues/32) 后端：实现完整教学闭环 API 与领域模型。
-- [x] [#33](https://github.com/njr070907/AI_SelfLearner/issues/33) 前端：实现学习教学流程页面（PR #58）。
+- [~] [#33](https://github.com/njr070907/AI_SelfLearner/issues/33) 前端：基础教学页面已完成；常规教学最终版仍在推进（学习入口、章节导航、互动进度和掌握检测分离）。
 - [x] [#34](https://github.com/njr070907/AI_SelfLearner/issues/34) 后端：实现错题本数据模型与服务。
 - [x] [#35](https://github.com/njr070907/AI_SelfLearner/issues/35) 前端：实现错题本页面（PR #59）。
 - [x] [#36](https://github.com/njr070907/AI_SelfLearner/issues/36) 后端：实现复习调度与复测。
@@ -32,6 +32,8 @@
 - [x] [#38](https://github.com/njr070907/AI_SelfLearner/issues/38) 后端：实现反馈、长期状态与趋势。
 - [ ] [#39](https://github.com/njr070907/AI_SelfLearner/issues/39) 集成教学、错题、复习、进度并完成 7 天试用（Fake 全链路已合并，连续试用与发布验收待完成）。
 - [x] 本地资料库与教学来源：上传、查看、下载、重命名、替换、删除 PDF/Markdown/TXT；提取文字生成常规课程、互动小测并保存来源；掌握检测作为可选独立功能，不含 OCR/RAG。
+- [x] 本轮教学进度基础：课程章节位置、互动答案、幂等请求和课程完成状态已持久化；全量回归 203 tests。
+- [ ] 常规教学最终验收：Fake Provider 生成内容必须与资料主题有实质相关性；补齐课程学习报告、刷新后完整恢复和 7 天真实试用。
 
 分工：当前 Codex 负责后端与学习核心；GitHub 合作者主要负责前端 UI；仓库所有者负责产品规则和最终验收。前端必须通过服务契约调用后端，不直接访问 SQL 或 Provider。
 

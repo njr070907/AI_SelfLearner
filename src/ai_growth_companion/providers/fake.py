@@ -88,6 +88,8 @@ class FakeLLMProvider:
             {"document_id": document_id, "filename": filename, "excerpt": source_excerpt}
             for document_id, filename, source_excerpt in request.sources
         ]
+        source_ids = [document_id for document_id, _, _ in request.sources]
+        source_fact = excerpt[:240] or "资料中暂未提取到可展示的文字。"
         return ProviderResponse(
             content={
                 "schema_version": "teaching-lesson-v0.2",
@@ -107,20 +109,28 @@ class FakeLLMProvider:
                         "section_type": "concept",
                         "title": "先建立概念",
                         "explanation": (
-                            f"先用自己的话回答：{request.topic} 解决什么问题？"
-                            "材料中最重要的定义或对象是什么？"
+                            f"资料中提到：{source_fact}\n\n"
+                            f"先用自己的话说明这段材料如何定义 {request.topic}，"
+                            "以及它要解决什么问题。"
                         ),
-                        "key_points": ["对象或定义", "要解决的问题", "与相近概念的区别"],
-                        "example": f"从材料中找一个能代表 {request.topic} 的最小例子。",
+                        "key_points": [source_fact[:80], "要解决的问题", "与相近概念的区别"],
+                        "example": (
+                            f"回到资料，找一个能代表 {request.topic} 的最小例子，"
+                            "并说明它为什么符合定义。"
+                        ),
+                        "source_document_ids": source_ids,
                     },
                     {
                         "section_type": "mechanism",
                         "title": "再理解核心机制",
                         "explanation": (
-                            "把过程拆成有顺序的步骤，说明每一步为什么会发生，不要只抄结论或公式。"
+                            f"根据资料中的“{source_fact[:120]}”，把 {request.topic} 的过程拆成"
+                            "有顺序的步骤，"
+                            "说明每一步为什么会发生，不要只抄结论或公式。"
                         ),
                         "key_points": ["输入是什么", "中间如何变化", "输出如何产生"],
                         "example": "尝试用一个具体情境走完这条过程。",
+                        "source_document_ids": source_ids,
                     },
                     {
                         "section_type": "boundary",
@@ -131,6 +141,7 @@ class FakeLLMProvider:
                         ),
                         "key_points": ["适用条件", "常见误区", "失效或需要补充的情况"],
                         "example": "构造一个看似相同、但条件不满足的反例。",
+                        "source_document_ids": source_ids,
                     },
                     {
                         "section_type": "example",
@@ -140,6 +151,7 @@ class FakeLLMProvider:
                         ),
                         "key_points": ["新例子", "关键步骤", "边界提醒"],
                         "example": f"请用一个未出现在材料中的例子说明 {request.topic}。",
+                        "source_document_ids": source_ids,
                     },
                 ],
                 "check_questions": [
@@ -159,6 +171,7 @@ class FakeLLMProvider:
                             "常规学习应先建立概念，再通过例子和边界把知识连接起来；"
                             "只背结论无法判断什么时候适用。"
                         ),
+                        "source_document_ids": source_ids,
                     },
                     {
                         "prompt": f"学习 {request.topic} 时，遇到一个新例子最应该先检查什么？",
@@ -169,6 +182,7 @@ class FakeLLMProvider:
                         ],
                         "correct_answer": "它是否满足适用条件",
                         "explanation": "先检查条件，才能判断知识能否迁移到新情境。",
+                        "source_document_ids": source_ids,
                     },
                 ],
                 "sources": source_refs,

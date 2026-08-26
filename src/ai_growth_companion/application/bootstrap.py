@@ -13,6 +13,9 @@ from ai_growth_companion.providers.deepseek_teaching import DeepSeekTeachingProv
 from ai_growth_companion.providers.fake import FakeLLMProvider
 from ai_growth_companion.repositories.database import Database
 from ai_growth_companion.repositories.document_repository import SQLiteDocumentRepository
+from ai_growth_companion.repositories.lesson_progress_repository import (
+    SQLiteLessonProgressRepository,
+)
 from ai_growth_companion.repositories.lesson_repository import SQLiteLessonRepository
 from ai_growth_companion.repositories.session_repository import SQLiteSessionRepository
 
@@ -62,4 +65,5 @@ def build_teaching_service(database: Database, settings: Settings) -> TeachingSe
         document_library,
         SQLiteLessonRepository(database),
         provider,
+        SQLiteLessonProgressRepository(database),
     )

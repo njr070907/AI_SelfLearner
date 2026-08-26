@@ -25,6 +25,7 @@ class LessonSection(BaseModel):
     explanation: str = Field(min_length=1, max_length=4_000)
     key_points: list[str] = Field(min_length=1, max_length=8)
     example: str | None = Field(default=None, max_length=2_000)
+    source_document_ids: list[str] = Field(default_factory=list, max_length=20)
 
 
 class LessonInteraction(BaseModel):
@@ -36,6 +37,7 @@ class LessonInteraction(BaseModel):
     options: list[str] = Field(min_length=2, max_length=5)
     correct_answer: str = Field(min_length=1, max_length=500)
     explanation: str = Field(min_length=1, max_length=1_500)
+    source_document_ids: list[str] = Field(default_factory=list, max_length=20)
 
     @model_validator(mode="after")
     def correct_answer_is_available(self) -> "LessonInteraction":

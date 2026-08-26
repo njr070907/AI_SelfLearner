@@ -72,6 +72,14 @@ def open_learn(app: AppTest) -> AppTest:
     )
 
 
+def open_mastery(app: AppTest) -> AppTest:
+    return (
+        next(item for item in app.sidebar.button if item.key == "nav_mastery")
+        .click()
+        .run(timeout=10)
+    )
+
+
 def open_mistakes(app: AppTest) -> AppTest:
     return (
         next(item for item in app.sidebar.button if item.key == "nav_mistakes")
@@ -116,7 +124,7 @@ def submit_review_scenario(
 
 
 def start_session(app: AppTest) -> AppTest:
-    app = open_learn(app)
+    app = open_mastery(app)
     input_with_label(app, "学习主题").input("递归")
     app = button_with_label(app, "开始学习").click().run(timeout=10)
     assert "先学，再检验" in rendered_markdown(app)
@@ -129,18 +137,16 @@ def start_session(app: AppTest) -> AppTest:
     return button_with_label(app, "进入费曼理解检查").click().run(timeout=10)
 
 
-def test_learning_requires_a_preparation_step_before_feynman_check(
+def test_learning_opens_conventional_teaching_workspace(
     tmp_path: Path,
     monkeypatch: MonkeyPatch,
 ) -> None:
     app = open_learn(app_for(tmp_path, monkeypatch, "ui-prestudy.db"))
-    input_with_label(app, "学习主题").input("递归")
-    app = button_with_label(app, "开始学习").click().run(timeout=10)
 
     assert not app.exception
-    assert "先学，再检验" in rendered_markdown(app)
-    assert "学习笔记 / 三条要点" in [item.label for item in app.text_area]
-    assert "进入费曼理解检查" in [item.label for item in app.button]
+    assert "教学 · 从资料生成课程" in rendered_markdown(app)
+    assert any("资料库还没有知识文件" in item.value for item in app.info)
+    assert "去资料库上传知识" in [item.label for item in app.button]
     assert "current_session_id" not in app.session_state
 
 
@@ -432,14 +438,60 @@ def test_teaching_workspace_generates_a_conventional_lesson_with_interactive_che
     assert "概念" in page
     assert "机制" in page
     assert "边界" in page
+    assert "极限描述函数在某点附近的变化趋势" in page
     assert "第 3 步 · 互动小测" in page
     assert "进入掌握检测（可选）" in [item.label for item in app.button]
+
+    for _ in range(3):
+        app = button_with_label(app, "下一节").click().run(timeout=10)
 
     radio = next(item for item in app.radio if "学习方式" in item.label)
     app = radio.set_value("先理解概念和用途，再看具体例子").run(timeout=10)
     app = button_with_label(app, "提交答案").click().run(timeout=10)
     assert any("回答正确" in item.value for item in app.success)
     assert any("正确答案" in item.value for item in app.info)
+
+
+def test_teaching_progress_can_complete_and_resume_the_lesson(
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    app = open_documents(app_for(tmp_path, monkeypatch, "ui-teaching-progress.db"))
+    uploader = next(item for item in app.file_uploader if item.label == "选择要上传的资料")
+    app = uploader.upload(
+        "limits.md",
+        "# 函数极限\n\n极限描述函数在某点附近的变化趋势。".encode(),
+        "text/markdown",
+    ).run(timeout=10)
+    app = button_with_label(app, "上传资料").click().run(timeout=10)
+    app = open_learn(app)
+
+    next(item for item in app.multiselect if item.label == "选择一份或多份资料").select("limits.md")
+    input_with_label(app, "这次要学习的知识主题").input("函数极限")
+    app = button_with_label(app, "生成我的教学内容").click().run(timeout=10)
+
+    for _ in range(3):
+        app = button_with_label(app, "下一节").click().run(timeout=10)
+
+    first_radio = next(item for item in app.radio if "学习方式" in item.label)
+    app = first_radio.set_value("先理解概念和用途，再看具体例子").run(timeout=10)
+    first_submit = next(
+        item for item in app.button if item.label == "提交答案" and item.key.endswith("_1")
+    )
+    app = first_submit.click().run(timeout=10)
+    assert any("回答正确" in item.value for item in app.success)
+
+    second_radio = next(item for item in app.radio if "新例子" in item.label)
+    app = second_radio.set_value("它是否满足适用条件").run(timeout=10)
+    second_submit = next(
+        item for item in app.button if item.label == "提交答案" and item.key.endswith("_2")
+    )
+    app = second_submit.click().run(timeout=10)
+    assert any("正确答案" in item.value for item in app.info)
+
+    app = button_with_label(app, "完成本课程").click().run(timeout=10)
+    assert any("这门课程已经完成" in item.value for item in app.success)
+    assert button_with_label(app, "进入掌握检测（可选）")
 
 
 def test_seeded_mistakes_show_all_types_and_support_filtering_and_sorting(
@@ -528,7 +580,7 @@ def test_mistake_can_start_a_fresh_explanation_for_the_same_concept(
     app = button_with_label(app, "围绕此知识点重新作答").click().run(timeout=10)
 
     assert not app.exception
-    assert app.session_state["active_page"] == "学习"
+    assert app.session_state["active_page"] == "掌握检测"
     assert app.session_state["current_session_id"]
     assert "学习主题" in rendered_markdown(app)
     assert "费曼问题" in rendered_markdown(app)

@@ -80,6 +80,7 @@ def render_application(
         "今日": "today",
         "学习": "learn",
         "教学": "teaching",
+        "掌握检测": "mastery",
         "资料库": "documents",
         "错题": "mistakes",
         "复习": "review",
@@ -90,11 +91,19 @@ def render_application(
         if page == "今日":
             _render_today(service)
         elif page == "学习":
-            _render_learning_flow(
-                service,
-                settings=settings,
-                document_library=document_library,
-            )
+            if teaching_service is None or document_library is None:
+                st.error("学习服务尚未配置。")
+            else:
+                render_teaching_workspace(
+                    teaching_service,
+                    document_library,
+                    start_lesson=lambda topic, goal, level: _start_lesson_from_teaching(
+                        service,
+                        topic=topic,
+                        learning_goal=goal,
+                        learner_level=level,
+                    ),
+                )
         elif page == "教学":
             if teaching_service is None or document_library is None:
                 st.error("教学服务尚未配置。")
@@ -109,6 +118,12 @@ def render_application(
                         learner_level=level,
                     ),
                 )
+        elif page == "掌握检测":
+            _render_learning_flow(
+                service,
+                settings=settings,
+                document_library=document_library,
+            )
         elif page == "资料库":
             if document_library is None:
                 st.error("资料库服务尚未配置。")
@@ -998,7 +1013,7 @@ def _hide_follow_up_form() -> None:
 
 def _resume_session(session_id: str) -> None:
     _set_current_session(session_id)
-    _navigate("学习")
+    _navigate("掌握检测")
 
 
 def _start_lesson_from_teaching(
@@ -1019,7 +1034,7 @@ def _start_lesson_from_teaching(
     except (InputValidationError, LookupError) as error:
         return str(error)
     _set_current_session(session.session_id)
-    _navigate("学习")
+    _navigate("掌握检测")
     return None
 
 

@@ -1,6 +1,6 @@
 """Teaching workspace: upload knowledge, generate a lesson, then study it."""
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from html import escape
 from uuid import uuid4
 
@@ -8,11 +8,13 @@ import streamlit as st
 
 from ai_growth_companion.application.document_library import DocumentLibraryService
 from ai_growth_companion.application.teaching_service import (
+    TeachingActivityAttemptView,
     TeachingInputError,
     TeachingLessonView,
     TeachingService,
 )
 from ai_growth_companion.providers.base import ProviderError
+from ai_growth_companion.schemas.teaching import LessonSource
 
 StartLesson = Callable[[str, str | None, str | None], str | None]
 
@@ -109,7 +111,11 @@ def render_teaching_workspace(
         st.error(str(error))
         st.session_state.pop("teaching_lesson_id", None)
         return
-    _render_lesson(lesson, start_lesson=start_lesson)
+    _render_lesson(
+        lesson,
+        teaching_service=teaching_service,
+        start_lesson=start_lesson,
+    )
 
 
 def _render_teaching_steps() -> None:
@@ -119,7 +125,12 @@ def _render_teaching_steps() -> None:
         st.caption("AI 负责整理课程；掌握程度仍由互动结果和后续掌握检测共同判断。")
 
 
-def _render_lesson(lesson: TeachingLessonView, *, start_lesson: StartLesson) -> None:
+def _render_lesson(
+    lesson: TeachingLessonView,
+    *,
+    teaching_service: TeachingService,
+    start_lesson: StartLesson,
+) -> None:
     content = lesson.lesson
     st.markdown('<div class="rule"></div>', unsafe_allow_html=True)
     st.markdown('<div class="section-label">第 2 步 · 阅读课程</div>', unsafe_allow_html=True)
@@ -128,48 +139,125 @@ def _render_lesson(lesson: TeachingLessonView, *, start_lesson: StartLesson) -> 
     st.caption(
         f"来源：{source_names} · 生成方式：{escape(lesson.provider)} / {escape(lesson.model_name)}"
     )
+    activity_count = len(content.interactive_checks)
+    completed_count = lesson.progress.completed_activity_count
+    st.progress(
+        completed_count / activity_count if activity_count else 1.0,
+        text=f"课程互动进度：{completed_count}/{activity_count}",
+    )
+    if lesson.progress.completed_at is not None:
+        st.success("这门课程已经完成，可以继续复习或进行可选掌握检测。")
     st.info(content.summary)
+
+    section_count = len(content.sections)
+    section_key = f"teaching_section_index_{lesson.lesson_id}"
+    if section_key not in st.session_state:
+        st.session_state[section_key] = min(lesson.progress.current_section, section_count - 1)
+    section_index = max(0, min(int(st.session_state[section_key]), section_count - 1))
+    st.markdown("**课程目录**")
+    for index, section in enumerate(content.sections):
+        marker = "▶" if index == section_index else "○"
+        st.markdown(f"{marker} 第 {index + 1} 节 · {escape(section.title)}")
 
     with st.container(border=True):
         st.markdown("**学习目标**")
         for objective in content.learning_objectives:
             st.markdown(f"- {objective}")
 
-    for index, section in enumerate(content.sections, start=1):
-        with st.container(border=True):
-            st.markdown(f"### {index}. {escape(section.title)}")
-            st.write(section.explanation)
-            for point in section.key_points:
-                st.markdown(f"- {point}")
-            if section.example:
-                st.markdown(f"**例子/练习：** {section.example}")
+    section = content.sections[section_index]
+    with st.container(border=True):
+        st.markdown(f"### 第 {section_index + 1} 节 · {escape(section.title)}")
+        st.write(section.explanation)
+        for point in section.key_points:
+            st.markdown(f"- {point}")
+        if section.example:
+            st.markdown(f"**例子/练习：** {section.example}")
+        section_sources = _source_names(content.sources, section.source_document_ids)
+        if section_sources:
+            st.caption(f"本节来源：{section_sources}")
 
-    _render_interactive_checks(lesson)
+    previous, next_step = st.columns(2)
+    if previous.button(
+        "上一节",
+        disabled=section_index == 0,
+        key=f"teaching_previous_{lesson.lesson_id}_{section_index}",
+        use_container_width=True,
+    ):
+        teaching_service.update_position(
+            lesson_id=lesson.lesson_id,
+            current_section=section_index - 1,
+        )
+        st.session_state[section_key] = section_index - 1
+        st.rerun()
+    if next_step.button(
+        "下一节",
+        disabled=section_index >= section_count - 1,
+        key=f"teaching_next_{lesson.lesson_id}_{section_index}",
+        use_container_width=True,
+    ):
+        teaching_service.update_position(
+            lesson_id=lesson.lesson_id,
+            current_section=section_index + 1,
+        )
+        st.session_state[section_key] = section_index + 1
+        st.rerun()
+
+    if section_index == section_count - 1:
+        _render_interactive_checks(lesson, teaching_service=teaching_service)
+    else:
+        st.markdown("**第 3 步 · 互动小测**将在阅读完所有课程章节后开放。")
 
     with st.container(border=True):
-        st.markdown("**课程完成后的可选操作**")
+        st.markdown("**完成课程**")
         for question in content.check_questions:
             st.markdown(f"- {question}")
-        st.caption("互动小测用于即时巩固；如果还想了解长期掌握情况，可以继续做独立的掌握检测。")
-        if st.button("进入掌握检测（可选）", type="primary", key="lesson_start_check"):
-            error = start_lesson(
+        can_complete = section_index == section_count - 1 and completed_count >= activity_count
+        if lesson.progress.completed_at is None:
+            if st.button(
+                "完成本课程",
+                type="primary",
+                disabled=not can_complete,
+                key="lesson_complete",
+            ):
+                try:
+                    teaching_service.complete_lesson(lesson.lesson_id)
+                except ValueError as error:
+                    st.error(str(error))
+                else:
+                    st.rerun()
+            else:
+                st.caption("阅读完所有章节并完成互动小测后，才能结束本课程。")
+        st.caption("掌握检测不是常规教学的必经步骤；课程完成后可以按需进行。")
+        if st.button(
+            "进入掌握检测（可选）",
+            type="primary",
+            disabled=lesson.progress.completed_at is None,
+            key="lesson_start_check",
+        ):
+            start_error = start_lesson(
                 content.topic,
                 st.session_state.get("teaching_goal") or None,
                 st.session_state.get("teaching_level") or None,
             )
-            if error:
-                st.error(error)
+            if start_error:
+                st.error(start_error)
             else:
                 st.rerun()
 
 
-def _render_interactive_checks(lesson: TeachingLessonView) -> None:
+def _render_interactive_checks(
+    lesson: TeachingLessonView,
+    *,
+    teaching_service: TeachingService,
+) -> None:
     checks = lesson.lesson.interactive_checks
     if not checks:
         return
 
     st.markdown('<div class="section-label">第 3 步 · 互动小测</div>', unsafe_allow_html=True)
-    completed = 0
+    latest_attempts: dict[int, TeachingActivityAttemptView] = {}
+    for attempt in lesson.progress.attempts:
+        latest_attempts.setdefault(attempt.activity_index, attempt)
     for index, check in enumerate(checks, start=1):
         choice_key = f"teaching_check_choice_{lesson.lesson_id}_{index}"
         submitted_key = f"teaching_check_submitted_{lesson.lesson_id}_{index}"
@@ -185,12 +273,38 @@ def _render_interactive_checks(lesson: TeachingLessonView) -> None:
                 if choice is None:
                     st.warning("请先选择一个答案。")
                 else:
-                    st.session_state[submitted_key] = True
-            if st.session_state.get(submitted_key) and choice is not None:
-                completed += 1
-                if choice == check.correct_answer:
+                    request_key = f"teaching_check_request_{lesson.lesson_id}_{index}"
+                    request_id = str(st.session_state.setdefault(request_key, str(uuid4())))
+                    try:
+                        teaching_service.record_activity_attempt(
+                            lesson_id=lesson.lesson_id,
+                            activity_index=index,
+                            selected_answer=choice,
+                            request_id=request_id,
+                        )
+                    except (LookupError, ValueError) as error:
+                        st.error(str(error))
+                    else:
+                        st.session_state[submitted_key] = True
+                        st.session_state.pop(request_key, None)
+                        st.rerun()
+
+            saved_attempt = latest_attempts.get(index)
+            if saved_attempt is not None:
+                if saved_attempt.is_correct:
                     st.success("回答正确")
                 else:
                     st.error("还需要再想一想")
+                st.caption(f"已保存的回答：{saved_attempt.selected_answer}")
+                source_names = _source_names(lesson.lesson.sources, check.source_document_ids)
+                if source_names:
+                    st.caption(f"本题来源：{source_names}")
                 st.info(f"正确答案：{check.correct_answer}\n\n解析：{check.explanation}")
-    st.progress(completed / len(checks), text=f"互动小测进度：{completed}/{len(checks)}")
+
+
+def _source_names(sources: Sequence[LessonSource], source_ids: list[str]) -> str:
+    """Render selected source filenames without exposing raw document contents."""
+    if not source_ids:
+        return ""
+    names = {source.document_id: source.filename for source in sources}
+    return ", ".join(names[source_id] for source_id in source_ids if source_id in names)
