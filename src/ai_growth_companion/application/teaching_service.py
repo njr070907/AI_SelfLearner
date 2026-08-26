@@ -114,8 +114,14 @@ class TeachingService:
             ),
             request_id=request_id,
         )
+        selected_source_ids = {document_id for document_id, _, _ in source_refs}
         try:
-            lesson = TeachingLesson.model_validate(response.content)
+            normalized_content = self._normalize_provider_lesson(
+                response.content,
+                topic=normalized_topic,
+                source_refs=source_refs,
+            )
+            lesson = TeachingLesson.model_validate(normalized_content)
         except Exception as error:
             raise ProviderError(
                 "Teaching Provider returned invalid lesson structure",
@@ -136,7 +142,6 @@ class TeachingService:
             )
 
         # The selected files are the authoritative source list; the model cannot invent it.
-        selected_source_ids = {document_id for document_id, _, _ in source_refs}
         lesson_payload = lesson.model_dump()
         for section in lesson_payload["sections"]:
             section["source_document_ids"] = self._normalize_source_ids(
@@ -256,6 +261,90 @@ class TeachingService:
                 retryable=False,
             )
         return normalized or sorted(selected_source_ids)
+
+    @classmethod
+    def _normalize_provider_lesson(
+        cls,
+        content: object,
+        *,
+        topic: str,
+        source_refs: list[tuple[str, str, str]],
+    ) -> object:
+        """Normalize common model variants before applying the strict lesson schema."""
+        if not isinstance(content, dict):
+            return content
+        payload = dict(content)
+        payload["schema_version"] = "teaching-lesson-v0.2"
+        payload["topic"] = topic
+        payload["sources"] = [
+            {"document_id": document_id, "filename": filename, "excerpt": excerpt}
+            for document_id, filename, excerpt in source_refs
+        ]
+
+        normalized_sections: list[dict[str, object]] = []
+        for raw_section in payload.get("sections", []):
+            if not isinstance(raw_section, dict):
+                continue
+            section = dict(raw_section)
+            if "section_type" not in section and "type" in section:
+                section["section_type"] = section.pop("type")
+            normalized_sections.append(section)
+        payload["sections"] = normalized_sections
+
+        normalized_questions: list[str] = []
+        for raw_question in payload.get("check_questions", []):
+            if isinstance(raw_question, dict):
+                prompt = raw_question.get("prompt") or raw_question.get("question")
+                if prompt:
+                    normalized_questions.append(str(prompt))
+            elif raw_question:
+                normalized_questions.append(str(raw_question))
+        payload["check_questions"] = normalized_questions
+
+        normalized_checks: list[dict[str, object]] = []
+        for raw_check in payload.get("interactive_checks", []):
+            if not isinstance(raw_check, dict):
+                continue
+            check = dict(raw_check)
+            options = [str(option).strip() for option in check.get("options", []) if option]
+            check["options"] = options
+            check["correct_answer"] = cls._normalize_correct_answer(
+                check.get("correct_answer"), options
+            )
+            normalized_checks.append(check)
+        payload["interactive_checks"] = normalized_checks
+        return payload
+
+    @staticmethod
+    def _normalize_correct_answer(answer: object, options: list[str]) -> object:
+        """Map answer text, numeric indexes, or A/B/C labels onto option text."""
+        if not options:
+            return answer
+        if isinstance(answer, int) and not isinstance(answer, bool):
+            if 1 <= answer <= len(options):
+                return options[answer - 1]
+            if 0 <= answer < len(options):
+                return options[answer]
+            return answer
+        if not isinstance(answer, str):
+            return answer
+        normalized = " ".join(answer.split())
+        for option in options:
+            if normalized == " ".join(option.split()):
+                return option
+        if normalized.isdigit():
+            index = int(normalized)
+            if 1 <= index <= len(options):
+                return options[index - 1]
+            if 0 <= index < len(options):
+                return options[index]
+        if len(normalized) >= 1 and normalized[0].upper() in "ABCDEFG":
+            suffix = normalized[1:].lstrip(".、:：)） ")
+            if not suffix:
+                index = ord(normalized[0].upper()) - ord("A")
+                if 0 <= index < len(options):
+                    return options[index]
+        return answer
 
     @staticmethod
     def _mentions_topic(lesson: TeachingLesson, topic: str) -> bool:

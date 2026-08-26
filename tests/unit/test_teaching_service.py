@@ -16,7 +16,10 @@ from ai_growth_companion.repositories.lesson_progress_repository import (
 from ai_growth_companion.repositories.lesson_repository import SQLiteLessonRepository
 
 
-def service_for(tmp_path: Path) -> tuple[TeachingService, DocumentLibraryService]:
+def service_for(
+    tmp_path: Path,
+    provider: FakeLLMProvider | None = None,
+) -> tuple[TeachingService, DocumentLibraryService]:
     database = Database(f"sqlite:///{(tmp_path / 'teaching.db').as_posix()}")
     run_migrations(database)
     documents = DocumentLibraryService(
@@ -25,7 +28,7 @@ def service_for(tmp_path: Path) -> tuple[TeachingService, DocumentLibraryService
     return TeachingService(
         documents,
         SQLiteLessonRepository(database),
-        FakeLLMProvider(),
+        provider or FakeLLMProvider(),
         SQLiteLessonProgressRepository(database),
     ), documents
 
@@ -39,6 +42,27 @@ class UnrelatedTeachingProvider(FakeLLMProvider):
         payload["title"] = "完全无关的课程"
         payload["summary"] = "这是一份没有提到用户主题的通用摘要。"
         payload["learning_objectives"] = ["完成一个通用学习目标"]
+        return ProviderResponse(content=payload, metadata=response.metadata)
+
+
+class AlternateTeachingProvider(FakeLLMProvider):
+    """Emit common DeepSeek field variants to exercise service normalization."""
+
+    def generate_lesson(self, request: TeachingRequest, *, request_id: str) -> ProviderResponse:
+        response = super().generate_lesson(request, request_id=request_id)
+        payload = dict(response.content)
+        payload["schema_version"] = "1.0"
+        payload["sources"] = [request.sources[0][0]]
+        alternate_sections = []
+        for section in payload["sections"]:
+            alternate = dict(section)
+            alternate["type"] = alternate.pop("section_type")
+            alternate_sections.append(alternate)
+        payload["sections"] = alternate_sections
+        payload["check_questions"] = [
+            {"prompt": question, "options": ["A", "B"]} for question in payload["check_questions"]
+        ]
+        payload["interactive_checks"][0]["correct_answer"] = 1
         return ProviderResponse(content=payload, metadata=response.metadata)
 
 
@@ -116,6 +140,33 @@ def test_teaching_rejects_obviously_unrelated_provider_content(tmp_path: Path) -
             request_id="teaching-unrelated-1",
         )
     assert captured.value.code == "TEACHING_CONTENT_NOT_RELEVANT"
+
+
+def test_teaching_normalizes_common_provider_field_variants(tmp_path: Path) -> None:
+    teaching, documents = service_for(tmp_path, provider=AlternateTeachingProvider())
+    document = documents.upload(
+        filename="topic.md", content="# 函数极限\n\n极限描述变化趋势。".encode()
+    )
+
+    lesson = teaching.generate_lesson(
+        topic="函数极限",
+        document_ids=(document.document_id,),
+        request_id="teaching-normalize-1",
+    )
+
+    assert lesson.lesson.schema_version == "teaching-lesson-v0.2"
+    assert [section.section_type for section in lesson.lesson.sections] == [
+        "concept",
+        "mechanism",
+        "boundary",
+        "example",
+    ]
+    assert all(isinstance(question, str) for question in lesson.lesson.check_questions)
+    assert (
+        lesson.lesson.interactive_checks[0].correct_answer
+        == (lesson.lesson.interactive_checks[0].options[0])
+    )
+    assert lesson.lesson.sources[0].document_id == document.document_id
 
 
 def test_lesson_activity_progress_is_persisted_and_idempotent(tmp_path: Path) -> None:
