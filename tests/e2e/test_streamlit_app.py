@@ -435,6 +435,8 @@ def test_teaching_workspace_generates_a_conventional_lesson_with_interactive_che
     app = button_with_label(app, "上传资料").click().run(timeout=10)
     app = open_teaching(app)
 
+    source_mode_radio = next(item for item in app.radio if item.key == "teaching_source_mode")
+    app = source_mode_radio.set_value("manual").run(timeout=10)
     next(item for item in app.multiselect if item.label == "选择一份或多份资料").select("limits.md")
     input_with_label(app, "这次要学习的知识主题").input("函数极限")
     app = button_with_label(app, "生成我的教学内容").click().run(timeout=10)
@@ -475,6 +477,8 @@ def test_teaching_progress_can_complete_and_resume_the_lesson(
     app = button_with_label(app, "上传资料").click().run(timeout=10)
     app = open_learn(app)
 
+    source_mode_radio = next(item for item in app.radio if item.key == "teaching_source_mode")
+    app = source_mode_radio.set_value("manual").run(timeout=10)
     next(item for item in app.multiselect if item.label == "选择一份或多份资料").select("limits.md")
     input_with_label(app, "这次要学习的知识主题").input("函数极限")
     app = button_with_label(app, "生成我的教学内容").click().run(timeout=10)
