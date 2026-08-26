@@ -30,7 +30,7 @@
 | `hm-lhopital-partial` | `020209Z` | `fragile / re_explain / 0.75` | pass | `fragile / review` | `action` | 用户确认通过；回答明确说“记不全”时按 v0.6 先复习，复习后再判断是否需要 `re_learn`，旧 `re_explain` 记为动作偏差。 |
 | `hm-lhopital-misconception` | `020209Z` | `fragile / review / 0.95` | pass | `fragile / review` | `no_difference` | 用户确认通过；明确错误概念先复习，复习后再根据新证据决定是否 `re_learn`。 |
 | `hm-lhopital-insufficient` | `020209Z` | `not_evident / re_explain / 0.90` | pass | `no_clue / review` | `action` | 用户确认通过；回答明确说“已经忘了”，按 v0.6 先复习，再根据复习掌握程度决定是否 `re_learn`。 |
-| `hm-definite-integral-strong` | `020421Z` | `solid / practice / 0.90` | pass | 待确认 |  |  |
+| `hm-definite-integral-strong` | `020421Z` | `solid / practice / 0.90` | pass | 一致 | `no_difference` | 用户确认通过；回答完整覆盖黎曼和构造、取样与极限独立性、带符号面积和微积分基本定理，判为 solid/practice 合理。 |
 | `hm-definite-integral-partial` | `020209Z` | `fragile / re_explain / 0.85` | pass | 待确认 |  |  |
 | `hm-definite-integral-misconception` | `020209Z` | `fragile / review / 0.95` | pass | 待确认 |  |  |
 | `hm-definite-integral-insufficient` | `020209Z` | `not_evident / re_explain / 0.90` | pass | 待确认 |  |  |
