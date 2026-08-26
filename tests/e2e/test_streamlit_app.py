@@ -110,7 +110,30 @@ def submit_review_scenario(
 def start_session(app: AppTest) -> AppTest:
     app = open_learn(app)
     input_with_label(app, "学习主题").input("递归")
-    return button_with_label(app, "生成费曼问题").click().run(timeout=10)
+    app = button_with_label(app, "开始学习").click().run(timeout=10)
+    assert "先学，再检验" in rendered_markdown(app)
+    text_area_with_label(app, "学习笔记 / 三条要点").input(
+        "递归把问题拆成更小的同类问题，并需要明确终止条件。"
+    )
+    next(
+        item for item in app.checkbox if item.label == "我已完成本次学习准备，进入理解检查"
+    ).check()
+    return button_with_label(app, "进入费曼理解检查").click().run(timeout=10)
+
+
+def test_learning_requires_a_preparation_step_before_feynman_check(
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    app = open_learn(app_for(tmp_path, monkeypatch, "ui-prestudy.db"))
+    input_with_label(app, "学习主题").input("递归")
+    app = button_with_label(app, "开始学习").click().run(timeout=10)
+
+    assert not app.exception
+    assert "先学，再检验" in rendered_markdown(app)
+    assert "学习笔记 / 三条要点" in [item.label for item in app.text_area]
+    assert "进入费曼理解检查" in [item.label for item in app.button]
+    assert "current_session_id" not in app.session_state
 
 
 def submit_scenario(app: AppTest, scenario: str) -> AppTest:

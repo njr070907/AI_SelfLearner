@@ -86,7 +86,11 @@ def render_application(
         if page == "今日":
             _render_today(service)
         elif page == "学习":
-            _render_learning_flow(service, settings=settings)
+            _render_learning_flow(
+                service,
+                settings=settings,
+                document_library=document_library,
+            )
         elif page == "资料库":
             if document_library is None:
                 st.error("资料库服务尚未配置。")
@@ -124,7 +128,7 @@ def _render_today(service: LearningService) -> None:
             <div class="empty-state">
               <div class="section-label">今日学习</div>
               <h2>还没有学习记录</h2>
-              <p>选择一个你正在学习的概念，先用自己的话解释。系统会依据回答中的证据，告诉你理解到了哪里。</p>
+            <p>选择一个你正在学习的概念，先阅读和整理，再用自己的话解释。系统会依据回答中的证据，告诉你理解到了哪里。</p>
             </div>
             """,
             unsafe_allow_html=True,
@@ -218,9 +222,17 @@ def _render_workspace_shortcuts(snapshot: WorkspaceSnapshot) -> None:
     )
 
 
-def _render_learning_flow(service: LearningService, *, settings: Settings) -> None:
+def _render_learning_flow(
+    service: LearningService,
+    *,
+    settings: Settings,
+    document_library: DocumentLibraryService | None = None,
+) -> None:
     if "current_session_id" not in st.session_state:
-        _render_start_form(service)
+        if "pending_learning_topic" in st.session_state:
+            _render_pre_study(service, document_library=document_library)
+        else:
+            _render_start_form()
         return
 
     try:
@@ -299,12 +311,12 @@ def _render_learning_flow(service: LearningService, *, settings: Settings) -> No
     st.button("更换学习主题", on_click=_reset_flow)
 
 
-def _render_start_form(service: LearningService) -> None:
-    st.markdown('<div class="eyebrow">学习 · 新的检验</div>', unsafe_allow_html=True)
-    st.markdown('<h1 class="hero-title">今天想真正弄懂什么？</h1>', unsafe_allow_html=True)
+def _render_start_form() -> None:
+    st.markdown('<div class="eyebrow">学习 · 第 1 步：确定主题</div>', unsafe_allow_html=True)
+    st.markdown('<h1 class="hero-title">今天想真正学会什么？</h1>', unsafe_allow_html=True)
     st.markdown(
-        '<p class="hero-copy">从一个具体概念开始。我们会提出一个问题，'
-        "再依据你自己的解释判断掌握证据。</p>",
+        '<p class="hero-copy">先确定一个具体概念，完成一段学习准备，再进入费曼理解检查。'
+        "系统不会一进来就要求你答题。</p>",
         unsafe_allow_html=True,
     )
     with st.form("start-session-form"):
@@ -323,15 +335,108 @@ def _render_start_form(service: LearningService) -> None:
                 "advanced": "希望检验深入理解",
             }[value],
         )
-        submitted = st.form_submit_button("生成费曼问题", type="primary")
+        submitted = st.form_submit_button("开始学习", type="primary")
 
     if submitted:
+        if not concept.strip():
+            st.error("请先填写学习主题。")
+        else:
+            st.session_state.pending_learning_topic = concept.strip()
+            st.session_state.pending_learning_goal = learning_goal.strip()
+            st.session_state.pending_learner_level = learner_level
+            st.session_state.pop("prestudy_notes", None)
+            st.session_state.pop("prestudy_completed", None)
+            st.rerun()
+
+
+def _render_pre_study(
+    service: LearningService,
+    *,
+    document_library: DocumentLibraryService | None,
+) -> None:
+    """Give the learner a real preparation step before asking for a Feynman answer."""
+    concept = str(st.session_state.pending_learning_topic)
+    goal = str(st.session_state.get("pending_learning_goal") or "")
+    st.markdown(f'<div class="eyebrow">学习主题 · {escape(concept)}</div>', unsafe_allow_html=True)
+    st.markdown('<h1 class="hero-title">先学，再检验</h1>', unsafe_allow_html=True)
+    st.markdown(
+        '<p class="hero-copy">先用讲义、笔记或教材完成一段主动学习，再进入费曼检查。'
+        "这一阶段不是考试，而是给你建立理解的时间。</p>",
+        unsafe_allow_html=True,
+    )
+
+    with st.container(border=True):
+        st.markdown('<div class="section-label">本次学习路线</div>', unsafe_allow_html=True)
+        st.markdown(
+            "1. 先找到概念的定义或问题背景。  \n"
+            "2. 理解它为什么成立、怎样运作。  \n"
+            "3. 记录适用条件、边界和一个例子。  \n"
+            "4. 写下三条自己的要点，再进入费曼理解检查。"
+        )
+        if goal:
+            st.info(f"本次目标：{goal}")
+
+    if document_library is not None:
+        documents = document_library.list_documents()
+        st.markdown('<div class="section-label">先阅读你的资料</div>', unsafe_allow_html=True)
+        if not documents:
+            st.info(
+                "资料库还没有文件。你可以先打开“资料库”上传讲义或笔记，也可以使用自己的教材学习。"
+            )
+            st.button(
+                "打开资料库上传材料",
+                on_click=_navigate,
+                args=("资料库",),
+                key="prestudy_open_documents",
+            )
+        else:
+            st.caption(f"资料库中有 {len(documents)} 个文件；先阅读与“{concept}”相关的材料。")
+            for document in documents:
+                with st.expander(document.filename):
+                    try:
+                        _, content = document_library.read(document.document_id)
+                    except LookupError as error:
+                        st.error(str(error))
+                    else:
+                        if document.extension in {".md", ".markdown", ".txt"}:
+                            st.markdown(content[:20_000].decode("utf-8", errors="replace"))
+                            if len(content) > 20_000:
+                                st.caption("预览已截取前 20,000 个字节。")
+                        else:
+                            st.info("PDF 当前可下载阅读，系统暂不自动解析 PDF 内容。")
+                            st.download_button(
+                                "下载并阅读 PDF",
+                                data=content,
+                                file_name=document.filename,
+                                mime=document.mime_type,
+                                key=f"prestudy_download_{document.document_id}",
+                            )
+
+    notes = st.text_area(
+        "学习笔记 / 三条要点",
+        key="prestudy_notes",
+        height=160,
+        placeholder="读完资料后，写下：定义是什么、核心机制是什么、边界或例子是什么……",
+    )
+    completed = st.checkbox(
+        "我已完成本次学习准备，进入理解检查",
+        key="prestudy_completed",
+    )
+    if st.button(
+        "进入费曼理解检查",
+        type="primary",
+        disabled=not completed,
+        key="enter_feynman_check",
+    ):
+        if not notes.strip():
+            st.warning("请先写下至少一条学习要点，再进入理解检查。")
+            return
         try:
-            with st.spinner("正在创建学习会话并生成费曼问题……"):
+            with st.spinner("正在创建理解检查……"):
                 session = service.start_session(
                     concept=concept,
-                    learning_goal=learning_goal or None,
-                    learner_level=learner_level or None,
+                    learning_goal=goal or None,
+                    learner_level=str(st.session_state.get("pending_learner_level") or "") or None,
                     request_id=str(uuid4()),
                 )
         except (InputValidationError, LookupError) as error:
@@ -852,6 +957,14 @@ def _open_review_from_wrong(wrong_item_id: str) -> None:
 
 def _set_current_session(session_id: str) -> None:
     st.session_state.current_session_id = session_id
+    for key in (
+        "pending_learning_topic",
+        "pending_learning_goal",
+        "pending_learner_level",
+        "prestudy_notes",
+        "prestudy_completed",
+    ):
+        st.session_state.pop(key, None)
     st.session_state.pop("last_diagnosis", None)
     st.session_state.pop("draft_answer", None)
     st.session_state.pop("show_follow_up_form", None)
@@ -873,6 +986,11 @@ def _resume_session(session_id: str) -> None:
 def _reset_flow() -> None:
     flow_keys = {
         "current_session_id",
+        "pending_learning_topic",
+        "pending_learning_goal",
+        "pending_learner_level",
+        "prestudy_notes",
+        "prestudy_completed",
         "last_diagnosis",
         "draft_answer",
         "show_follow_up_form",

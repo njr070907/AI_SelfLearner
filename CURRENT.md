@@ -19,7 +19,7 @@ Sprint 1：用真实 Provider 验证 `evaluator-v0.1` 能否区分充分理解�
 ## 最近验证
 
 - PR #3–#29 均已按 PR + CI 流程合并到 `main`；PR #28 建立 Liquid Glass 学习工作区，PR #29 完成动效、光效、导航指示器和下拉定位修复；两次合并后的 CI 均成功。
-- 当前工作树已接入资料库基础版；全量回归为 190 tests，Ruff、format、Mypy、Streamlit smoke、Secret Scan、黄金集校验、Prompt dry-run 和依赖审计全部通过。
+- 当前工作树已接入资料库基础版和“先学习准备、再进入费曼检查”的入口；全量回归为 191 tests，Ruff、format、Mypy、Streamlit smoke、Secret Scan、黄金集校验、Prompt dry-run 和依赖审计全部通过。
 - `localhost:8511` 已实际验收 1440×1000 与 390×844：诊断失败保留原回答、重试、错题详情、安排复习、复测排期、标记掌握、进度更新和移动端侧栏交互均通过；未触碰个人 `8501`。
 - 无费用评测验证：黄金集 20/20 案例结构有效且人工复核通过；Prompt v0.2 dry-run 渲染 20/20；Fake v0.1 全量管道 20/20 自动检查通过。另有单独记录的真实 v0.2 受控调用，不纳入无费用结论。
 - 真实运行 `deepseek-evaluator-v0.1-20260824T004542Z`：模型为指定实验模型，935/452 tokens，调用成功但自动检查 0/1；模型提取到 4 条证据，却额外记录了未列入覆盖点的缺口，导致 `fragile`/`re_explain`，与该 strong 黄金案例的 `solid`/`practice` 标准不符。
