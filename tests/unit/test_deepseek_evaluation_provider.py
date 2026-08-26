@@ -134,6 +134,8 @@ def test_json_mode_response_is_parsed_and_metadata_is_recorded() -> None:
     assert "Return valid json only" in call["messages"][0]["content"]
     assert "Treat coverage_points as the required scope" in call["messages"][0]["content"]
     assert "gaps must be an empty array" in call["messages"][0]["content"]
+    assert "every gaps[].severity must be low, medium, or high" in call["messages"][0]["content"]
+    assert "All evidence_id values must be strings" in call["messages"][0]["content"]
     assert (
         "Uncertainty about optional details belongs in limitations"
         in call["messages"][0]["content"]

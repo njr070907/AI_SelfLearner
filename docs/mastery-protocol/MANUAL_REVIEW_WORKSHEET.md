@@ -7,6 +7,8 @@
 
 差异分类建议使用：`mastery`、`action`、`confidence`、`evidence_scope`、`gap_boundary`、`misconception`、`no_difference`。
 
+2026-08-26 另完成了 Prompt v0.2 的受控对照和定向修复；本表仍以 v0.1 的 20 条稳定运行记录为主，v0.2 的运行差异见 [`REAL_SEMANTIC_CALIBRATION.md`](REAL_SEMANTIC_CALIBRATION.md)。不要把 v0.2 的自动通过直接复制成“人工结论”。
+
 | case_id | 量表允许掌握等级 | 量表建议动作 | 置信度范围 | 自动结果（等级/动作/置信度） | 自动检查 | 人工结论 | 差异分类 | 复核备注 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `hm-limit-existence-strong` | solid | practice | 0.8–1 | solid/practice/0.95 | pass |  |  |  |

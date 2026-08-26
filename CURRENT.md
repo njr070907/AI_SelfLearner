@@ -8,7 +8,7 @@ Sprint 1：用真实 Provider 验证 `evaluator-v0.1` 能否区分充分理解�
 
 **约 90% / 100%** · **阶段 1–4 与阶段 7 资料库基础版已经完成**；Fake 全链路已验收，真实语义验收、发布边界和连续试用仍待完成。预计还需 **4–9 个有效工作日**，另需真实经过至少 7 个自然日；自动化测试不能替代连续试用。
 
-完整阶段权重和计算方式见 [`docs/roadmap/MVP_PROGRESS.md`](docs/roadmap/MVP_PROGRESS.md)。这是按最终用户可正常使用的功能验收权重，不按代码量或已经经过的时间计算；当前 89% 不代表日历时间已经过去 89%。
+完整阶段权重和计算方式见 [`docs/roadmap/MVP_PROGRESS.md`](docs/roadmap/MVP_PROGRESS.md)。这是按最终用户可正常使用的功能验收权重，不按代码量或已经经过的时间计算；当前 90% 不代表日历时间已经过去 90%。
 
 ## 当前状态
 
@@ -21,18 +21,20 @@ Sprint 1：用真实 Provider 验证 `evaluator-v0.1` 能否区分充分理解�
 - PR #3–#29 均已按 PR + CI 流程合并到 `main`；PR #28 建立 Liquid Glass 学习工作区，PR #29 完成动效、光效、导航指示器和下拉定位修复；两次合并后的 CI 均成功。
 - 当前工作树已接入资料库基础版；全量回归为 186 tests，Ruff、format、Mypy、Streamlit smoke、Secret Scan、黄金集校验、Prompt dry-run 和依赖审计全部通过。
 - `localhost:8511` 已实际验收 1440×1000 与 390×844：诊断失败保留原回答、重试、错题详情、安排复习、复测排期、标记掌握、进度更新和移动端侧栏交互均通过；未触碰个人 `8501`。
-- 无费用评测验证：黄金集 20/20 案例结构有效且人工复核通过；Prompt v0.2 dry-run 渲染 20/20；Fake v0.1 全量管道 20/20 自动检查通过，未发起网络调用。
+- 无费用评测验证：黄金集 20/20 案例结构有效且人工复核通过；Prompt v0.2 dry-run 渲染 20/20；Fake v0.1 全量管道 20/20 自动检查通过。另有单独记录的真实 v0.2 受控调用，不纳入无费用结论。
 - 真实运行 `deepseek-evaluator-v0.1-20260824T004542Z`：模型为指定实验模型，935/452 tokens，调用成功但自动检查 0/1；模型提取到 4 条证据，却额外记录了未列入覆盖点的缺口，导致 `fragile`/`re_explain`，与该 strong 黄金案例的 `solid`/`practice` 标准不符。
 - 随后的两次受控调用 `20260824T005050Z`、`20260824T005448Z` 均为 `LLM_OUTPUT_INVALID`，0/0 tokens；未自动重试。
 - 诊断后确认模型曾返回 JSON 但类型不稳定（`limitations` 字符串、置信度文字），已通过显式 JSON 类型指令修复。
 - `deepseek-evaluator-v0.1-20260824T011349Z`：4/4 成功、自动检查 4/4 通过、3936/1233 tokens；四个场景分别得到 `solid/practice`、`fragile/re_explain`、`fragile/review`、`not_evident/re_explain`。
-- 完整 20 案例真实调用均成功；多轮回归自动检查在 17–19/20 之间波动，最新运行 `deepseek-evaluator-v0.1-20260824T015320Z` 为 20/20 结构成功、17/20 自动通过、25274/7049 tokens。
+- v0.1 的完整 20 案例真实调用均成功；多轮回归自动检查在 17–19/20 之间波动，基线运行 `deepseek-evaluator-v0.1-20260824T015320Z` 为 20/20 结构成功、17/20 自动通过、25274/7049 tokens。
 - 剩余失败均为语义置信度或 gap 边界的随机波动，未出现新的 API、JSON、Schema 或证据摘录故障。
 - 已将该轮自动结果与黄金量表的差异写入 [`docs/mastery-protocol/REAL_SEMANTIC_CALIBRATION.md`](docs/mastery-protocol/REAL_SEMANTIC_CALIBRATION.md)；报告仍标记为“中间校准”，不替代 20 条人工语义复核。
+- 2026-08-26 使用固定 `deepseek-v4-flash-vision-exp` 完成 Prompt v0.2 受控实验：运行 `020209Z` 为 18/20 结构成功且 18/18 自动通过；两条是 `evidence_id` 类型错误，随后运行 `020421Z` 定向复测 2/2 通过。此前 3 条置信度/边界失败也在 `020147Z` 定向复测中 3/3 通过。
+- v0.2 的协议约束和边界提示已修复并通过离线测试，但完整批量结果仍有随机结构波动，20 条人工语义复核和发布决定仍未完成；v0.2 暂不设为默认。
 
 ## Resume Point
 
-`main` 已包含 PR #59 的 #35 错题本、#37 复习复测和 #39 Fake 全链路集成；资料库基础版、反馈/纠正、长期状态进度页、桌面/窄屏交互和错误恢复均已通过验收。随后仍需完成真实语义验收、发布边界确认，并按 `docs/roadmap/SEVEN_DAY_TRIAL_READINESS.md` 开始实际 7 天试用。
+`main` 已包含 PR #59 的 #35 错题本、#37 复习复测和 #39 Fake 全链路集成；资料库基础版、反馈/纠正、长期状态进度页、桌面/窄屏交互和错误恢复均已通过验收。随后仍需完成 20 条人工语义复核、发布边界确认，并按 `docs/roadmap/SEVEN_DAY_TRIAL_READINESS.md` 开始实际 7 天试用。
 
 GitHub 工作项：
 
