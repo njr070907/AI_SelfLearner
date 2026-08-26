@@ -1,6 +1,6 @@
 # Prompt v0.2 AI 建议复核表
 
-> 这是基于最终 20 条结果的 AI 辅助建议，不是人工复核结论，也不会自动关闭 #25/#26。负责人仍需打开原始运行记录，确认 `claim`、`evidence`、`gaps` 和 `possible_misconceptions` 是否真的符合数学语义。
+> 这是基于最终 20 条 v0.2 结果的 AI 辅助建议，不是人工复核结论，也不会自动关闭 #25/#26。当前协议已改为 v0.3：`no_clue`=完全未掌握、`re_learn`=重新学习；负责人仍需打开原始运行记录，确认 `claim`、`evidence`、`gaps` 和 `possible_misconceptions` 是否真的符合数学语义。
 
 ## 来源
 

@@ -17,6 +17,8 @@ from ai_growth_companion.schemas.diagnosis import (
     MasteryDecision,
     ProviderObservation,
     QuestionDraft,
+    storage_action_type,
+    storage_mastery_level,
 )
 
 
@@ -556,7 +558,7 @@ class SQLiteSessionRepository:
                 (
                     decision_id,
                     observation_id,
-                    decision.mastery_level.value,
+                    storage_mastery_level(decision.mastery_level),
                     decision.understanding_level.value,
                     decision.score,
                     decision.confidence,
@@ -576,7 +578,7 @@ class SQLiteSessionRepository:
                 (
                     action_id,
                     decision_id,
-                    action.action_type.value,
+                    storage_action_type(action.action_type),
                     action.instruction,
                     action.reason,
                     json.dumps(action.evidence_ids),
@@ -770,7 +772,7 @@ class SQLiteSessionRepository:
             (
                 state.user_id,
                 state.concept_id,
-                state.mastery_level,
+                storage_mastery_level(state.mastery_level),
                 state.understanding_level,
                 state.score,
                 state.confidence,

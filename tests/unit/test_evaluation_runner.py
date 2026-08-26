@@ -44,7 +44,7 @@ def test_fake_pipeline_matches_all_approved_automatic_expectations() -> None:
     )
     assert all(
         result.decision
-        and result.decision.protocol_version == "mastery-protocol-v0.2-golden-baseline"
+        and result.decision.protocol_version == "mastery-protocol-v0.3-golden-baseline"
         for result in run.cases
     )
 

@@ -70,7 +70,7 @@ MVP 要验证的唯一核心假设是：
   "evidence": [{"claim": "", "answer_excerpt": ""}],
   "gaps": [{"description": "", "severity": "low|medium|high"}],
   "possible_misconceptions": [{"description": "", "confidence": 0.0}],
-  "next_action": {"type": "review|example|practice|re_explain", "instruction": ""},
+  "next_action": {"type": "review|example|practice|re_learn", "instruction": ""},
   "overall_confidence": 0.0,
   "limitations": [""]
 }

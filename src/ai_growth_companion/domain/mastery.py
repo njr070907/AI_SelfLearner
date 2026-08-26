@@ -9,8 +9,8 @@ from ai_growth_companion.schemas.diagnosis import (
     UnderstandingLevel,
 )
 
-DEMO_PROTOCOL_VERSION = "mastery-protocol-v0.2-golden-baseline"
-DEMO_POLICY_VERSION = "learning-policy-v0.2-golden-baseline"
+DEMO_PROTOCOL_VERSION = "mastery-protocol-v0.3-golden-baseline"
+DEMO_POLICY_VERSION = "learning-policy-v0.3-golden-baseline"
 
 
 class DemoMasteryEngine:
@@ -33,7 +33,7 @@ class DemoMasteryEngine:
             )
         if not observation.evidence:
             return MasteryDecision(
-                mastery_level=MasteryLevel.NOT_EVIDENT,
+                mastery_level=MasteryLevel.NO_CLUE,
                 understanding_level=UnderstandingLevel.NOVICE,
                 score=10,
                 confidence=observation.observation_confidence,
@@ -76,11 +76,11 @@ class DemoLearningPolicy:
         if observation.possible_misconceptions:
             action_type = ActionType.REVIEW
             instruction = "先核对并修正报告中的可能误区，再用自己的话重新解释。"
-        elif decision.mastery_level is MasteryLevel.NOT_EVIDENT:
-            action_type = ActionType.RE_EXPLAIN
-            instruction = "补充一个具体例子，并说明它背后的运作机制。"
+        elif decision.mastery_level is MasteryLevel.NO_CLUE:
+            action_type = ActionType.RE_LEARN
+            instruction = "先重新学习核心概念，再用一个具体例子检查是否形成理解。"
         elif observation.gaps:
-            action_type = ActionType.RE_EXPLAIN
+            action_type = ActionType.RE_LEARN
             instruction = "先补充机制与边界，再用一个未提示的新情境检验迁移。"
         else:
             action_type = ActionType.PRACTICE

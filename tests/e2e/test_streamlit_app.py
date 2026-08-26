@@ -153,9 +153,9 @@ def test_user_can_complete_fake_diagnosis_in_rendered_app(
 @pytest.mark.parametrize(
     ("scenario", "mastery_copy", "action_copy"),
     [
-        ("partial", "理解还不稳定", "再解释一次"),
+        ("partial", "理解还不稳定", "重新学习"),
         ("misconception", "理解还不稳定", "复习概念"),
-        ("insufficient_evidence", "暂无足够掌握证据", "再解释一次"),
+        ("insufficient_evidence", "完全未掌握", "重新学习"),
     ],
 )
 def test_success_scenarios_render_the_expected_diagnosis_and_action(
@@ -230,7 +230,7 @@ def test_same_session_supports_follow_up_and_resume(
     )
     session_id = app.session_state["current_session_id"]
 
-    app = button_with_label(app, "再解释一次").click().run(timeout=10)
+    app = button_with_label(app, "重新学习").click().run(timeout=10)
     text_area_with_label(app, "你的后续解释").input(
         "这次我补充递归的终止条件、调用机制和适用边界。"
     )

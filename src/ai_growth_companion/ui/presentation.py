@@ -11,19 +11,22 @@ MASTERY_LABELS = {
     "solid": "理解较稳定",
     "developing": "理解正在形成",
     "fragile": "理解还不稳定",
-    "not_evident": "暂无足够掌握证据",
+    "no_clue": "完全未掌握",
+    "not_evident": "完全未掌握",
 }
 
 ACTION_LABELS = {
     "practice": "进入练习",
-    "re_explain": "再解释一次",
+    "re_learn": "重新学习",
+    "re_explain": "重新学习",
     "review": "复习概念",
     "example": "换个例子",
 }
 
 ACTION_HEADINGS = {
     "practice": "下一步：用一道练习检验迁移",
-    "re_explain": "下一步：换一种方式再解释一次",
+    "re_learn": "下一步：重新学习核心概念",
+    "re_explain": "下一步：重新学习核心概念",
     "review": "下一步：先复习关键概念",
     "example": "下一步：换一个例子建立联系",
 }

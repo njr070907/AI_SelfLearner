@@ -4,8 +4,13 @@ import pytest
 from pydantic import ValidationError
 
 from ai_growth_companion.schemas.diagnosis import (
+    ActionType,
+    LearningAction,
     MasteryDecision,
+    MasteryLevel,
     ProviderObservation,
+    storage_action_type,
+    storage_mastery_level,
     validate_answer_excerpts,
 )
 
@@ -59,3 +64,27 @@ def test_mastery_levels_cannot_contradict_each_other() -> None:
             reason="合成测试",
             protocol_version="mastery-protocol-v0.1-demo",
         )
+
+
+def test_v03_no_clue_and_re_learn_are_canonical_with_legacy_read_compatibility() -> None:
+    decision = MasteryDecision(
+        mastery_level="not_evident",
+        understanding_level="novice",
+        score=10,
+        confidence=0.95,
+        evidence_ids=[],
+        reason="没有足够证据",
+        protocol_version="mastery-protocol-v0.3-golden-baseline",
+    )
+    action = LearningAction(
+        action_type="re_explain",
+        instruction="重新学习核心概念",
+        reason="完全未掌握",
+        evidence_ids=[],
+        policy_version="learning-policy-v0.3-golden-baseline",
+    )
+
+    assert decision.mastery_level is MasteryLevel.NO_CLUE
+    assert action.action_type is ActionType.RE_LEARN
+    assert storage_mastery_level(decision.mastery_level) == "not_evident"
+    assert storage_action_type(action.action_type) == "re_explain"

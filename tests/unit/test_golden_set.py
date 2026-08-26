@@ -101,7 +101,7 @@ def test_non_strong_case_cannot_allow_solid_mastery() -> None:
     rubric = partial_case["rubric"]
     assert isinstance(rubric, dict)
     rubric["acceptable_mastery_levels"] = ["solid"]
-    rubric["forbidden_mastery_levels"] = ["not_evident"]
+    rubric["forbidden_mastery_levels"] = ["no_clue"]
     cases[1] = partial_case
 
     with pytest.raises(ValidationError, match="non-strong case must forbid solid mastery"):

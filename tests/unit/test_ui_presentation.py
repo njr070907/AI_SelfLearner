@@ -30,7 +30,7 @@ from ai_growth_companion.ui.presentation import (
         (MasteryLevel.SOLID, "理解较稳定"),
         (MasteryLevel.DEVELOPING, "理解正在形成"),
         (MasteryLevel.FRAGILE, "理解还不稳定"),
-        (MasteryLevel.NOT_EVIDENT, "暂无足够掌握证据"),
+        (MasteryLevel.NO_CLUE, "完全未掌握"),
     ],
 )
 def test_mastery_values_have_chinese_presentation_labels(
@@ -44,7 +44,7 @@ def test_mastery_values_have_chinese_presentation_labels(
     ("value", "expected"),
     [
         (ActionType.PRACTICE, "进入练习"),
-        (ActionType.RE_EXPLAIN, "再解释一次"),
+        (ActionType.RE_LEARN, "重新学习"),
         (ActionType.REVIEW, "复习概念"),
         (ActionType.EXAMPLE, "换个例子"),
     ],

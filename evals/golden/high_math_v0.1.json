@@ -84,7 +84,7 @@
         "required_limitations": [],
         "forbidden_claims": ["不得声称只检查一侧即可", "不得把 f(a) 等同于极限"],
         "acceptable_mastery_levels": ["solid"],
-        "forbidden_mastery_levels": ["not_evident", "fragile"],
+        "forbidden_mastery_levels": ["no_clue", "fragile"],
         "recommended_actions": ["practice"],
         "confidence": {"minimum": 0.8, "maximum": 1.0},
         "evaluator_note": "答案同时覆盖判定条件、点值边界和正反例，可进入新的分段函数迁移题。"
@@ -111,7 +111,7 @@
         "forbidden_claims": ["不得把规则复述当成机制理解", "不得把未回答的点值关系补写成已掌握", "不得判定为 developing 或 solid"],
         "acceptable_mastery_levels": ["fragile"],
         "forbidden_mastery_levels": ["solid", "developing"],
-        "recommended_actions": ["re_explain", "example"],
+        "recommended_actions": ["re_learn", "example"],
         "confidence": {"minimum": 0.65, "maximum": 0.9},
         "evaluator_note": "回答只能证明记住了判定规则，不能证明理解其原因或边界。应先要求学习者解释为什么左右极限不等时不存在同一个逼近值，再比较同一邻域、不同 f(a) 的函数。"
       },
@@ -136,7 +136,7 @@
         "forbidden_claims": ["不得把术语使用流畅当成正确理解", "不得输出双侧极限存在"],
         "acceptable_mastery_levels": ["fragile"],
         "forbidden_mastery_levels": ["solid", "developing"],
-        "recommended_actions": ["review", "re_explain"],
+        "recommended_actions": ["review", "re_learn"],
         "confidence": {"minimum": 0.8, "maximum": 1.0},
         "evaluator_note": "两个错误均由原回答直接表达，应引用原句并先修正定义，不能只补充例子。"
       },
@@ -159,11 +159,11 @@
         "required_misconceptions": [],
         "required_limitations": ["无法从回答识别更具体的错误模式，只能确定本次没有显示掌握"],
         "forbidden_claims": ["不得把“知道要从两边看”当成已经掌握", "不得把一次未掌握扩大成永久没有知识储备", "不得把尚未表达的错误当成已确认误区"],
-        "acceptable_mastery_levels": ["not_evident"],
+        "acceptable_mastery_levels": ["no_clue"],
         "forbidden_mastery_levels": ["solid", "developing"],
-        "recommended_actions": ["re_explain"],
+        "recommended_actions": ["re_learn"],
         "confidence": {"minimum": 0.75, "maximum": 0.95},
-        "evaluator_note": "本次回答足以判定当前未掌握（not_evident），但不足以识别具体误区。应先追问“左右两边分别趋向什么关系时双侧极限存在”；仍不能回答时，进入重新讲解。"
+        "evaluator_note": "本次回答足以判定当前未掌握（no_clue），但不足以识别具体误区。应先追问“左右两边分别趋向什么关系时双侧极限存在”；仍不能回答时，进入重新学习。"
       },
       "source_refs": [
         {"document_id": "hm-03-limit-definition", "pages": [11, 12, 13, 14, 15, 16], "topics": ["函数极限定义", "左右极限"]}
@@ -186,7 +186,7 @@
         "required_limitations": [],
         "forbidden_claims": ["不得声称等价等于恒等", "不得声称加减项总能直接替换"],
         "acceptable_mastery_levels": ["solid"],
-        "forbidden_mastery_levels": ["not_evident", "fragile"],
+        "forbidden_mastery_levels": ["no_clue", "fragile"],
         "recommended_actions": ["practice"],
         "confidence": {"minimum": 0.8, "maximum": 1.0},
         "evaluator_note": "已解释替换的数学含义和失效机制，下一步用新的抵消型极限做迁移。"
@@ -213,7 +213,7 @@
         "forbidden_claims": ["不得把记住口诀判成理解替换机制", "不得判为 developing 或 solid"],
         "acceptable_mastery_levels": ["fragile"],
         "forbidden_mastery_levels": ["solid", "developing"],
-        "recommended_actions": ["re_explain", "example"],
+        "recommended_actions": ["re_learn", "example"],
         "confidence": {"minimum": 0.65, "maximum": 0.9},
         "evaluator_note": "学习者只复述了替换边界，没有解释原因或完成计算，因此只能证明记住规则。下一步应用两个同阶项抵消前后的量级比较补足机制。"
       },
@@ -238,7 +238,7 @@
         "forbidden_claims": ["不得只说计算粗心而忽略规则误解", "不得判为 developing 或 solid"],
         "acceptable_mastery_levels": ["fragile"],
         "forbidden_mastery_levels": ["solid", "developing"],
-        "recommended_actions": ["review", "re_explain"],
+        "recommended_actions": ["review", "re_learn"],
         "confidence": {"minimum": 0.85, "maximum": 1.0},
         "evaluator_note": "这是明确、可定位的概念误区；应先区分“比值趋近 1”和“函数恒等”，再处理抵消。"
       },
@@ -261,11 +261,11 @@
         "required_misconceptions": [],
         "required_limitations": ["无法从回答识别具体错误模式，只能确定本次没有显示掌握"],
         "forbidden_claims": ["不得把“不确定”解释成明确错误规则", "不得因为写出 sin x 约等于 x 就给出正向掌握结论", "不得把一次未掌握扩大成永久没有知识储备"],
-        "acceptable_mastery_levels": ["not_evident"],
+        "acceptable_mastery_levels": ["no_clue"],
         "forbidden_mastery_levels": ["solid", "developing"],
-        "recommended_actions": ["re_explain"],
+        "recommended_actions": ["re_learn"],
         "confidence": {"minimum": 0.75, "maximum": 0.95},
-        "evaluator_note": "本次回答足以判定当前未掌握（not_evident），但不足以识别具体误区。应先追问等价的比值定义以及乘积和差式的区别；仍不能回答时，进入重新讲解。"
+        "evaluator_note": "本次回答足以判定当前未掌握（no_clue），但不足以识别具体误区。应先追问等价的比值定义以及乘积和差式的区别；仍不能回答时，进入重新学习。"
       },
       "source_refs": [
         {"document_id": "hm-04-limit-upper", "pages": [15, 16, 17, 18, 19, 20, 21, 22], "topics": ["等价无穷小替换"]}
@@ -288,7 +288,7 @@
         "required_limitations": [],
         "forbidden_claims": ["不得声称连续必然可导", "不得忽略一元函数语境"],
         "acceptable_mastery_levels": ["solid"],
-        "forbidden_mastery_levels": ["not_evident", "fragile"],
+        "forbidden_mastery_levels": ["no_clue", "fragile"],
         "recommended_actions": ["practice"],
         "confidence": {"minimum": 0.85, "maximum": 1.0},
         "evaluator_note": "关系、反例和微分机制都完整，可用新的分段函数检验左右导数。"
@@ -315,7 +315,7 @@
         "forbidden_claims": ["不得把题目提示的经典反例当成迁移证据", "不得把规则和例子的复述判成机制理解", "不得判为 developing 或 solid"],
         "acceptable_mastery_levels": ["fragile"],
         "forbidden_mastery_levels": ["solid", "developing"],
-        "recommended_actions": ["practice", "re_explain"],
+        "recommended_actions": ["practice", "re_learn"],
         "confidence": {"minimum": 0.65, "maximum": 0.9},
         "evaluator_note": "题目已经提示 |x|，因此复述这个固定反例仍可能只是机械记忆。下一步应提供一个未提示的新分段函数，要求学习者从左右差商独立判断；能够迁移后才可进入 developing。"
       },
@@ -341,7 +341,7 @@
         "forbidden_claims": ["不得因提到连续和切线就视为有效机制", "不得判为 developing 或 solid"],
         "acceptable_mastery_levels": ["fragile"],
         "forbidden_mastery_levels": ["solid", "developing"],
-        "recommended_actions": ["review", "re_explain"],
+        "recommended_actions": ["review", "re_learn"],
         "confidence": {"minimum": 0.85, "maximum": 1.0},
         "evaluator_note": "答案明确表达了三处误区，应从 |x| 左右差商重新建立反例。"
       },
@@ -365,11 +365,11 @@
         "required_misconceptions": [],
         "required_limitations": ["提到反例名称但没有陈述性质，无法识别具体错误模式，只能确定本次没有显示掌握"],
         "forbidden_claims": ["不得把熟悉 |x| 这个例子当成理解反例", "不得猜测学习者持有某个具体错误关系", "不得把一次未掌握扩大成永久没有知识储备"],
-        "acceptable_mastery_levels": ["not_evident"],
+        "acceptable_mastery_levels": ["no_clue"],
         "forbidden_mastery_levels": ["solid", "developing"],
-        "recommended_actions": ["re_explain"],
+        "recommended_actions": ["re_learn"],
         "confidence": {"minimum": 0.75, "maximum": 0.95},
-        "evaluator_note": "本次回答足以判定当前未掌握（not_evident），但不足以识别具体误区。应先让学习者判断可导与连续的关系，再追问一个未提示函数的左右导数；仍不能回答时，进入重新讲解。"
+        "evaluator_note": "本次回答足以判定当前未掌握（no_clue），但不足以识别具体误区。应先让学习者判断可导与连续的关系，再追问一个未提示函数的左右导数；仍不能回答时，进入重新学习。"
       },
       "source_refs": [
         {"document_id": "hm-06-derivative-definition", "pages": [18, 19, 20, 21, 22, 23, 24], "topics": ["可导与连续"]}
@@ -392,7 +392,7 @@
         "required_limitations": [],
         "forbidden_claims": ["不得声称任意分式极限都可直接求导", "不得省略重新判断未定式"],
         "acceptable_mastery_levels": ["solid"],
-        "forbidden_mastery_levels": ["not_evident", "fragile"],
+        "forbidden_mastery_levels": ["no_clue", "fragile"],
         "recommended_actions": ["practice"],
         "confidence": {"minimum": 0.85, "maximum": 1.0},
         "evaluator_note": "条件和边界完整，可安排包含可用与不可用表达式的分类迁移题。"
@@ -418,7 +418,7 @@
         "forbidden_claims": ["不得因会背两个类型和操作步骤就认定理解定理", "不得判为 developing 或 solid"],
         "acceptable_mastery_levels": ["fragile"],
         "forbidden_mastery_levels": ["solid", "developing"],
-        "recommended_actions": ["practice", "re_explain"],
+        "recommended_actions": ["practice", "re_learn"],
         "confidence": {"minimum": 0.65, "maximum": 0.9},
         "evaluator_note": "回答只能证明记住了适用类型和操作步骤，尚未证明理解条件或边界。下一步应给出多个未提示表达式，要求独立判断能否使用并说明理由；能够迁移后才可进入 developing。"
       },
@@ -443,7 +443,7 @@
         "forbidden_claims": ["不得把会执行形式求导当成会使用法则", "不得判为 developing 或 solid"],
         "acceptable_mastery_levels": ["fragile"],
         "forbidden_mastery_levels": ["solid", "developing"],
-        "recommended_actions": ["review", "re_explain"],
+        "recommended_actions": ["review", "re_learn"],
         "confidence": {"minimum": 0.9, "maximum": 1.0},
         "evaluator_note": "误区由明确例子支持，应先让学习者直接代入该例并比较结果，再重建适用条件。"
       },
@@ -466,11 +466,11 @@
         "required_misconceptions": [],
         "required_limitations": ["只记得操作外形，无法识别具体错误模式，只能确定本次没有显示掌握"],
         "forbidden_claims": ["不得将缺失条件直接解释为坚信任意分式都能用", "不得因记住求导动作而给出 developing", "不得把一次未掌握扩大成永久没有知识储备"],
-        "acceptable_mastery_levels": ["not_evident"],
+        "acceptable_mastery_levels": ["no_clue"],
         "forbidden_mastery_levels": ["solid", "developing"],
-        "recommended_actions": ["re_explain"],
+        "recommended_actions": ["re_learn"],
         "confidence": {"minimum": 0.75, "maximum": 0.95},
-        "evaluator_note": "本次回答足以判定当前未掌握（not_evident），但不足以识别具体误区。应用一个 0/0 和一个可直接代入的分式做二选一追问；仍不能判断时，进入重新讲解。"
+        "evaluator_note": "本次回答足以判定当前未掌握（no_clue），但不足以识别具体误区。应用一个 0/0 和一个可直接代入的分式做二选一追问；仍不能判断时，进入重新学习。"
       },
       "source_refs": [
         {"document_id": "hm-09-lhopital", "pages": [11, 12, 13, 14, 15], "topics": ["洛必达法则条件"]}
@@ -493,7 +493,7 @@
         "required_limitations": [],
         "forbidden_claims": ["不得把定积分定义成原函数作差", "不得声称定积分总为非负"],
         "acceptable_mastery_levels": ["solid"],
-        "forbidden_mastery_levels": ["not_evident", "fragile"],
+        "forbidden_mastery_levels": ["no_clue", "fragile"],
         "recommended_actions": ["practice"],
         "confidence": {"minimum": 0.85, "maximum": 1.0},
         "evaluator_note": "定义、几何意义和微积分基本定理的局部机制完整，可做符号变化函数的迁移题。"
@@ -520,7 +520,7 @@
         "forbidden_claims": ["不得把“窄长方形相加”自动视为理解黎曼和定义", "不得把公式复述当成理解变上限求导机制", "不得判为 developing 或 solid"],
         "acceptable_mastery_levels": ["fragile"],
         "forbidden_mastery_levels": ["solid", "developing"],
-        "recommended_actions": ["practice", "re_explain"],
+        "recommended_actions": ["practice", "re_learn"],
         "confidence": {"minimum": 0.65, "maximum": 0.9},
         "evaluator_note": "回答只能证明记住了几何直观和求导公式，尚未证明理解定义、符号边界或求导机制。下一步应用跨越 x 轴的未提示函数构造黎曼和并解释变上限增量；能够迁移后才可进入 developing。"
       },
@@ -546,7 +546,7 @@
         "forbidden_claims": ["不得只纠正计算结果而遗漏三个概念误区", "不得判为 developing 或 solid"],
         "acceptable_mastery_levels": ["fragile"],
         "forbidden_mastery_levels": ["solid", "developing"],
-        "recommended_actions": ["review", "re_explain"],
+        "recommended_actions": ["review", "re_learn"],
         "confidence": {"minimum": 0.9, "maximum": 1.0},
         "evaluator_note": "误区证据明确，应依次区分定义与计算定理、代数面积与几何面积，并用短区间解释 F'(x)。"
       },
@@ -570,11 +570,11 @@
         "required_misconceptions": [],
         "required_limitations": ["只提到一个计算公式，无法识别其是否把公式误当定义，只能确定本次没有显示掌握"],
         "forbidden_claims": ["不得直接确认其持有“公式就是定义”的误区", "不得从会说公式名称推断掌握", "不得把一次未掌握扩大成永久没有知识储备"],
-        "acceptable_mastery_levels": ["not_evident"],
+        "acceptable_mastery_levels": ["no_clue"],
         "forbidden_mastery_levels": ["solid", "developing"],
-        "recommended_actions": ["re_explain"],
+        "recommended_actions": ["re_learn"],
         "confidence": {"minimum": 0.75, "maximum": 0.95},
-        "evaluator_note": "本次回答足以判定当前未掌握（not_evident），但不足以识别具体误区。应先让学习者用三块长方形描述一次近似求和；仍不能回答时，进入重新讲解。"
+        "evaluator_note": "本次回答足以判定当前未掌握（no_clue），但不足以识别具体误区。应先让学习者用三块长方形描述一次近似求和；仍不能回答时，进入重新学习。"
       },
       "source_refs": [
         {"document_id": "hm-13-definite-integral", "pages": [17, 18, 19, 20, 21, 22, 23, 24], "topics": ["定积分定义", "黎曼和"]},

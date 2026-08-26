@@ -114,7 +114,7 @@ Diagnosis 页面显示报告
 必须返回：
 
 - `correctness`、`mechanism_understanding`、`depth`：0–100；
-- `mastery_level`：not_evident / fragile / developing / solid；
+- `mastery_level`：no_clue / fragile / developing / solid；其中 no_clue 表示完全未掌握；
 - `accurate_points`、`missing_points`、`misconceptions`；
 - `evidence_quotes`：仅引用用户回答中的短片段；
 - `follow_up_question`；
@@ -166,4 +166,3 @@ Diagnosis 页面显示报告
 - 模型失败不会丢失用户回答；
 - 至少完成 10 次真实个人会话；
 - 所有 P0 用户故事通过验收。
-

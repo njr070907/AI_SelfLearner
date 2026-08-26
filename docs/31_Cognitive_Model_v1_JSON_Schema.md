@@ -215,7 +215,7 @@
         "concept_id": {"type": "string"},
         "name": {"type": "string"},
         "domain": {"type": ["string", "null"]},
-        "mastery_level": {"enum": ["not_evident", "fragile", "developing", "solid"]},
+        "mastery_level": {"enum": ["no_clue", "fragile", "developing", "solid"]},
         "dimensions": {"$ref": "#/$defs/dimensions"},
         "confidence": {"$ref": "#/$defs/confidence"},
         "evidence_count": {"type": "integer", "minimum": 0},
@@ -268,4 +268,3 @@
 ## 5. MVP 子集
 
 第一版只要求 `user_id`、`knowledge_state.concepts`、`limitations` 和版本元数据。Goals、Abilities、Patterns、Behavior、Preferences 随实验逐步启用。
-

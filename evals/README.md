@@ -106,6 +106,6 @@ uv run python scripts/run_golden_eval.py --provider deepseek --confirm-paid-call
 
 - 只会复述规则、公式或题目已经提示的经典例子，仍属于 `fragile`，不能直接进入 `developing`。
 - `partial` 描述回答里有部分正确内容，不等同于掌握等级 `developing`。
-- `insufficient_evidence` 表示无法识别具体误区；当回答者明确不会解释或应用时，仍可高置信度判定“当前未掌握（not_evident）”。
+- `insufficient_evidence` 表示无法识别具体误区；当回答者明确不会解释或应用时，仍可高置信度判定“完全未掌握（no_clue）”，下一步为“重新学习（re_learn）”。
 - 一次未掌握只描述当前证据，不能扩大成永久没有知识储备或能力判断。
 - 从 `fragile` 升级到 `developing`，至少需要未提示的新例子、边界判断或迁移任务作为证据。

@@ -4,9 +4,10 @@ from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from ai_growth_companion.domain.feedback import ConceptTrend
+from ai_growth_companion.schemas.diagnosis import normalize_mastery_level
 
 LOCAL_USER_ID = "00000000-0000-4000-8000-000000000001"
 
@@ -57,7 +58,7 @@ class ConceptState(BaseModel):
 
     user_id: str = Field(min_length=1)
     concept_id: str = Field(min_length=1)
-    mastery_level: str = Field(pattern="^(not_evident|fragile|developing|solid)$")
+    mastery_level: str = Field(pattern="^(no_clue|not_evident|fragile|developing|solid)$")
     understanding_level: str = Field(pattern="^(novice|developing|proficient)$")
     score: int = Field(ge=0, le=100)
     confidence: float = Field(ge=0, le=1)
@@ -75,3 +76,8 @@ class ConceptState(BaseModel):
     review_success_count: int = Field(default=0, ge=0)
     repeated_misconceptions: list[str] = Field(default_factory=list)
     updated_at: datetime = Field(default_factory=utc_now)
+
+    @field_validator("mastery_level", mode="before")
+    @classmethod
+    def accept_legacy_mastery_level(cls, value: object) -> object:
+        return normalize_mastery_level(value)

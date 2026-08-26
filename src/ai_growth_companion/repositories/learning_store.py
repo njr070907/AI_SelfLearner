@@ -4,6 +4,7 @@ import json
 
 from ai_growth_companion.domain.events import ConceptState, LearningEvent
 from ai_growth_companion.repositories.database import Database
+from ai_growth_companion.schemas.diagnosis import storage_mastery_level
 
 
 def _datetime_text(value: object) -> str:
@@ -93,7 +94,7 @@ class SQLiteLearningStore:
                 (
                     state.user_id,
                     state.concept_id,
-                    state.mastery_level,
+                    storage_mastery_level(state.mastery_level),
                     state.understanding_level,
                     state.score,
                     state.confidence,

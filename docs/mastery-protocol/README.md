@@ -1,7 +1,7 @@
 # Mastery Protocol
 
 > 状态：Sprint 1 黄金基线
-> 版本：`mastery-protocol-v0.2-golden-baseline`
+> 版本：`mastery-protocol-v0.3-golden-baseline`
 > 所有者：Founder / Product Owner  
 > 重要说明：当前版本只定义可实验边界，不代表掌握判断规则已经通过真实用户验证。
 
@@ -44,7 +44,7 @@ Provider 不直接写数据库，不更新用户状态，也不决定长期学�
 
 Mastery Engine 输出至少包含：
 
-- `mastery_level`：`not_evident | fragile | developing | solid`；
+- `mastery_level`：`no_clue | fragile | developing | solid`；其中 `no_clue` 的产品含义是“完全未掌握”。
 - `understanding_level`：`novice | developing | proficient`；
 - `score`：0–100 的辅助值，不作为唯一判断；
 - `confidence`：结合证据数量、质量、一致性和用户反馈得出的状态置信度；
@@ -52,7 +52,7 @@ Mastery Engine 输出至少包含：
 - `reason`：可读、可追溯的决定说明；
 - `protocol_version`：生成决定的 Mastery Protocol 版本。
 
-粗细等级映射基线：`not_evident/fragile -> novice`、`developing -> developing`、`solid -> proficient`。这只是初始兼容规则，后续必须通过评估数据修订。
+粗细等级映射基线：`no_clue/fragile -> novice`、`developing -> developing`、`solid -> proficient`。这只是初始兼容规则，后续必须通过评估数据修订。
 
 ## 5. Learning Action 契约
 
@@ -61,7 +61,7 @@ Learning Policy 只选择一个主要动作：
 - `review`：复习关键内容；
 - `example`：换例子或表示方式；
 - `practice`：完成迁移或应用练习；
-- `re_explain`：重新解释或回答追问。
+- `re_learn`：重新学习核心概念，再回答追问或例题。
 
 每个动作包含 `instruction`、`reason`、`evidence_ids` 和策略版本。用户可以接受、跳过或纠正，跳过不能被解释为负面人格或动机证据。
 
@@ -100,6 +100,8 @@ Fake 场景至少覆盖：`strong`、`partial`、`misconception`、`insufficient
 
 原始讲义 PDF 不进入仓库。评测集只保存原创案例、文件哈希与页码来源，因此它是回归测试基线，不是运行时材料库，也不会提前触发 RAG 范围。
 
-首轮复核进一步确定：规则、公式和题目已提示例子的复述只能支持 `fragile`；`partial` 回答类型不自动映射为 `developing`；无法识别具体误区时，仍可根据明确的不会解释或应用，高置信度判定当前 `not_evident`；任何一次结果都不得推断为永久知识储备或能力结论。
+首轮复核进一步确定：规则、公式和题目已提示例子的复述只能支持 `fragile`；`partial` 回答类型不自动映射为 `developing`；无法识别具体误区时，仍可根据明确的不会解释或应用，高置信度判定当前 `no_clue`（完全未掌握）；下一步使用 `re_learn`（重新学习）；任何一次结果都不得推断为永久知识储备或能力结论。
 
-`mastery-protocol-v0.2-golden-baseline` 已将这些决定写入确定性基线：单次回答仍有机制或边界缺口时最多为 `fragile`；`developing` 需要后续未提示任务中的迁移证据。`observation_confidence` 只表示观察提取的可靠性，所以“明确表示不会”可以同时产生高置信度观察和 `not_evident` 决定。
+`mastery-protocol-v0.3-golden-baseline` 已将这些决定写入确定性基线：单次回答仍有机制或边界缺口时最多为 `fragile`；`developing` 需要后续未提示任务中的迁移证据。`observation_confidence` 只表示观察提取的可靠性，所以“明确表示不会”可以同时产生高置信度观察和 `no_clue` 决定。
+
+旧数据库和旧事件中的 `not_evident/re_explain` 会在读取时兼容映射为 `no_clue/re_learn`；新代码只生成 v0.3 枚举，避免破坏已有学习历史。

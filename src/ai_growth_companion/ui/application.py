@@ -558,7 +558,7 @@ def _render_success_actions(service: LearningService, result: DiagnosisView) -> 
         type="primary",
         on_click=_show_follow_up_form,
     )
-    if action_type != "re_explain":
+    if action_type != "re_learn":
         st.button("重新解释", on_click=_show_follow_up_form)
 
 
