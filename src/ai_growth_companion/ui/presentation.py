@@ -40,6 +40,43 @@ STATUS_LABELS = {
     "invalid": "诊断格式无效",
 }
 
+WRONG_ITEM_TYPE_LABELS = {
+    "misconception": "明确误区",
+    "gap": "关键缺口",
+    "insufficient_evidence": "证据不足",
+}
+
+WRONG_ITEM_STATUS_LABELS = {
+    "open": "待处理",
+    "snoozed": "已暂缓",
+    "mastered": "已掌握",
+}
+
+REVIEW_OUTCOME_LABELS = {
+    "correct": "本次回答正确",
+    "partial": "本次回答仍不完整",
+    "incorrect": "本次回答需要纠正",
+}
+
+REVIEW_ATTEMPT_STATUS_LABELS = {
+    "succeeded": "复测完成",
+    "failed": "复测失败",
+    "invalid": "结果格式无效",
+}
+
+CONCEPT_TREND_LABELS = {
+    "insufficient_data": "证据还不足以判断趋势",
+    "improving": "理解正在改善",
+    "stable": "理解变化较稳定",
+    "declining": "近期证据有所回落",
+}
+
+FEEDBACK_VERDICT_LABELS = {
+    "accurate": "诊断准确",
+    "partial": "部分准确",
+    "inaccurate": "诊断不准确，需要修正",
+}
+
 SEVERITY_LABELS = {
     "low": "轻微",
     "medium": "重要",
@@ -106,6 +143,49 @@ def severity_label(value: str | Enum) -> str:
     normalized = _value(value)
     assert normalized is not None
     return SEVERITY_LABELS.get(normalized, normalized)
+
+
+def wrong_item_type_label(value: str | Enum) -> str:
+    """Localize a backend-provided wrong-item classification."""
+    normalized = _value(value)
+    assert normalized is not None
+    return WRONG_ITEM_TYPE_LABELS.get(normalized, normalized)
+
+
+def wrong_item_status_label(value: str | Enum) -> str:
+    """Localize a user-controlled wrong-item lifecycle status."""
+    normalized = _value(value)
+    assert normalized is not None
+    return WRONG_ITEM_STATUS_LABELS.get(normalized, normalized)
+
+
+def review_outcome_label(value: str | Enum | None) -> str:
+    """Localize the scheduling outcome returned by the review service."""
+    normalized = _value(value)
+    if normalized is None:
+        return "尚未复测"
+    return REVIEW_OUTCOME_LABELS.get(normalized, normalized)
+
+
+def review_attempt_status_label(value: str | Enum) -> str:
+    """Localize a retest attempt status without inferring success."""
+    normalized = _value(value)
+    assert normalized is not None
+    return REVIEW_ATTEMPT_STATUS_LABELS.get(normalized, normalized)
+
+
+def concept_trend_label(value: str | Enum) -> str:
+    """Localize the backend projection's longitudinal trend."""
+    normalized = _value(value)
+    assert normalized is not None
+    return CONCEPT_TREND_LABELS.get(normalized, normalized)
+
+
+def feedback_verdict_label(value: str | Enum) -> str:
+    """Localize a learner feedback choice."""
+    normalized = _value(value)
+    assert normalized is not None
+    return FEEDBACK_VERDICT_LABELS.get(normalized, normalized)
 
 
 def error_message(error_code: str | None) -> str:

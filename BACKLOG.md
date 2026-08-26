@@ -20,16 +20,16 @@
 
 ## P0 — 完整自学 MVP
 
-这是当前从“工程底座”走向“用户可以正常使用的完整自学产品”的主队列。按最终用户验收重新校准后当前总进度约 **56%**，预计还需 **12–20 个有效工作日**；完整阶段、权重、时间估算、接口边界和停止条件见 [`docs/roadmap/FULL_SELF_STUDY_MVP_PLAN.md`](docs/roadmap/FULL_SELF_STUDY_MVP_PLAN.md) 和 [`docs/roadmap/MVP_PROGRESS.md`](docs/roadmap/MVP_PROGRESS.md)。后端完成但前端未接入的能力只计阶段的一半，未合并代码不计入完成度。
+这是当前从“工程底座”走向“用户可以正常使用的完整自学产品”的主队列。#33 合并后当前总进度约 **66%**，预计还需 **10–18 个有效工作日**；完整阶段、权重、时间估算、接口边界和停止条件见 [`docs/roadmap/FULL_SELF_STUDY_MVP_PLAN.md`](docs/roadmap/FULL_SELF_STUDY_MVP_PLAN.md) 和 [`docs/roadmap/MVP_PROGRESS.md`](docs/roadmap/MVP_PROGRESS.md)。后端完成但前端未接入的能力只计阶段的一半，未合并代码不计入完成度。
 
 - [x] [#31](https://github.com/njr070907/AI_SelfLearner/issues/31) 锁定完整自学 MVP 范围与数据/服务契约。
 - [x] [#32](https://github.com/njr070907/AI_SelfLearner/issues/32) 后端：实现完整教学闭环 API 与领域模型。
-- [ ] [#33](https://github.com/njr070907/AI_SelfLearner/issues/33) 前端：实现学习教学流程页面。
+- [x] [#33](https://github.com/njr070907/AI_SelfLearner/issues/33) 前端：实现学习教学流程页面（PR #58）。
 - [x] [#34](https://github.com/njr070907/AI_SelfLearner/issues/34) 后端：实现错题本数据模型与服务。
 - [ ] [#35](https://github.com/njr070907/AI_SelfLearner/issues/35) 前端：实现错题本页面。
 - [x] [#36](https://github.com/njr070907/AI_SelfLearner/issues/36) 后端：实现复习调度与复测。
 - [ ] [#37](https://github.com/njr070907/AI_SelfLearner/issues/37) 前端：实现复习队列与复测页面。
-- [ ] [#38](https://github.com/njr070907/AI_SelfLearner/issues/38) 后端：实现反馈、长期状态与趋势。
+- [x] [#38](https://github.com/njr070907/AI_SelfLearner/issues/38) 后端：实现反馈、长期状态与趋势。
 - [ ] [#39](https://github.com/njr070907/AI_SelfLearner/issues/39) 集成教学、错题、复习、进度并完成 7 天试用。
 
 分工：当前 Codex 负责后端与学习核心；GitHub 合作者主要负责前端 UI；仓库所有者负责产品规则和最终验收。前端必须通过服务契约调用后端，不直接访问 SQL 或 Provider。
@@ -46,5 +46,5 @@
 
 ## P1 — UI 验收
 
-- [ ] 在本地 Streamlit 中完成 Liquid Glass 工作区的桌面/窄窗口、亮色/深色主题和主要交互手工验收。
-- [ ] 将 UI 手工验收结论和发现的问题记录到 Issue 或开发日志，不以截图或主观“看起来不错”替代交互验收。
+- [x] 在功能分支的 `localhost:8511` 完成 Liquid Glass 工作区桌面 1440×1000、窄窗口 390×844、亮色/深色主题和主要交互的实际浏览器验收。
+- [x] 将 UI 实际交互验收结论和契约限制记录到开发日志与 7 天试用准备清单。

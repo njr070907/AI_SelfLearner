@@ -1,6 +1,7 @@
 """Chinese-first Streamlit interface for the evidence-based learning loop."""
 
 from collections import defaultdict
+from collections.abc import Sequence
 from html import escape
 from uuid import uuid4
 
@@ -8,21 +9,28 @@ import streamlit as st
 
 from ai_growth_companion.application.health import HealthReport, HealthState
 from ai_growth_companion.application.learning_service import LearningService
-from ai_growth_companion.application.models import DiagnosisView, HistoryItem
+from ai_growth_companion.application.models import DiagnosisView, HistoryItem, WorkspaceSnapshot
 from ai_growth_companion.config import Settings
+from ai_growth_companion.domain.events import ConceptState
+from ai_growth_companion.domain.feedback import FeedbackVerdict
 from ai_growth_companion.domain.session import InputValidationError, InvalidSessionState
+from ai_growth_companion.domain.wrong_items import WrongItemStatus
 from ai_growth_companion.providers.fake import FakeScenario
+from ai_growth_companion.ui.mistake_notebook import render_mistake_notebook
 from ai_growth_companion.ui.motion import render_pointer_glow
 from ai_growth_companion.ui.presentation import (
     SCENARIO_LABELS,
     action_heading,
     action_label,
+    concept_trend_label,
     error_message,
+    feedback_verdict_label,
     local_datetime,
     mastery_label,
     severity_label,
     status_label,
 )
+from ai_growth_companion.ui.review_queue import render_review_queue
 from ai_growth_companion.ui.shell import (
     render_search_results,
     render_sidebar,
@@ -62,12 +70,27 @@ def render_application(
         open_result=_open_search_result,
     )
 
-    view_slugs = {"今日": "today", "学习": "learn", "进度": "progress", "系统": "system"}
+    view_slugs = {
+        "今日": "today",
+        "学习": "learn",
+        "错题": "mistakes",
+        "复习": "review",
+        "进度": "progress",
+        "系统": "system",
+    }
     with st.container(key=f"view-{view_slugs.get(page, 'today')}"):
         if page == "今日":
             _render_today(service)
         elif page == "学习":
             _render_learning_flow(service, settings=settings)
+        elif page == "错题":
+            render_mistake_notebook(
+                service,
+                open_review=_open_review_from_wrong,
+                resume_learning=_resume_session,
+            )
+        elif page == "复习":
+            render_review_queue(service, settings=settings)
         elif page == "进度":
             _render_progress(service)
         else:
@@ -76,7 +99,8 @@ def render_application(
 
 
 def _render_today(service: LearningService) -> None:
-    history = service.list_history()
+    snapshot = service.get_workspace_snapshot(limit=100)
+    history = snapshot.history
     st.markdown('<div class="eyebrow">今天 · 你的学习工作台</div>', unsafe_allow_html=True)
     st.markdown('<h1 class="hero-title">AI SelfLearner</h1>', unsafe_allow_html=True)
     st.markdown(
@@ -103,6 +127,8 @@ def _render_today(service: LearningService) -> None:
             args=("学习",),
         )
         return
+
+    _render_workspace_shortcuts(snapshot)
 
     latest = history[0]
     latest_result = service.get_session_diagnosis(latest.session_id)
@@ -144,6 +170,45 @@ def _render_today(service: LearningService) -> None:
         _history_row(item)
 
 
+def _render_workspace_shortcuts(snapshot: WorkspaceSnapshot) -> None:
+    open_wrong_count = sum(item.status is WrongItemStatus.OPEN for item in snapshot.wrong_items)
+    st.markdown(
+        '<div class="workspace-summary home-summary">'
+        f"<div><strong>{len(snapshot.history)}</strong><span>学习记录</span></div>"
+        f"<div><strong>{open_wrong_count}</strong><span>待处理错题</span></div>"
+        f"<div><strong>{len(snapshot.review_queue)}</strong><span>今日到期复习</span></div>"
+        f"<div><strong>{len(snapshot.concept_states)}</strong><span>长期状态主题</span></div>"
+        "</div>",
+        unsafe_allow_html=True,
+    )
+    learn, mistakes, review, progress = st.columns(4)
+    learn.button(
+        "继续学习",
+        type="primary",
+        on_click=_navigate,
+        args=("学习",),
+        use_container_width=True,
+    )
+    mistakes.button(
+        "查看错题",
+        on_click=_navigate,
+        args=("错题",),
+        use_container_width=True,
+    )
+    review.button(
+        "开始复习",
+        on_click=_navigate,
+        args=("复习",),
+        use_container_width=True,
+    )
+    progress.button(
+        "查看进度",
+        on_click=_navigate,
+        args=("进度",),
+        use_container_width=True,
+    )
+
+
 def _render_learning_flow(service: LearningService, *, settings: Settings) -> None:
     if "current_session_id" not in st.session_state:
         _render_start_form(service)
@@ -179,6 +244,7 @@ def _render_learning_flow(service: LearningService, *, settings: Settings) -> No
             st.session_state.last_diagnosis = result
     if isinstance(result, DiagnosisView):
         _render_diagnosis(result)
+        _render_diagnosis_feedback(service, result)
         _render_result_actions(service, result, settings=settings)
         return
 
@@ -354,6 +420,65 @@ def _render_diagnosis(result: DiagnosisView) -> None:
         )
 
 
+def _render_diagnosis_feedback(
+    service: LearningService,
+    result: DiagnosisView,
+) -> None:
+    """Let the learner append feedback without mutating the original diagnosis."""
+    if result.status != "succeeded" or result.diagnosis_id is None:
+        return
+
+    sent_key = f"diagnosis_feedback_sent_{result.diagnosis_id}"
+    if notice := st.session_state.get(sent_key):
+        st.success(str(notice))
+        return
+
+    with st.expander("这次诊断符合你的理解吗？"):
+        st.caption("反馈会作为新的学习事件保存，不会覆盖原诊断或原回答。")
+        with st.form(f"diagnosis-feedback-{result.diagnosis_id}"):
+            verdict = st.selectbox(
+                "你的判断",
+                options=tuple(FeedbackVerdict),
+                format_func=feedback_verdict_label,
+                key=f"feedback_verdict_{result.diagnosis_id}",
+            )
+            note = st.text_area(
+                "补充说明或修正",
+                key=f"feedback_note_{result.diagnosis_id}",
+                height=120,
+                placeholder="如果诊断不准确，请写清被遗漏或判断错误的具体部分。",
+            )
+            submitted = st.form_submit_button("提交诊断反馈")
+
+        if submitted:
+            if verdict is FeedbackVerdict.INACCURATE and not note.strip():
+                st.error("选择“诊断不准确”时，请写下具体修正。")
+                return
+            request_key = f"feedback_request_{result.diagnosis_id}"
+            request_id = str(st.session_state.setdefault(request_key, str(uuid4())))
+            try:
+                with st.spinner("正在保存你的反馈……"):
+                    if verdict is FeedbackVerdict.INACCURATE:
+                        service.record_user_correction(
+                            diagnosis_id=result.diagnosis_id,
+                            correction=note,
+                            request_id=request_id,
+                        )
+                    else:
+                        service.submit_feedback(
+                            diagnosis_id=result.diagnosis_id,
+                            verdict=verdict,
+                            note=note or None,
+                            request_id=request_id,
+                        )
+            except (LookupError, ValueError) as error:
+                st.error(str(error))
+            else:
+                st.session_state.pop(request_key, None)
+                st.session_state[sent_key] = "反馈已保存，长期状态已由后端重新生成。"
+                st.rerun()
+
+
 def _render_follow_up_form(
     service: LearningService,
     result: DiagnosisView,
@@ -471,11 +596,13 @@ def _render_result_actions(
 
 
 def _render_progress(service: LearningService) -> None:
-    history = service.list_history()
+    snapshot = service.get_workspace_snapshot(limit=100)
+    history = snapshot.history
     st.markdown('<div class="eyebrow">进度 · 有证据的学习记录</div>', unsafe_allow_html=True)
     st.markdown('<h1 class="hero-title">看见理解如何变化</h1>', unsafe_allow_html=True)
     st.markdown(
-        '<p class="hero-copy">这里只展示真实发生过的解释与诊断，不用虚构百分比包装掌握程度。</p>',
+        '<p class="hero-copy">这里只展示后端根据真实解释、反馈和复测生成的长期状态，'
+        "不用虚构百分比包装掌握程度。</p>",
         unsafe_allow_html=True,
     )
     if not history:
@@ -483,6 +610,10 @@ def _render_progress(service: LearningService) -> None:
         st.button("开始第一次学习", type="primary", on_click=_navigate, args=("学习",))
         return
 
+    concept_names = _concept_name_map(service, history)
+    _render_longitudinal_states(snapshot.concept_states, concept_names=concept_names)
+
+    st.markdown('<div class="rule"></div>', unsafe_allow_html=True)
     grouped: dict[str, list[HistoryItem]] = defaultdict(list)
     for item in history:
         grouped[item.concept].append(item)
@@ -549,6 +680,83 @@ def _render_progress(service: LearningService) -> None:
         st.info("这次学习尚未产生诊断结果。")
     else:
         _render_diagnosis(result)
+        _render_diagnosis_feedback(service, result)
+
+
+def _concept_name_map(
+    service: LearningService,
+    history: Sequence[HistoryItem],
+) -> dict[str, str]:
+    names: dict[str, str] = {}
+    for item in history:
+        try:
+            session = service.get_session(item.session_id)
+        except LookupError:
+            continue
+        names[session.concept_id] = session.concept
+    return names
+
+
+def _render_longitudinal_states(
+    states: Sequence[ConceptState],
+    *,
+    concept_names: dict[str, str],
+) -> None:
+    st.markdown('<div class="section-label">长期状态</div>', unsafe_allow_html=True)
+    if not states:
+        st.info("当前还没有可展示的长期状态投影。")
+        return
+
+    ordered = sorted(states, key=lambda state: state.updated_at, reverse=True)
+    for state in ordered:
+        concept = concept_names.get(state.concept_id, f"知识点 {state.concept_id[:8]}")
+        st.markdown(
+            '<div class="concept-state-row">'
+            f'<div><div class="row-title">{escape(concept)}</div>'
+            f'<div class="row-meta">{escape(concept_trend_label(state.trend))}</div></div>'
+            f'<div><div class="row-title">{escape(mastery_label(state.mastery_level))}</div>'
+            '<div class="row-meta">后端掌握判断</div></div>'
+            f'<div><div class="row-title">{state.evidence_count}</div>'
+            '<div class="row-meta">条诊断证据</div></div>'
+            f'<div><div class="row-title">{state.open_wrong_item_count}</div>'
+            '<div class="row-meta">条待处理错题</div></div></div>',
+            unsafe_allow_html=True,
+        )
+
+    labels = {
+        state.concept_id: concept_names.get(
+            state.concept_id,
+            f"知识点 {state.concept_id[:8]}",
+        )
+        for state in ordered
+    }
+    selected_id = st.selectbox(
+        "查看长期状态详情",
+        options=[state.concept_id for state in ordered],
+        format_func=labels.__getitem__,
+    )
+    selected = next(state for state in ordered if state.concept_id == selected_id)
+    score_delta = f"{selected.score_delta:+d}"
+    st.markdown(
+        '<div class="state-detail-grid">'
+        f"<div><strong>{escape(concept_trend_label(selected.trend))}</strong>"
+        f"<span>证据评分变化 {score_delta}</span></div>"
+        f"<div><strong>{selected.open_wrong_item_count} / {selected.wrong_item_count}</strong>"
+        "<span>待处理 / 全部错题</span></div>"
+        f"<div><strong>{selected.review_success_count} / {selected.review_attempt_count}</strong>"
+        "<span>复测正确 / 全部复测</span></div>"
+        f"<div><strong>{selected.feedback_inaccurate_count} / {selected.feedback_count}</strong>"
+        "<span>修正反馈 / 全部反馈</span></div>"
+        "</div>",
+        unsafe_allow_html=True,
+    )
+    if selected.repeated_misconceptions:
+        st.markdown("**重复出现的误区**")
+        for misconception in selected.repeated_misconceptions:
+            st.markdown(f"- {misconception}")
+    else:
+        st.caption("当前没有重复出现的误区记录。")
+    st.caption(f"长期状态最后更新：{local_datetime(selected.updated_at)}")
 
 
 def _render_system_status(*, settings: Settings, health_report: HealthReport) -> None:
@@ -626,6 +834,11 @@ def _open_search_result(session_id: str, concept: str) -> None:
     st.session_state.progress_concept = concept
     st.session_state.ui_search_query = ""
     _navigate("进度")
+
+
+def _open_review_from_wrong(wrong_item_id: str) -> None:
+    st.session_state.review_wrong_item_id = wrong_item_id
+    _navigate("复习")
 
 
 def _set_current_session(session_id: str) -> None:

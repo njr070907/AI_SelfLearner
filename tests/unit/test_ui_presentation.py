@@ -5,13 +5,22 @@ from datetime import UTC, datetime
 import pytest
 
 from ai_growth_companion.application.models import HistoryItem
+from ai_growth_companion.domain.feedback import ConceptTrend, FeedbackVerdict
+from ai_growth_companion.domain.review import ReviewAttemptStatus, ReviewOutcome
+from ai_growth_companion.domain.wrong_items import WrongItemStatus, WrongItemType
 from ai_growth_companion.schemas.diagnosis import ActionType, MasteryLevel
 from ai_growth_companion.ui.presentation import (
     action_label,
+    concept_trend_label,
     error_message,
+    feedback_verdict_label,
     filter_history,
     mastery_label,
+    review_attempt_status_label,
+    review_outcome_label,
     status_label,
+    wrong_item_status_label,
+    wrong_item_type_label,
 )
 
 
@@ -61,6 +70,61 @@ def test_provider_errors_have_safe_actionable_copy(code: str, fragment: str) -> 
 def test_session_status_is_localized_without_changing_the_value() -> None:
     assert status_label("questioned") == "等待你的解释"
     assert status_label("diagnosed") == "诊断完成"
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        (WrongItemType.MISCONCEPTION, "明确误区"),
+        (WrongItemType.GAP, "关键缺口"),
+        (WrongItemType.INSUFFICIENT_EVIDENCE, "证据不足"),
+    ],
+)
+def test_wrong_item_types_have_chinese_labels(
+    value: WrongItemType,
+    expected: str,
+) -> None:
+    assert wrong_item_type_label(value) == expected
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        (WrongItemStatus.OPEN, "待处理"),
+        (WrongItemStatus.SNOOZED, "已暂缓"),
+        (WrongItemStatus.MASTERED, "已掌握"),
+    ],
+)
+def test_wrong_item_statuses_have_chinese_labels(
+    value: WrongItemStatus,
+    expected: str,
+) -> None:
+    assert wrong_item_status_label(value) == expected
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        (ReviewOutcome.CORRECT, "本次回答正确"),
+        (ReviewOutcome.PARTIAL, "本次回答仍不完整"),
+        (ReviewOutcome.INCORRECT, "本次回答需要纠正"),
+        (None, "尚未复测"),
+    ],
+)
+def test_review_outcomes_have_chinese_labels(
+    value: ReviewOutcome | None,
+    expected: str,
+) -> None:
+    assert review_outcome_label(value) == expected
+
+
+def test_review_failure_status_has_a_safe_label() -> None:
+    assert review_attempt_status_label(ReviewAttemptStatus.FAILED) == "复测失败"
+
+
+def test_longitudinal_state_and_feedback_choices_have_chinese_labels() -> None:
+    assert concept_trend_label(ConceptTrend.IMPROVING) == "理解正在改善"
+    assert feedback_verdict_label(FeedbackVerdict.INACCURATE) == "诊断不准确，需要修正"
 
 
 def history_item(
