@@ -320,6 +320,7 @@ def _render_lesson(
         st.success("这门课程已经完成，可以继续复习或进行可选掌握检测。")
         _render_completion_report(lesson)
     st.info(content.summary)
+    _render_teaching_plan(content)
 
     section_count = len(content.sections)
     section_key = f"teaching_section_index_{lesson.lesson_id}"
@@ -339,6 +340,12 @@ def _render_lesson(
     section = content.sections[section_index]
     with st.container(border=True):
         st.markdown(f"### 第 {section_index + 1} 节 · {escape(section.title)}")
+        if section.why_it_matters:
+            st.info(f"为什么现在学：{section.why_it_matters}")
+        if section.discovery_path:
+            st.markdown(f"**发现路径**  \n{section.discovery_path}")
+        if section.prerequisite_ids:
+            st.caption("本节依赖：" + "、".join(section.prerequisite_ids))
         st.write(section.explanation)
         for point in section.key_points:
             st.markdown(f"- {point}")
@@ -475,7 +482,7 @@ def _generation_estimate_seconds(teaching_service: TeachingService) -> int:
     if provider_name == "fake":
         return 5
     if provider_name == "ollama":
-        return 300
+        return 360
     return 120
 
 
@@ -486,6 +493,39 @@ def _format_duration(seconds: float) -> str:
     if minutes:
         return f"{minutes} 分 {remainder:02d} 秒"
     return f"{remainder} 秒"
+
+
+def _render_teaching_plan(content: object) -> None:
+    """Show the route and optional visual suggestion without forcing a new workflow."""
+    plan = getattr(content, "teaching_plan", None)
+    if plan is None or (not plan.nodes and not plan.core_truths):
+        return
+    with st.expander("查看学习路线（知识依赖与发现路径）", expanded=False):
+        if plan.core_truths:
+            st.markdown("**先抓住的核心事实**")
+            for truth in plan.core_truths:
+                st.markdown(f"- {truth}")
+        if plan.nodes:
+            st.markdown("**知识依赖顺序**")
+            node_titles = {node.node_id: node.title for node in plan.nodes}
+            for index, node in enumerate(plan.nodes, start=1):
+                prerequisites = "、".join(
+                    node_titles.get(item, item) for item in node.prerequisites
+                )
+                suffix = f"（先学：{prerequisites}）" if prerequisites else ""
+                st.markdown(f"{index}. **{node.title}**{suffix}：{node.purpose}")
+                if node.discovery_prompt:
+                    st.caption(f"可以这样发现：{node.discovery_prompt}")
+        if plan.dependencies:
+            node_titles = {node.node_id: node.title for node in plan.nodes}
+            edges = "  ·  ".join(
+                f"{node_titles.get(edge.from_node, edge.from_node)} → "
+                f"{node_titles.get(edge.to_node, edge.to_node)}"
+                for edge in plan.dependencies
+            )
+            st.markdown(f"路线图：`{edges}`")
+        if plan.visual_intent != "none" and plan.visual_prompt:
+            st.info(f"按需视觉化建议：{plan.visual_prompt}")
 
 
 def _render_interactive_checks(

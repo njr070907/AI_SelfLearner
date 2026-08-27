@@ -22,6 +22,7 @@ from ai_growth_companion.application.knowledge_extraction import (
     decode_text_content,
     extract_knowledge,
 )
+from ai_growth_companion.application.local_role_agents import LocalRoleAgentLayer
 from ai_growth_companion.application.models import DocumentView
 from ai_growth_companion.application.pdf_visual import (
     MAX_VISION_PAGES,
@@ -45,6 +46,7 @@ from ai_growth_companion.domain.events import LOCAL_USER_ID
 from ai_growth_companion.providers.base import (
     ProviderError,
     TeachingPageImage,
+    TeachingPlanRequest,
     TeachingProvider,
     TeachingRequest,
     TeachingSourceUnit,
@@ -56,7 +58,7 @@ from ai_growth_companion.repositories.lesson_progress_repository import (
     SQLiteLessonProgressRepository,
 )
 from ai_growth_companion.repositories.lesson_repository import LessonRecord, SQLiteLessonRepository
-from ai_growth_companion.schemas.teaching import TeachingLesson
+from ai_growth_companion.schemas.teaching import TeachingLesson, TeachingPlan
 
 _TOPIC_SAMPLE_CACHE: dict[tuple[str, str], str] = {}
 
@@ -147,6 +149,7 @@ class TeachingService:
         progress_repository: SQLiteLessonProgressRepository,
         translation_provider: TranslationProvider | None = None,
         topic_provider: TopicSuggestionProvider | None = None,
+        role_agents: LocalRoleAgentLayer | None = None,
     ) -> None:
         self.document_library = document_library
         self.repository = repository
@@ -161,6 +164,7 @@ class TeachingService:
             topic_provider,
             cache_root=document_library.storage_root.parent / "topic_suggestions",
         )
+        self.role_agents = role_agents or LocalRoleAgentLayer()
 
     def schedule_translation(self, document_id: str, *, request_id: str | None = None) -> bool:
         """Start upload-time translation in the background when the source is English."""
@@ -393,6 +397,18 @@ class TeachingService:
         )
         source_units = list(translation_result.units)
         source_text = build_bilingual_context(tuple(source_units))[: self.MAX_SOURCE_CONTEXT_CHARS]
+        teaching_plan = self.role_agents.plan_lesson(
+            TeachingPlanRequest(
+                topic=normalized_topic,
+                source_text=source_text,
+                source_units=tuple(source_units),
+                source_document_ids=tuple(document_id for document_id, _, _ in source_refs),
+                learning_goal=learning_goal.strip() if learning_goal else None,
+                learner_level=learner_level,
+                output_language="zh-CN",
+            ),
+            request_id=f"{request_id}:planner",
+        )
         teaching_request = TeachingRequest(
             topic=normalized_topic,
             source_text=source_text,
@@ -402,6 +418,7 @@ class TeachingService:
             output_language="zh-CN",
             source_units=tuple(source_units),
             visual_pages=tuple(visual_pages),
+            teaching_plan=teaching_plan,
         )
         selected_source_ids = {document_id for document_id, _, _ in source_refs}
         response = None
@@ -490,6 +507,7 @@ class TeachingService:
             source_refs=source_refs,
             selected_source_ids=selected_source_ids,
         )
+        lesson_payload = self._attach_teaching_plan(lesson_payload, teaching_plan)
         lesson_payload = self._repair_missing_evidence(
             teaching_request,
             lesson_payload,
@@ -534,6 +552,7 @@ class TeachingService:
                 source_units=source_units,
                 reason="模型内容质量不足，已保存资料导读草稿",
             )
+            lesson_payload = self._attach_teaching_plan(lesson_payload, teaching_plan)
             resolution = self._reconcile_source_grounding(
                 lesson_payload,
                 topic=normalized_topic,
@@ -831,6 +850,32 @@ class TeachingService:
             )
             checks.append(check)
         normalized["interactive_checks"] = checks
+        return normalized
+
+    @staticmethod
+    def _attach_teaching_plan(
+        payload: dict[str, object], teaching_plan: TeachingPlan
+    ) -> dict[str, object]:
+        """Persist the validated route regardless of which prose path was used."""
+        normalized = dict(payload)
+        normalized["teaching_plan"] = teaching_plan.model_dump(mode="json")
+        node_by_id = {node.node_id: node for node in teaching_plan.nodes}
+        sections = normalized.get("sections")
+        if isinstance(sections, list):
+            enriched_sections: list[object] = []
+            for section in sections:
+                if not isinstance(section, dict):
+                    enriched_sections.append(section)
+                    continue
+                enriched = dict(section)
+                section_type = str(enriched.get("section_type", ""))
+                node = node_by_id.get(section_type)
+                if node is not None:
+                    enriched.setdefault("why_it_matters", node.purpose)
+                    enriched.setdefault("discovery_path", node.discovery_prompt)
+                    enriched.setdefault("prerequisite_ids", node.prerequisites)
+                enriched_sections.append(enriched)
+            normalized["sections"] = enriched_sections
         return normalized
 
     @classmethod

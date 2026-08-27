@@ -4,6 +4,7 @@ from pathlib import Path
 
 from ai_growth_companion.application.document_library import DocumentLibraryService
 from ai_growth_companion.application.learning_service import LearningService
+from ai_growth_companion.application.local_role_agents import LocalRoleAgentLayer
 from ai_growth_companion.application.provider_factory import build_provider_factory
 from ai_growth_companion.application.teaching_service import TeachingService
 from ai_growth_companion.config import Settings
@@ -14,6 +15,7 @@ from ai_growth_companion.providers.fake import FakeLLMProvider
 from ai_growth_companion.providers.ollama import (
     OLLAMA_FAST_MODEL,
     OLLAMA_QUALITY_MODEL,
+    OllamaTeachingPlanProvider,
     OllamaTeachingProvider,
     OllamaTopicSuggestionProvider,
     OllamaTranslationProvider,
@@ -55,6 +57,7 @@ def build_teaching_service(database: Database, settings: Settings) -> TeachingSe
     provider: TeachingProvider
     translation_provider: OllamaTranslationProvider | None = None
     topic_provider: OllamaTopicSuggestionProvider | None = None
+    role_agents = LocalRoleAgentLayer()
     if settings.is_fake_mode:
         provider = FakeLLMProvider()
     elif settings.llm_provider.casefold() == "ollama":
@@ -80,6 +83,20 @@ def build_teaching_service(database: Database, settings: Settings) -> TeachingSe
             base_url=settings.ollama_base_url,
             timeout_seconds=settings.ollama_translation_timeout_seconds,
             max_output_tokens=2_000,
+        )
+        planner_provider = OllamaTeachingPlanProvider(
+            model=settings.ollama_balanced_model,
+            base_url=settings.ollama_base_url,
+            timeout_seconds=settings.ollama_translation_timeout_seconds,
+            max_output_tokens=2_000,
+        )
+        role_agents = LocalRoleAgentLayer(
+            planner_provider,
+            teacher_model=text_provider.model_name,
+            quiz_model=settings.ollama_balanced_model,
+            source_reviewer_model=quality_model or OLLAMA_QUALITY_MODEL,
+            translator_model=settings.ollama_fast_model or OLLAMA_FAST_MODEL,
+            visual_planner_model=settings.ollama_balanced_model,
         )
         vision_provider: TeachingProvider | None = None
         if settings.llm_api_key is not None and settings.llm_paid_calls_allowed:
@@ -117,6 +134,20 @@ def build_teaching_service(database: Database, settings: Settings) -> TeachingSe
             timeout_seconds=settings.ollama_translation_timeout_seconds,
             max_output_tokens=2_000,
         )
+        planner_provider = OllamaTeachingPlanProvider(
+            model=settings.ollama_balanced_model,
+            base_url=settings.ollama_base_url,
+            timeout_seconds=settings.ollama_translation_timeout_seconds,
+            max_output_tokens=2_000,
+        )
+        role_agents = LocalRoleAgentLayer(
+            planner_provider,
+            teacher_model=settings.llm_model,
+            quiz_model=settings.ollama_balanced_model,
+            source_reviewer_model=settings.llm_model,
+            translator_model=settings.ollama_fast_model or OLLAMA_FAST_MODEL,
+            visual_planner_model=settings.ollama_balanced_model,
+        )
     return TeachingService(
         document_library,
         SQLiteLessonRepository(database),
@@ -124,4 +155,5 @@ def build_teaching_service(database: Database, settings: Settings) -> TeachingSe
         SQLiteLessonProgressRepository(database),
         translation_provider=translation_provider,
         topic_provider=topic_provider,
+        role_agents=role_agents,
     )

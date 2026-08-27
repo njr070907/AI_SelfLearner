@@ -317,6 +317,15 @@ def test_uploaded_material_becomes_a_persisted_lesson(tmp_path: Path) -> None:
         "example",
     }
     assert len(view.lesson.interactive_checks) == 2
+    assert view.lesson.teaching_plan is not None
+    assert [node.node_id for node in view.lesson.teaching_plan.nodes] == [
+        "concept",
+        "mechanism",
+        "boundary",
+        "example",
+    ]
+    assert view.lesson.sections[0].why_it_matters
+    assert view.lesson.sections[0].discovery_path
     assert (
         view.lesson.interactive_checks[0].correct_answer
         in view.lesson.interactive_checks[0].options

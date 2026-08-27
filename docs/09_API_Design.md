@@ -222,6 +222,32 @@ Provider 选择由后端工厂统一控制：Fake 模式免费且默认；真实
 
 常规教学表单的 `learning_goal` 也采用有限预设值（概念、机制、边界、例子、综合迁移或 `null` 由 AI 自动安排），不接受自由文本输入。提交生成后，Streamlit UI 在后台线程轮询任务并每约 0.5 秒更新已用时间和预计剩余时间；该倒计时是按 Provider 类型给出的保守估计，不改变服务端生成或保存契约。
 
+### 10.5 本地角色代理与教学路线
+
+教学服务在调用主要 Teaching Provider 前，会把分页资料交给可选的本地 planner 角色，输入类型为 `TeachingPlanRequest`，输出经过 Pydantic 校验的 `TeachingPlan`：
+
+```json
+{
+  "schema_version": "teaching-plan-v0.1",
+  "topic": "函数极限",
+  "core_truths": ["资料明确支持的核心事实"],
+  "nodes": [
+    {
+      "node_id": "concept",
+      "title": "核心概念",
+      "purpose": "为什么现在学",
+      "prerequisites": [],
+      "discovery_prompt": "如何从资料发现这个概念",
+      "source_document_ids": ["document-id"]
+    }
+  ],
+  "dependencies": [{"from_node": "concept", "to_node": "mechanism"}],
+  "visual_intent": "none"
+}
+```
+
+`TeachingRequest.teaching_plan` 只携带已验证路线，不携带掌握等级或最终结论。Ollama/DeepSeek 教学 Provider 据此生成常规章节，并可返回 `why_it_matters`、`discovery_path`、`prerequisite_ids`；选择题要求选项同层级、长度相近且错误项对应真实误区。`LocalRoleAgentLayer` 同时记录 teacher、quiz designer、source reviewer、translator 和 visual planner 的职责，但不启动 `.pi`、隐藏子代理或无限循环。planner 失败时使用确定性四段路线，课程仍继续生成；证据校验、课程状态、Mastery Engine 和 Learning Policy 仍由应用层负责。
+
 ## 11. 错误格式
 
 ```json

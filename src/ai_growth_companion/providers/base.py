@@ -3,6 +3,8 @@
 from dataclasses import dataclass
 from typing import Any, Protocol
 
+from ai_growth_companion.schemas.teaching import TeachingPlan
+
 
 @dataclass(frozen=True)
 class QuestionRequest:
@@ -35,6 +37,20 @@ class TeachingRequest:
     output_language: str = "zh-CN"
     source_units: tuple["TeachingSourceUnit", ...] = ()
     visual_pages: tuple["TeachingPageImage", ...] = ()
+    teaching_plan: TeachingPlan | None = None
+
+
+@dataclass(frozen=True)
+class TeachingPlanRequest:
+    """Bounded source context supplied to the local planner role."""
+
+    topic: str
+    source_text: str
+    source_units: tuple["TeachingSourceUnit", ...] = ()
+    source_document_ids: tuple[str, ...] = ()
+    learning_goal: str | None = None
+    learner_level: str | None = None
+    output_language: str = "zh-CN"
 
 
 @dataclass(frozen=True)
@@ -187,6 +203,23 @@ class TeachingProvider(Protocol):
 
     def generate_lesson(self, request: TeachingRequest, *, request_id: str) -> ProviderResponse:
         """Generate a raw structured lesson candidate."""
+        ...
+
+
+class TeachingPlanProvider(Protocol):
+    """Optional role provider that designs a dependency-aware teaching route."""
+
+    provider_name: str
+    model_name: str
+    model_revision: str | None
+
+    def generate_plan(
+        self,
+        request: TeachingPlanRequest,
+        *,
+        request_id: str,
+    ) -> ProviderResponse:
+        """Return a raw plan candidate; the application validates or replaces it."""
         ...
 
 

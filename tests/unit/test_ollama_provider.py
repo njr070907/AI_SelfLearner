@@ -6,6 +6,7 @@ from typing import Any
 from ai_growth_companion.providers.base import (
     EvaluationRequest,
     QuestionRequest,
+    TeachingPlanRequest,
     TeachingRequest,
     TopicSuggestionRequest,
 )
@@ -14,6 +15,7 @@ from ai_growth_companion.providers.ollama import (
     OLLAMA_QUALITY_MODEL,
     OllamaEvaluationProvider,
     OllamaQuestionProvider,
+    OllamaTeachingPlanProvider,
     OllamaTeachingProvider,
     OllamaTopicSuggestionProvider,
 )
@@ -195,6 +197,40 @@ def test_ollama_teaching_provider_is_text_only_and_source_grounded() -> None:
     assert provider.supports_vision is False
     assert result.metadata.model == OLLAMA_QUALITY_MODEL
     assert result.metadata.prompt_version == "teaching-v0.4+ollama-grounded-json"
+
+
+def test_ollama_teaching_plan_provider_returns_dependency_route() -> None:
+    client = StubClient(
+        StubCompletion(
+            choices=[
+                StubChoice(
+                    StubMessage(
+                        '{"schema_version":"teaching-plan-v0.1",'
+                        '"topic":"函数极限",'
+                        '"core_truths":["极限描述变化趋势"],'
+                        '"nodes":[{"node_id":"concept","title":"核心概念",'
+                        '"purpose":"先理解定义", "prerequisites":[], '
+                        '"discovery_prompt":"资料为何需要它？", "source_document_ids":["doc-1"]}],'
+                        '"dependencies":[],"visual_intent":"none"}'
+                    )
+                )
+            ],
+            model=OLLAMA_BALANCED_MODEL,
+        )
+    )
+    provider = OllamaTeachingPlanProvider(model=OLLAMA_BALANCED_MODEL, client=client)
+
+    result = provider.generate_plan(
+        TeachingPlanRequest(topic="函数极限", source_text="极限描述变化趋势。"),
+        request_id="plan-1",
+    )
+
+    assert result.content["schema_version"] == "teaching-plan-v0.1"
+    assert result.metadata.model == OLLAMA_BALANCED_MODEL
+    assert result.metadata.prompt_version == "teaching-plan-v0.1+ollama-json"
+    user_message = client.chat.completions.calls[0]["messages"][1]["content"]
+    assert '"topic": "函数极限"' in user_message
+    assert "visual_intent" in client.chat.completions.calls[0]["messages"][0]["content"]
 
 
 def test_ollama_topic_provider_returns_structured_chinese_choices() -> None:

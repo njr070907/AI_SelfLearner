@@ -132,3 +132,10 @@
 
 - “学习目标”不再允许自由填写，改为有限的学习意图选项；其中“不指定（由 AI 自动安排）”映射为 `learning_goal=null`，其它选项映射为稳定的后端提示语，避免任意文本污染课程 Prompt。
 - 教学生成放入单线程后台任务，UI 每 0.5 秒更新进度条、已用时和预计剩余时长。估计值按 Provider 类型取保守上限（Fake 5 秒、Ollama 300 秒、远程 120 秒），超过后显示“仍在等待模型”，不伪造精确完成百分比，也不重复提交。
+
+## 2026-08-27 — 吸收 learn 的教学方法但不安装 `.pi`
+
+- 只吸收可迁移的教学思想：知识依赖、动机解释、从资料出发的发现路径、同构且包含真实误区的选择题，以及仅在结构更清楚时提出视觉化建议；不复制其 `.pi` 配置、运行时或子代理框架。
+- 新增 `LocalRoleAgentLayer`，将 planner、teacher、quiz designer、source reviewer、translator、visual planner 的职责显式化。planner 可调用本地 Qwen 平衡模型生成 `TeachingPlan`，应用层负责 Pydantic 校验、主题/资料边界清洗和失败回退。
+- `TeachingRequest` 携带已验证的 `TeachingPlan`；Ollama/DeepSeek 教学 Prompt 按依赖顺序组织常规讲解，并可填充 `why_it_matters`、`discovery_path`、`prerequisite_ids`。UI 以学习路线折叠区呈现计划，不把学习变成费曼答题流程。
+- 角色层是增强项而非硬依赖：planner 超时、离线或返回无效 JSON 时使用确定性四段路线，课程和报告仍按原流程保存；AI 只产生候选信息，来源证据、课程状态、掌握等级和下一步动作继续由后端决定。
