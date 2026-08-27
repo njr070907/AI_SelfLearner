@@ -4,6 +4,7 @@ import json
 import re
 import unicodedata
 from collections.abc import Sequence
+from dataclasses import dataclass
 from datetime import datetime
 from uuid import uuid4
 
@@ -95,6 +96,18 @@ class TeachingReportView(BaseModel):
     completion_rate: int
     accuracy: int
     source_document_count: int
+    verified_lesson_count: int = 0
+    partial_lesson_count: int = 0
+    draft_lesson_count: int = 0
+
+
+@dataclass(frozen=True)
+class GroundingResolution:
+    """Best-effort source reconciliation result kept with a saved lesson."""
+
+    payload: dict[str, object]
+    status: str
+    issues: tuple[str, ...]
 
 
 class TeachingService:
@@ -219,9 +232,30 @@ class TeachingService:
             source_units=tuple(source_units),
             visual_pages=tuple(visual_pages),
         )
-        response = self.provider.generate_lesson(teaching_request, request_id=request_id)
         selected_source_ids = {document_id for document_id, _, _ in source_refs}
+        response = None
+        fallback_reason: str | None = None
         try:
+            response = self.provider.generate_lesson(teaching_request, request_id=request_id)
+        except ProviderError as error:
+            # A provider outage should not erase the learner's requested study session.  Keep
+            # the failure code in the saved lesson and build a transparent local draft instead.
+            fallback_reason = f"模型生成未完成（{error.code}），已保存资料导读草稿"
+        except Exception:
+            # Provider adapters should normally translate failures into ProviderError, but an
+            # unexpected adapter/runtime exception must not strand the learner without a course.
+            fallback_reason = "模型生成出现未预期错误，已保存资料导读草稿"
+
+        lesson_payload: dict[str, object]
+        if response is None:
+            lesson_payload = self._build_fallback_lesson(
+                normalized_topic,
+                source_refs=source_refs,
+                source_text=source_text,
+                source_units=source_units,
+                reason=fallback_reason or "模型没有返回内容，已保存资料导读草稿",
+            )
+        else:
             normalized_content = self._normalize_provider_lesson(
                 response.content,
                 topic=normalized_topic,
@@ -234,79 +268,124 @@ class TeachingService:
                     request_id=request_id,
                     source_refs=source_refs,
                 )
-            lesson = TeachingLesson.model_validate(normalized_content)
-        except Exception as error:
-            raise ProviderError(
-                "Teaching Provider returned invalid lesson structure",
-                code="TEACHING_OUTPUT_SCHEMA_INVALID",
-                retryable=False,
-            ) from error
-        if not lesson.interactive_checks:
-            raise ProviderError(
-                "Teaching Provider returned no interactive checks",
-                code="TEACHING_OUTPUT_SCHEMA_INVALID",
-                retryable=False,
+            lesson_payload = (
+                dict(normalized_content) if isinstance(normalized_content, dict) else {}
             )
-        if not self._mentions_topic(lesson, normalized_topic):
-            raise ProviderError(
-                "Teaching Provider returned content unrelated to the requested topic",
-                code="TEACHING_CONTENT_NOT_RELEVANT",
-                retryable=False,
+            lesson_payload = self._normalize_lesson_payload(
+                lesson_payload,
+                topic=normalized_topic,
+                source_refs=source_refs,
+                selected_source_ids=selected_source_ids,
             )
 
-        # The selected files are the authoritative source list; the model cannot invent it.
-        lesson_payload = lesson.model_dump()
-        for section in lesson_payload["sections"]:
-            section["source_document_ids"] = self._normalize_source_ids(
-                section.get("source_document_ids", []),
-                selected_source_ids,
-            )
-        for interaction in lesson_payload["interactive_checks"]:
-            interaction["source_document_ids"] = self._normalize_source_ids(
-                interaction.get("source_document_ids", []),
-                selected_source_ids,
-            )
-            interaction["evidence"] = self._normalize_evidence(
-                interaction.get("evidence", interaction.get("source_evidence", []))
-            )
-        for section in lesson_payload["sections"]:
-            section["evidence"] = self._normalize_evidence(
-                section.get("evidence", section.get("source_evidence", []))
-            )
+            # Invalid structure or obvious topic drift is converted into a usable, clearly
+            # labelled extractive draft rather than blocking the whole generation flow.
+            try:
+                candidate = TeachingLesson.model_validate(lesson_payload)
+                if not candidate.interactive_checks:
+                    raise ValueError("no interactive checks")
+                if not self._mentions_topic(candidate, normalized_topic):
+                    raise ValueError("content unrelated to requested topic")
+            except Exception:
+                fallback_reason = "模型返回内容不完整或跑题，已保存资料导读草稿"
+                lesson_payload = self._build_fallback_lesson(
+                    normalized_topic,
+                    source_refs=source_refs,
+                    source_text=source_text,
+                    source_units=source_units,
+                    reason=fallback_reason,
+                )
+
+        lesson_payload = self._normalize_lesson_payload(
+            lesson_payload,
+            topic=normalized_topic,
+            source_refs=source_refs,
+            selected_source_ids=selected_source_ids,
+        )
         lesson_payload = self._repair_missing_evidence(
             teaching_request,
             lesson_payload,
             request_id=request_id,
         )
-        lesson = TeachingLesson.model_validate(
+        resolution = self._reconcile_source_grounding(
+            lesson_payload,
+            topic=normalized_topic,
+            source_refs=source_refs,
+            source_text=source_text,
+            source_units=source_units,
+            visual_pages=visual_pages,
+            selected_source_ids=selected_source_ids,
+            draft=bool(fallback_reason),
+        )
+        lesson_payload = resolution.payload
+        lesson_payload.update(
             {
-                **lesson_payload,
                 "topic": normalized_topic,
                 "sources": [
                     {"document_id": document_id, "filename": filename, "excerpt": excerpt}
                     for document_id, filename, excerpt in source_refs
                 ],
+                "grounding_status": resolution.status,
+                "grounding_issues": list(resolution.issues),
             }
         )
-        self._validate_source_grounding(
-            lesson,
-            selected_source_ids=selected_source_ids,
-            source_text=source_text,
-            source_units=source_units,
-            visual_pages=visual_pages,
-        )
-        self._validate_lesson_quality(lesson)
+        lesson = TeachingLesson.model_validate(lesson_payload)
+        try:
+            self._validate_lesson_quality(lesson)
+        except ProviderError:
+            # Keep the same no-blocking contract for short/garbled model output.  The fallback
+            # is deterministic and passes the conventional lesson shape checks.
+            lesson_payload = self._build_fallback_lesson(
+                normalized_topic,
+                source_refs=source_refs,
+                source_text=source_text,
+                source_units=source_units,
+                reason="模型内容质量不足，已保存资料导读草稿",
+            )
+            resolution = self._reconcile_source_grounding(
+                lesson_payload,
+                topic=normalized_topic,
+                source_refs=source_refs,
+                source_text=source_text,
+                source_units=source_units,
+                visual_pages=visual_pages,
+                selected_source_ids=selected_source_ids,
+                draft=True,
+            )
+            lesson_payload = resolution.payload
+            lesson_payload.update(
+                {
+                    "topic": normalized_topic,
+                    "sources": [
+                        {"document_id": document_id, "filename": filename, "excerpt": excerpt}
+                        for document_id, filename, excerpt in source_refs
+                    ],
+                    "grounding_status": "draft",
+                    "grounding_issues": list(
+                        dict.fromkeys(
+                            (*resolution.issues, "模型内容质量不足，已切换为资料导读草稿")
+                        )
+                    ),
+                }
+            )
+            lesson = TeachingLesson.model_validate(lesson_payload)
+
         lesson_id = str(uuid4())
+        metadata = response.metadata if response is not None else None
         record = self.repository.create(
             lesson_id=lesson_id,
             topic=normalized_topic,
             source_document_ids=tuple(document_ids),
             lesson_json=lesson.model_dump_json(),
-            provider=response.metadata.provider,
-            model_name=response.metadata.model,
-            model_revision=response.metadata.model_revision,
-            prompt_version=response.metadata.prompt_version,
-            schema_version=response.metadata.schema_version,
+            provider=metadata.provider if metadata is not None else self.provider.provider_name,
+            model_name=metadata.model if metadata is not None else self.provider.model_name,
+            model_revision=(metadata.model_revision if metadata is not None else None),
+            prompt_version=(
+                metadata.prompt_version if metadata is not None else "teaching-fallback-v0.1"
+            ),
+            schema_version=(
+                metadata.schema_version if metadata is not None else "teaching-lesson-v0.2"
+            ),
             request_id=request_id,
             user_id=LOCAL_USER_ID,
         )
@@ -335,10 +414,19 @@ class TeachingService:
         total_activity_count = 0
         completed_lesson_count = 0
         source_document_ids: set[str] = set()
+        verified_lesson_count = 0
+        partial_lesson_count = 0
+        draft_lesson_count = 0
         for lesson in lessons:
             total_activity_count += len(lesson.lesson.interactive_checks)
             completed_lesson_count += lesson.progress.completed_at is not None
             source_document_ids.update(source.document_id for source in lesson.lesson.sources)
+            if lesson.lesson.grounding_status == "verified":
+                verified_lesson_count += 1
+            elif lesson.lesson.grounding_status == "draft":
+                draft_lesson_count += 1
+            else:
+                partial_lesson_count += 1
             for attempt in lesson.progress.attempts:
                 key = (lesson.lesson_id, attempt.activity_index)
                 previous = latest_attempts.get(key)
@@ -364,6 +452,9 @@ class TeachingService:
                 else 0
             ),
             source_document_count=len(source_document_ids),
+            verified_lesson_count=verified_lesson_count,
+            partial_lesson_count=partial_lesson_count,
+            draft_lesson_count=draft_lesson_count,
         )
 
     def record_activity_attempt(
@@ -488,6 +579,398 @@ class TeachingService:
             dict.fromkeys((normalized, *chunks, *cjk_bigrams, *aliases.get(normalized, ())))
         )
 
+    @classmethod
+    def _normalize_lesson_payload(
+        cls,
+        payload: dict[str, object],
+        *,
+        topic: str,
+        source_refs: list[tuple[str, str, str]],
+        selected_source_ids: set[str],
+    ) -> dict[str, object]:
+        """Normalize model fields before Pydantic validation can reject recoverable variants."""
+        normalized = dict(payload)
+        normalized["schema_version"] = "teaching-lesson-v0.2"
+        normalized["topic"] = topic
+        normalized["sources"] = [
+            {"document_id": document_id, "filename": filename, "excerpt": excerpt}
+            for document_id, filename, excerpt in source_refs
+        ]
+        sections: list[dict[str, object]] = []
+        raw_sections = normalized.get("sections", [])
+        for raw_section in raw_sections if isinstance(raw_sections, list) else []:
+            if not isinstance(raw_section, dict):
+                continue
+            section = dict(raw_section)
+            section["source_document_ids"] = cls._normalize_source_ids(
+                section.get("source_document_ids", []), selected_source_ids
+            )
+            section["evidence"] = cls._normalize_evidence(
+                section.get("evidence", section.get("source_evidence", []))
+            )
+            sections.append(section)
+        normalized["sections"] = sections
+
+        checks: list[dict[str, object]] = []
+        raw_checks = normalized.get("interactive_checks", [])
+        for raw_check in raw_checks if isinstance(raw_checks, list) else []:
+            if not isinstance(raw_check, dict):
+                continue
+            check = dict(raw_check)
+            check["source_document_ids"] = cls._normalize_source_ids(
+                check.get("source_document_ids", []), selected_source_ids
+            )
+            raw_options = check.get("options", [])
+            options = (
+                [str(option).strip() for option in raw_options if option]
+                if isinstance(raw_options, list)
+                else []
+            )
+            check["options"] = options
+            check["correct_answer"] = cls._normalize_correct_answer(
+                check.get("correct_answer"), options
+            )
+            check["evidence"] = cls._normalize_evidence(
+                check.get("evidence", check.get("source_evidence", []))
+            )
+            checks.append(check)
+        normalized["interactive_checks"] = checks
+        return normalized
+
+    @classmethod
+    def _build_fallback_lesson(
+        cls,
+        topic: str,
+        *,
+        source_refs: list[tuple[str, str, str]],
+        source_text: str,
+        source_units: list[TeachingSourceUnit],
+        reason: str,
+    ) -> dict[str, object]:
+        """Build a usable, honest extractive lesson when a model result is unusable."""
+        source_ids = [document_id for document_id, _, _ in source_refs]
+        unit = next((item for item in source_units if item.text.strip()), None)
+        fact = " ".join((unit.text if unit else source_text).split())[:500]
+        if not fact:
+            fact = "当前资料暂未提取出可复制文字，先建立学习框架，再逐步补充原文证据。"
+        evidence: list[dict[str, object]] = []
+        if unit and len("".join(unit.text.split())) >= 4:
+            evidence.append(
+                {
+                    "document_id": unit.document_id,
+                    "page_number": unit.page_number,
+                    "quote": " ".join(unit.text.split())[:800],
+                }
+            )
+        summary = (
+            f"这是一份围绕“{topic}”的资料导读草稿。系统先把已读取的原文整理成学习顺序，"
+            f"再由你通过例子和小测确认理解。当前状态：{reason}。资料摘录：{fact[:220]}"
+        )
+        section_specs = (
+            (
+                "concept",
+                "先认识核心概念",
+                "先从资料摘录出发，用自己的话说明核心概念是什么、解决什么问题。",
+            ),
+            (
+                "mechanism",
+                "再梳理运作过程",
+                "把资料中的定义、步骤或变化过程按顺序整理出来，说明每一步为什么发生。",
+            ),
+            (
+                "boundary",
+                "检查适用条件",
+                "学习一个结论时，同时检查它依赖的条件、容易混淆的情况，以及什么时候不能直接使用。",
+            ),
+            (
+                "example",
+                "用新例子验证",
+                "最后用一个资料之外但结构相近的新例子复述概念、过程和边界，检查是否真的理解。",
+            ),
+        )
+        sections = []
+        for section_type, title, guidance in section_specs:
+            sections.append(
+                {
+                    "section_type": section_type,
+                    "title": title,
+                    "explanation": f"{guidance}\n\n资料中的可用摘录是：{fact}",
+                    "key_points": ["资料中的关键表述", "需要解释的原因", "需要自己验证的地方"],
+                    "example": f"请围绕“{topic}”写一个具体例子，并说明它如何对应资料摘录。",
+                    "source_document_ids": source_ids,
+                    "evidence": [dict(item) for item in evidence],
+                }
+            )
+        check_evidence = [dict(item) for item in evidence]
+        return {
+            "schema_version": "teaching-lesson-v0.2",
+            "topic": topic,
+            "title": f"{topic}：资料导读草稿",
+            "summary": summary,
+            "learning_objectives": [
+                f"用自己的话说明 {topic} 的核心含义",
+                f"根据资料解释 {topic} 的运作过程和适用条件",
+                f"用一个新例子检验是否真正理解 {topic}",
+            ],
+            "sections": sections,
+            "check_questions": [
+                f"如果向别人解释 {topic}，你会先讲资料中的哪一个关键点？为什么？",
+                f"面对一个新例子时，如何检查 {topic} 的适用条件？",
+            ],
+            "interactive_checks": [
+                {
+                    "prompt": f"学习 {topic} 时，第一步更应该做什么？",
+                    "options": ["先理解概念和条件，再看例子", "只背最后一句结论"],
+                    "correct_answer": "先理解概念和条件，再看例子",
+                    "explanation": "先理解概念和条件，才能判断知识能否迁移到新例子。",
+                    "source_document_ids": source_ids,
+                    "evidence": check_evidence,
+                },
+                {
+                    "prompt": f"如何确认自己真的理解了 {topic}？",
+                    "options": ["用自己的话解释并完成新例子", "只重复资料原句"],
+                    "correct_answer": "用自己的话解释并完成新例子",
+                    "explanation": "解释和迁移到新例子可以暴露只记住句子却没有理解的问题。",
+                    "source_document_ids": source_ids,
+                    "evidence": [dict(item) for item in check_evidence],
+                },
+            ],
+            "sources": [
+                {"document_id": document_id, "filename": filename, "excerpt": excerpt}
+                for document_id, filename, excerpt in source_refs
+            ],
+            "grounding_status": "draft",
+            "grounding_issues": [reason],
+        }
+
+    @classmethod
+    def _reconcile_source_grounding(
+        cls,
+        payload: dict[str, object],
+        *,
+        topic: str,
+        source_refs: list[tuple[str, str, str]],
+        source_text: str,
+        source_units: list[TeachingSourceUnit],
+        visual_pages: list[TeachingPageImage],
+        selected_source_ids: set[str],
+        draft: bool,
+    ) -> GroundingResolution:
+        """Repair recoverable evidence errors and record unresolved ones instead of rejecting."""
+        del topic
+        normalized = dict(payload)
+        existing_issues = normalized.get("grounding_issues", [])
+        issues: list[str] = (
+            [str(issue) for issue in existing_issues if issue]
+            if isinstance(existing_issues, list)
+            else []
+        )
+        repaired = False
+        allowed_pages = {(page.document_id, page.page_number) for page in visual_pages}
+        allowed_text_pages = {
+            (unit.document_id, unit.page_number)
+            for unit in source_units
+            if unit.page_number is not None
+        }
+        filenames = {document_id: filename for document_id, filename, _ in source_refs}
+        ordered_source_ids = sorted(selected_source_ids)
+
+        for key in ("sections", "interactive_checks"):
+            items = normalized.get(key)
+            if not isinstance(items, list):
+                continue
+            updated_items: list[object] = []
+            for item in items:
+                if not isinstance(item, dict):
+                    updated_items.append(item)
+                    issues.append(f"{key} 中存在无法解析的条目")
+                    continue
+                current = dict(item)
+                raw_evidence = cls._normalize_evidence(current.get("evidence", []))
+                if not raw_evidence:
+                    fallback = cls._fallback_evidence(source_units, visual_pages)
+                    if fallback is not None:
+                        raw_evidence = [fallback]
+                        repaired = True
+                    else:
+                        issues.append(f"{key} 有条目暂时没有可核对的原文证据")
+
+                resolved: list[dict[str, object]] = []
+                for evidence in raw_evidence:
+                    quote = str(evidence.get("quote", "")).strip()
+                    matched_unit = cls._find_unit_for_quote(quote, source_units)
+                    document_id = str(evidence.get("document_id", "")).strip()
+                    if document_id not in selected_source_ids:
+                        if matched_unit is not None:
+                            document_id = matched_unit.document_id
+                            repaired = True
+                        elif len(ordered_source_ids) == 1:
+                            document_id = ordered_source_ids[0]
+                            repaired = True
+                        else:
+                            document_id = (
+                                ordered_source_ids[0] if ordered_source_ids else document_id
+                            )
+                            issues.append("证据来源无法唯一对应到选中的资料")
+                    if not document_id:
+                        issues.append("证据缺少资料来源")
+                        continue
+
+                    if len("".join(quote.split())) < 4 and matched_unit is not None:
+                        quote = " ".join(matched_unit.text.split())[:800]
+                        repaired = True
+                    if len("".join(quote.split())) < 4:
+                        issues.append("证据原文过短，已保留课程但暂不展示该条证据")
+                        continue
+                    if (
+                        not visual_pages
+                        and source_text
+                        and matched_unit is None
+                        and not cls._quote_supported(quote, source_text)
+                    ):
+                        issues.append("部分教学引文暂时无法在原文中核对")
+
+                    raw_page = cls._parse_page_number(evidence.get("page_number"))
+                    filename = filenames.get(document_id, "")
+                    page_number = cls._resolve_evidence_page(
+                        document_id=document_id,
+                        filename=filename,
+                        raw_page=raw_page,
+                        matched_unit=matched_unit,
+                        allowed_pages=allowed_pages,
+                        allowed_text_pages=allowed_text_pages,
+                        visual_pages=visual_pages,
+                    )
+                    if raw_page != page_number:
+                        repaired = True
+                    if visual_pages and page_number is None:
+                        issues.append("视觉证据页码无法唯一核对，已保存课程并标记为部分核验")
+                    elif not visual_pages and raw_page is not None and page_number is None:
+                        issues.append("文字证据页码无法核对，已保存课程并标记为部分核验")
+                    resolved.append(
+                        {
+                            "document_id": document_id,
+                            "page_number": page_number,
+                            "quote": quote[:800],
+                        }
+                    )
+                current["evidence"] = resolved
+                updated_items.append(current)
+            normalized[key] = updated_items
+
+        unique_issues = tuple(dict.fromkeys(issues))
+        status = (
+            "draft"
+            if draft
+            else "partial"
+            if unique_issues
+            else "repaired"
+            if repaired
+            else "verified"
+        )
+        return GroundingResolution(normalized, status, unique_issues)
+
+    @staticmethod
+    def _fallback_evidence(
+        source_units: list[TeachingSourceUnit], visual_pages: list[TeachingPageImage]
+    ) -> dict[str, object] | None:
+        for unit in source_units:
+            quote = " ".join(unit.text.split())[:800]
+            if len("".join(quote.split())) >= 4:
+                page_number = unit.page_number
+                if visual_pages and (unit.document_id, page_number) not in {
+                    (page.document_id, page.page_number) for page in visual_pages
+                }:
+                    page_number = None
+                return {
+                    "document_id": unit.document_id,
+                    "page_number": page_number,
+                    "quote": quote,
+                }
+        return None
+
+    @classmethod
+    def _find_unit_for_quote(
+        cls, quote: str, source_units: list[TeachingSourceUnit]
+    ) -> TeachingSourceUnit | None:
+        if len("".join(quote.split())) < 4:
+            return None
+        for unit in source_units:
+            if cls._quote_supported(quote, unit.text):
+                return unit
+        quote_key = cls._quote_key(quote)
+        if len(quote_key) < 12:
+            return None
+        for unit in source_units:
+            unit_key = cls._quote_key(unit.text)
+            if quote_key[: min(40, len(quote_key))] in unit_key:
+                return unit
+        return None
+
+    @staticmethod
+    def _parse_page_number(value: object) -> int | None:
+        if isinstance(value, bool):
+            return None
+        if isinstance(value, int):
+            return value if value > 0 else None
+        if isinstance(value, float) and value.is_integer() and value > 0:
+            return int(value)
+        if isinstance(value, str):
+            match = re.search(r"(?<!\d)(\d{1,5})(?!\d)", value)
+            if match:
+                page = int(match.group(1))
+                return page if page > 0 else None
+        return None
+
+    @staticmethod
+    def _document_page_range(filename: str) -> tuple[int, int] | None:
+        match = re.search(r"_pages_(\d+)-(\d+)(?:\.[^.]+)?$", filename, flags=re.IGNORECASE)
+        if match is None:
+            return None
+        start, end = int(match.group(1)), int(match.group(2))
+        return (start, end) if start <= end else None
+
+    @classmethod
+    def _resolve_evidence_page(
+        cls,
+        *,
+        document_id: str,
+        filename: str,
+        raw_page: int | None,
+        matched_unit: TeachingSourceUnit | None,
+        allowed_pages: set[tuple[str, int]],
+        allowed_text_pages: set[tuple[str, int]],
+        visual_pages: list[TeachingPageImage],
+    ) -> int | None:
+        allowed = allowed_pages if visual_pages else allowed_text_pages
+        if (
+            matched_unit is not None
+            and matched_unit.page_number is not None
+            and (document_id, matched_unit.page_number) in allowed
+        ):
+            return matched_unit.page_number
+
+        candidates: list[int] = []
+        if raw_page is not None:
+            candidates.append(raw_page)
+            candidates.extend((raw_page + 1, raw_page - 1))
+            page_range = cls._document_page_range(filename)
+            if page_range is not None:
+                start, end = page_range
+                if start <= raw_page <= end:
+                    candidates.append(raw_page - start + 1)
+        for candidate in dict.fromkeys(candidates):
+            if candidate > 0 and (document_id, candidate) in allowed:
+                return candidate
+
+        if visual_pages:
+            document_pages = [
+                page.page_number for page in visual_pages if page.document_id == document_id
+            ]
+            if len(document_pages) == 1:
+                return document_pages[0]
+        return None
+
     def _repair_missing_evidence(
         self,
         request: TeachingRequest,
@@ -496,7 +979,7 @@ class TeachingService:
         request_id: str,
     ) -> dict[str, object]:
         """Run one bounded evidence-only repair for Providers that explicitly support it."""
-        if not self._has_missing_evidence(lesson_payload):
+        if not self._has_missing_evidence(lesson_payload, request=request):
             return lesson_payload
         repair = getattr(self.provider, "repair_lesson_evidence", None)
         if not callable(repair):
@@ -507,8 +990,8 @@ class TeachingService:
                 lesson_payload,
                 request_id=f"{request_id}:evidence-repair",
             )
-        except ProviderError:
-            # The original output is still validated below and will fail closed if needed.
+        except Exception:
+            # Keep the original content and let deterministic reconciliation mark any gap.
             return lesson_payload
         repaired = response.content
         if not isinstance(repaired, dict):
@@ -527,10 +1010,15 @@ class TeachingService:
                     continue
                 item = dict(original)
                 existing = self._normalize_evidence(item.get("evidence", []))
-                if not existing and index < len(candidates) and isinstance(candidates[index], dict):
-                    item["evidence"] = self._normalize_evidence(
+                if index < len(candidates) and isinstance(candidates[index], dict):
+                    candidate_evidence = self._normalize_evidence(
                         candidates[index].get("evidence", [])
                     )
+                else:
+                    candidate_evidence = []
+                needs_repair = not existing or self._evidence_needs_repair(existing, request)
+                if needs_repair and candidate_evidence:
+                    item["evidence"] = self._normalize_evidence(candidate_evidence)
                 updated.append(item)
             merged[key] = updated
         return merged
@@ -555,7 +1043,7 @@ class TeachingService:
                 lesson_payload,
                 request_id=f"{request_id}:lesson-completion",
             )
-        except ProviderError:
+        except Exception:
             return lesson_payload
         candidate = response.content
         if not isinstance(candidate, dict):
@@ -613,7 +1101,9 @@ class TeachingService:
         )
 
     @staticmethod
-    def _has_missing_evidence(lesson_payload: dict[str, object]) -> bool:
+    def _has_missing_evidence(
+        lesson_payload: dict[str, object], *, request: TeachingRequest | None = None
+    ) -> bool:
         for key in ("sections", "interactive_checks"):
             items = lesson_payload.get(key)
             if not isinstance(items, list):
@@ -622,27 +1112,46 @@ class TeachingService:
                 not isinstance(item, dict)
                 or not isinstance(item.get("evidence"), list)
                 or not item["evidence"]
+                or (
+                    request is not None
+                    and request.visual_pages
+                    and any(
+                        not isinstance(evidence, dict)
+                        or TeachingService._parse_page_number(evidence.get("page_number")) is None
+                        for evidence in item["evidence"]
+                    )
+                )
                 for item in items
             ):
                 return True
         return False
+
+    @classmethod
+    def _evidence_needs_repair(
+        cls, evidence: list[dict[str, object]], request: TeachingRequest
+    ) -> bool:
+        """Return whether visual evidence has a missing page that a Provider can repair."""
+        if not request.visual_pages:
+            return False
+        allowed = {(page.document_id, page.page_number) for page in request.visual_pages}
+        return any(
+            cls._parse_page_number(item.get("page_number")) is None
+            or (str(item.get("document_id", "")), cls._parse_page_number(item.get("page_number")))
+            not in allowed
+            for item in evidence
+        )
 
     @staticmethod
     def _normalize_source_ids(
         source_ids: object,
         selected_source_ids: set[str],
     ) -> list[str]:
-        """Ensure every generated section/activity has traceable selected sources."""
+        """Keep source IDs inside the user's selection without blocking recovery."""
         if not isinstance(source_ids, list):
             source_ids = []
         normalized = [str(source_id) for source_id in source_ids if str(source_id)]
-        if any(source_id not in selected_source_ids for source_id in normalized):
-            raise ProviderError(
-                "Teaching Provider returned an unknown source reference",
-                code="TEACHING_SOURCE_REFERENCE_INVALID",
-                retryable=False,
-            )
-        return normalized or sorted(selected_source_ids)
+        selected = [source_id for source_id in normalized if source_id in selected_source_ids]
+        return selected or sorted(selected_source_ids)
 
     @classmethod
     def _normalize_provider_lesson(
@@ -709,7 +1218,7 @@ class TeachingService:
 
     @staticmethod
     def _normalize_evidence(raw: object) -> list[dict[str, object]]:
-        """Normalize small naming differences without weakening source validation."""
+        """Normalize common Provider evidence variants before best-effort reconciliation."""
         if not isinstance(raw, list):
             return []
         normalized: list[dict[str, object]] = []
@@ -723,6 +1232,14 @@ class TeachingService:
                 evidence["page_number"] = evidence.pop("page")
             if "quote" not in evidence and "text" in evidence:
                 evidence["quote"] = evidence.pop("text")
+            if "page_number" in evidence:
+                evidence["page_number"] = TeachingService._parse_page_number(
+                    evidence.get("page_number")
+                )
+            if "document_id" in evidence:
+                evidence["document_id"] = str(evidence.get("document_id", "")).strip()[:100]
+            if "quote" in evidence:
+                evidence["quote"] = str(evidence.get("quote", "")).strip()[:800]
             normalized.append(evidence)
         return normalized
 
@@ -794,39 +1311,31 @@ class TeachingService:
         source_text: str,
         source_units: list[TeachingSourceUnit],
         visual_pages: list[TeachingPageImage],
-    ) -> None:
-        """Require every generated teaching unit to carry inspectable source evidence."""
+    ) -> tuple[str, ...]:
+        """Report source-grounding problems without making a usable lesson impossible to save."""
         allowed_pages = {(page.document_id, page.page_number) for page in visual_pages}
         allowed_text_pages = {
             (unit.document_id, unit.page_number)
             for unit in source_units
             if unit.page_number is not None
         }
+        issues: list[str] = []
         evidence_groups = [
             *(section.evidence for section in lesson.sections),
             *(check.evidence for check in lesson.interactive_checks),
         ]
         for evidence_group in evidence_groups:
             if not evidence_group:
-                raise ProviderError(
-                    "教学内容缺少章节级资料证据，不能确认内容来自原文",
-                    code="TEACHING_SOURCE_EVIDENCE_MISSING",
-                    retryable=False,
-                )
+                issues.append("部分章节暂时没有可核对的原文证据")
+                continue
             for evidence in evidence_group:
                 if evidence.document_id not in selected_source_ids:
-                    raise ProviderError(
-                        "教学内容引用了未选择的资料",
-                        code="TEACHING_SOURCE_EVIDENCE_INVALID",
-                        retryable=False,
-                    )
+                    issues.append("部分证据来源不在本次选择范围内")
+                    continue
                 quote = " ".join(evidence.quote.split())
                 if len(re.sub(r"\s+", "", quote)) < 4:
-                    raise ProviderError(
-                        "教学资料证据过短，无法人工核对",
-                        code="TEACHING_SOURCE_EVIDENCE_INVALID",
-                        retryable=False,
-                    )
+                    issues.append("部分证据原文过短，暂不能人工核对")
+                    continue
                 if visual_pages:
                     if (
                         evidence.page_number is None
@@ -836,11 +1345,7 @@ class TeachingService:
                         )
                         not in allowed_pages
                     ):
-                        raise ProviderError(
-                            "视觉教学证据缺少有效页码",
-                            code="TEACHING_SOURCE_EVIDENCE_INVALID",
-                            retryable=False,
-                        )
+                        issues.append("视觉证据页码无法唯一核对")
                 elif (
                     evidence.page_number is not None
                     and (
@@ -849,17 +1354,10 @@ class TeachingService:
                     )
                     not in allowed_text_pages
                 ):
-                    raise ProviderError(
-                        "教学资料证据页码无法在已读取页面中核对",
-                        code="TEACHING_SOURCE_EVIDENCE_INVALID",
-                        retryable=False,
-                    )
+                    issues.append("文字证据页码无法在已读取页面中核对")
                 elif source_text and not cls._quote_supported(quote, source_text):
-                    raise ProviderError(
-                        "教学内容包含无法在原文中核对的引文",
-                        code="TEACHING_SOURCE_EVIDENCE_UNSUPPORTED",
-                        retryable=False,
-                    )
+                    issues.append("部分教学引文暂时无法在原文中核对")
+        return tuple(dict.fromkeys(issues))
 
     @staticmethod
     def _quote_supported(quote: str, source_text: str) -> bool:

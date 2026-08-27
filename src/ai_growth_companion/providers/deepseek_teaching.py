@@ -304,7 +304,9 @@ class DeepSeekTeachingProvider:
             "你是教学资料的证据修复器。只补齐缺失的 evidence，不得改写课程内容。"
             "只返回 JSON，且只能包含 sections 和 interactive_checks 两个数组；数组顺序必须"
             "与输入完全一致。每个项目都必须返回 evidence 数组（1–3 项），每项包含正确的"
-            "document_id、可选 page_number、以及从 source_units 或图片中连续复制的 quote。"
+            "document_id、page_number（如果输入包含 visual_pages 则必须填写且只能使用输入图片"
+            "列出的页码；这些页码是当前分卷内从 1 开始的物理页码，不是整本教材印刷页码）、"
+            "以及从 source_units 或图片中连续复制的 quote。"
             "如果某个项目没有足够证据，仍返回空数组，绝不编造引文。"
         )
         user = json.dumps(
@@ -474,7 +476,8 @@ class DeepSeekTeachingProvider:
             system += (
                 "部分资料以原始 PDF 页面图片提供。必须阅读图片中的文字、公式、表格和图示，"
                 "图片内容优先于不完整的文字提取；看不清的内容不要猜测。每条图片证据必须填写"
-                "对应的 page_number；page_number 只能使用输入图片列出的页码。"
+                "对应的 page_number；page_number 只能使用输入图片列出的页码，且是当前分卷内"
+                "从 1 开始的物理页码，不是整本教材的印刷页码。"
             )
         user = json.dumps(
             {

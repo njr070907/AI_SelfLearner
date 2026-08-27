@@ -184,6 +184,27 @@ class PageAwareTeachingProvider(FakeLLMProvider):
         return ProviderResponse(content=payload, metadata=response.metadata)
 
 
+class InvalidVisualEvidenceProvider(CapturingTeachingProvider):
+    """Return a visual lesson with an original-book page instead of a split-page number."""
+
+    def generate_lesson(self, request: TeachingRequest, *, request_id: str) -> ProviderResponse:
+        response = super().generate_lesson(request, request_id=request_id)
+        payload = dict(response.content)
+        for key in ("sections", "interactive_checks"):
+            for item in payload[key]:
+                for evidence in item["evidence"]:
+                    evidence["page_number"] = 1651
+        return ProviderResponse(content=payload, metadata=response.metadata)
+
+
+class FailingTeachingProvider(FakeLLMProvider):
+    """Simulate a provider outage while keeping the local source readable."""
+
+    def generate_lesson(self, request: TeachingRequest, *, request_id: str) -> ProviderResponse:
+        del request, request_id
+        raise ProviderError("provider unavailable", code="LLM_UNAVAILABLE", retryable=True)
+
+
 def blank_pdf() -> bytes:
     stream = BytesIO()
     writer = PdfWriter()
@@ -296,6 +317,42 @@ def test_visual_teaching_can_use_image_only_pdf_without_text_extraction(
     assert provider.last_request.source_units == ()
 
 
+def test_visual_split_page_is_reconciled_and_saved(tmp_path: Path) -> None:
+    provider = InvalidVisualEvidenceProvider()
+    teaching, documents = service_for(tmp_path, provider=provider)
+    document = documents.upload(
+        filename="Calculus_part_12_pages_1651-1651.pdf", content=blank_pdf()
+    )
+
+    lesson = teaching.generate_lesson(
+        topic="函数极限",
+        document_ids=(document.document_id,),
+        request_id="teaching-vision-page-repair-1",
+        use_vision=True,
+    )
+
+    assert lesson.lesson.grounding_status in {"repaired", "partial"}
+    assert lesson.lesson.sections[0].evidence[0].page_number == 1
+
+
+def test_provider_failure_saves_a_local_draft(tmp_path: Path) -> None:
+    teaching, documents = service_for(tmp_path, provider=FailingTeachingProvider())
+    document = documents.upload(
+        filename="topic.md", content="# 函数极限\n\n极限描述函数在某点附近的变化趋势。".encode()
+    )
+
+    lesson = teaching.generate_lesson(
+        topic="函数极限",
+        document_ids=(document.document_id,),
+        request_id="teaching-provider-fallback-1",
+    )
+
+    assert lesson.lesson.grounding_status == "draft"
+    assert any("LLM_UNAVAILABLE" in issue for issue in lesson.lesson.grounding_issues)
+    assert len(lesson.lesson.sections) == 4
+    assert len(lesson.lesson.interactive_checks) == 2
+
+
 def test_missing_evidence_can_be_repaired_without_rewriting_lesson(tmp_path: Path) -> None:
     teaching, documents = service_for(tmp_path, provider=RepairingTeachingProvider())
     document = documents.upload(
@@ -353,7 +410,7 @@ def test_teaching_requires_a_topic_and_a_source(tmp_path: Path) -> None:
         teaching.generate_lesson(topic="函数极限", document_ids=(), request_id="teaching-test-3")
 
 
-def test_teaching_rejects_obviously_unrelated_provider_content(tmp_path: Path) -> None:
+def test_teaching_saves_a_draft_for_obviously_unrelated_provider_content(tmp_path: Path) -> None:
     _default_teaching, documents = service_for(tmp_path)
     database = Database(f"sqlite:///{(tmp_path / 'unrelated.db').as_posix()}")
     run_migrations(database)
@@ -367,28 +424,28 @@ def test_teaching_rejects_obviously_unrelated_provider_content(tmp_path: Path) -
         filename="topic.md", content="# 函数极限\n\n极限描述变化趋势。".encode()
     )
 
-    with pytest.raises(ProviderError, match="unrelated|not relevant|不相关") as captured:
-        teaching.generate_lesson(
-            topic="函数极限",
-            document_ids=(document.document_id,),
-            request_id="teaching-unrelated-1",
-        )
-    assert captured.value.code == "TEACHING_CONTENT_NOT_RELEVANT"
+    lesson = teaching.generate_lesson(
+        topic="函数极限",
+        document_ids=(document.document_id,),
+        request_id="teaching-unrelated-1",
+    )
+    assert lesson.lesson.grounding_status == "draft"
+    assert any("跑题" in issue for issue in lesson.lesson.grounding_issues)
 
 
-def test_teaching_rejects_structured_content_without_source_evidence(tmp_path: Path) -> None:
+def test_teaching_repairs_structured_content_without_source_evidence(tmp_path: Path) -> None:
     teaching, documents = service_for(tmp_path, provider=UngroundedTeachingProvider())
     document = documents.upload(
         filename="topic.md", content="# 函数极限\n\n极限描述变化趋势。".encode()
     )
 
-    with pytest.raises(ProviderError, match="资料证据|source evidence") as captured:
-        teaching.generate_lesson(
-            topic="函数极限",
-            document_ids=(document.document_id,),
-            request_id="teaching-ungrounded-1",
-        )
-    assert captured.value.code == "TEACHING_SOURCE_EVIDENCE_MISSING"
+    lesson = teaching.generate_lesson(
+        topic="函数极限",
+        document_ids=(document.document_id,),
+        request_id="teaching-ungrounded-1",
+    )
+    assert lesson.lesson.grounding_status == "repaired"
+    assert lesson.lesson.sections[0].evidence
 
 
 def test_teaching_normalizes_common_provider_field_variants(tmp_path: Path) -> None:
@@ -501,3 +558,6 @@ def test_lesson_activity_progress_is_persisted_and_idempotent(tmp_path: Path) ->
     assert report.completion_rate == 100
     assert report.accuracy == 50
     assert report.source_document_count == 1
+    assert report.verified_lesson_count == 1
+    assert report.partial_lesson_count == 0
+    assert report.draft_lesson_count == 0

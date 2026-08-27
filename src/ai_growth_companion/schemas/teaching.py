@@ -72,3 +72,7 @@ class TeachingLesson(BaseModel):
     check_questions: list[str] = Field(min_length=1, max_length=5)
     interactive_checks: list[LessonInteraction] = Field(default_factory=list, max_length=8)
     sources: list[LessonSource] = Field(min_length=1, max_length=20)
+    # Evidence quality is deliberately recorded instead of making every citation issue
+    # fatal.  A lesson can be useful before every visual page has been reconciled.
+    grounding_status: Literal["verified", "repaired", "partial", "draft"] = "verified"
+    grounding_issues: list[str] = Field(default_factory=list, max_length=20)

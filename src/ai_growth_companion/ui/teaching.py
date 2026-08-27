@@ -193,6 +193,12 @@ def _render_learning_report(report: TeachingReportView) -> None:
             f"已答题正确率 **{report.accuracy}%** · "
             f"来源资料 **{report.source_document_count}** 份"
         )
+        if report.partial_lesson_count or report.draft_lesson_count:
+            st.caption(
+                f"来源状态：已核验 {report.verified_lesson_count} 门 · "
+                f"部分核验 {report.partial_lesson_count} 门 · "
+                f"导读草稿 {report.draft_lesson_count} 门。"
+            )
         st.caption(
             "这里统计的是常规课程的阅读/互动记录，不直接代表长期掌握度；掌握结论请看掌握检测和复习记录。"
         )
@@ -219,6 +225,7 @@ def _render_lesson(
     st.caption(
         f"来源：{source_names} · 生成方式：{escape(lesson.provider)} / {escape(lesson.model_name)}"
     )
+    _render_grounding_status(content)
     activity_count = len(content.interactive_checks)
     completed_count = lesson.progress.completed_activity_count
     st.progress(
@@ -449,3 +456,27 @@ def _render_evidence(evidence: Sequence[LessonEvidence]) -> None:
         for item in evidence:
             location = f" · 第 {item.page_number} 页" if item.page_number else ""
             st.caption(f"原文依据{location}：{item.quote}")
+
+
+def _render_grounding_status(content: object) -> None:
+    """Explain degraded source verification without hiding a usable saved lesson."""
+    status = getattr(content, "grounding_status", "verified")
+    issues = getattr(content, "grounding_issues", [])
+    if status == "verified":
+        return
+    labels = {
+        "repaired": "来源证据已自动修复",
+        "partial": "课程已保存，但部分来源证据待核验",
+        "draft": "课程已保存为资料导读草稿，部分内容待完善",
+    }
+    message = labels.get(str(status), "课程已保存，来源证据待核验")
+    if status == "repaired":
+        st.info(message)
+    elif status == "draft":
+        st.warning(message)
+    else:
+        st.warning(message)
+    if isinstance(issues, list) and issues:
+        with st.expander("查看生成提示"):
+            for issue in issues:
+                st.caption(f"• {issue}")
