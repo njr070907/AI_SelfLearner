@@ -2,11 +2,11 @@
 
 AI Growth Companion 是一个以常规课程学习为主、以费曼式主动表达诊断为差异化能力的自学系统。用户先阅读 AI 根据资料整理的课程，再通过互动练习和可选掌握检测确认理解；系统保存学习证据、指出理解缺口和可能误区，并给出一个最小下一步。
 
-项目当前已经完成 Sprint 0 工程基线。这里的诊断全部来自免费、可预测的 Fake Provider，用于验证产品管道，不代表真实 AI 学习判断。
+项目当前已经完成 Sprint 0 工程基线。仓库默认使用免费、可预测的 Fake Provider，用于验证产品管道，不代表真实 AI 学习判断；本机也可以选择 Ollama 本地模型进行开发验证。
 
 Sprint 1 已开始建立 Mastery Protocol 的真实评测基线。第一批 20 个高等数学案例已经由产品负责人逐项完成人工复核，可以作为第一版回归基线；在真实模型实验通过前，项目仍不会声称能够可靠诊断学习掌握度。
 
-`evaluator-v0.1` 已作为独立、可哈希的 Prompt 版本加入工程；`evaluator-v0.2` 现作为候选实验版本提供，但默认不会启用。运行器支持零调用 dry-run、免费确定性的 Fake 管道基线和默认关闭的 DeepSeek 适配器；真实 Provider 只有在明确选择供应商、Prompt 版本、模型并确认付费后才会启用。
+`evaluator-v0.1` 已作为独立、可哈希的 Prompt 版本加入工程；`evaluator-v0.2` 现作为候选实验版本提供，但默认不会启用。运行器支持零调用 dry-run、免费确定性的 Fake 管道基线和默认关闭的 DeepSeek 适配器；付费真实 Provider 只有在明确选择供应商、Prompt 版本、模型并确认付费后才会启用，Ollama 本地模式不受此付费门槛影响。
 
 ## Sprint 0 已经能做什么
 
@@ -16,7 +16,7 @@ Sprint 1 已开始建立 Mastery Protocol 的真实评测基线。第一批 20 �
 - 将原始回答、诊断尝试和学习事件保存到 SQLite。
 - 保存追加式 Event History，并将 Current State 作为可重新计算的投影。
 - Provider 失败时保留用户回答，并可使用同一回答重试。
-- 资料库支持上传、查看、下载、重命名、替换和删除 PDF、Markdown、TXT 文件；超过 20 MB 的文件会默认自动分卷后导入：PDF 按页、Markdown/TXT 按段落和行尾优先，原文内容不改写；在“教学”页选择资料后，可由 Fake 或固定 DeepSeek Provider 生成可阅读的结构化导学。对扫描版、乱码或公式较多的 PDF，教学页还提供显式的“使用视觉读取 PDF 页面”模式：本地只渲染最多 6 个相关页面为受限 JPEG，再以图片内容块发送给视觉 Provider；默认仍不发送图片、不产生付费调用。
+- 资料库支持上传、查看、下载、重命名、替换和删除 PDF、Markdown、TXT 文件；超过 20 MB 的文件会默认自动分卷后导入：PDF 按页、Markdown/TXT 按段落和行尾优先，原文内容不改写；在“教学”页选择资料后，可由 Fake、Ollama 本地文本模型或固定 DeepSeek Provider 生成可阅读的结构化导学。对扫描版、乱码或公式较多的 PDF，教学页还提供显式的“使用视觉读取 PDF 页面”模式：本地只渲染最多 6 个相关页面为受限 JPEG，再以图片内容块发送给视觉 Provider；默认仍不发送图片、不产生付费调用。
 - “学习”入口默认进入常规教学：按章节阅读、上一节/下一节、完成末节互动小测；章节位置、互动答案和课程完成状态会保存，掌握检测单独作为可选入口。
 - 运行数据库迁移、健康检查、自动测试、Secret Scan 和真实启动冒烟测试。
 - 在 GitHub Actions 中执行阻断检查和非阻断质量报告。
@@ -26,7 +26,7 @@ Sprint 1 已开始建立 Mastery Protocol 的真实评测基线。第一批 20 �
 ```text
 资料库上传 → 本地提取文字（必要时视觉读取 PDF 页面） → AI 生成教学导学 → 章节阅读
        → 互动小测 → 保存课程进度 → 可选掌握检测
-       → 用户回答 → Fake/DeepSeek Provider → Schema 校验
+       → 用户回答 → Fake/Ollama/DeepSeek Provider → Schema 校验
        → 保存学习证据 → Mastery Engine → Learning Policy → 页面展示
 ```
 
@@ -152,7 +152,7 @@ uv run python scripts/run_golden_eval.py --provider fake `
 `--case-id` 可以重复使用，顺序就是实际运行顺序；它与 `--max-cases` 不能同时使用。案例编号和人工复核说明见
 [`evals/golden/cases.json`](evals/golden/cases.json) 与 [`evals/README.md`](evals/README.md)。
 
-结果写入被 Git 忽略的 `evals/runs/`。Fake 基线通过只表示 Schema、Mastery Engine、Learning Policy 和自动检查互相一致；每条成功结果仍标记为需要人工语义复核，不能作为真实模型质量结论。真实 Provider 模式必须显式允许付费调用，默认零重试，避免意外扩大成本。
+结果写入被 Git 忽略的 `evals/runs/`。Fake 基线通过只表示 Schema、Mastery Engine、Learning Policy 和自动检查互相一致；每条成功结果仍标记为需要人工语义复核，不能作为真实模型质量结论。DeepSeek 等付费真实 Provider 模式必须显式允许付费调用；Ollama 本地模式不产生供应商费用。所有模式默认零重试，避免意外扩大成本。
 
 ### DeepSeek 真实评测（会产生费用）
 
@@ -181,6 +181,38 @@ uv run python scripts/run_golden_eval.py `
 真实模式默认 `--max-cases 1`、每条零重试、最多输出 1200 tokens。只有显式传入 `--max-cases 2` 至 `20` 才会扩大批量。Token 用量、延迟、模型、Prompt 版本、请求 ID 和错误码会写入本地运行记录；API Key、Prompt 原文和回答原文不会进入控制台摘要。实际账单以供应商后台为准，运行器目前不猜测费用。
 
 即使自动检查全过，仍必须逐条人工复核数学语义；一次真实运行不直接更新学习者长期状态。
+
+### 本地 Ollama 三模型路由（开发和日常使用）
+
+本地模式不需要 API Key，也不会把文字资料发送到外部服务。应用按任务选择模型：
+
+| 任务 | 默认模型 | 职责 |
+| --- | --- | --- |
+| 教学内容、回答证据提取、课程报告 | `gpt-oss:20b` | 质量优先，输出严格结构化 JSON |
+| 互动小题生成 | `qwen3.5:4b` | 速度和质量平衡，生成常规教学后的练习题 |
+| 轻量翻译、摘要和元数据（预留） | `qwen3.5:0.8b` | 低成本辅助任务，不参与掌握度最终判断 |
+| 扫描版/乱码 PDF 的视觉读取 | `deepseek-v4-flash-vision-exp` | 仅在显式开启视觉模式且已配置 DeepSeek 时使用 |
+
+先确认 Ollama 服务和模型已就绪：
+
+```powershell
+ollama list
+ollama ps
+```
+
+在被 Git 忽略的本机 `.env` 中设置（不要提交 `.env`）：
+
+```dotenv
+LLM_PROVIDER=ollama
+LLM_MODEL=gpt-oss:20b
+OLLAMA_BASE_URL=http://127.0.0.1:11434/v1
+OLLAMA_QUALITY_MODEL=gpt-oss:20b
+OLLAMA_BALANCED_MODEL=qwen3.5:4b
+OLLAMA_FAST_MODEL=qwen3.5:0.8b
+OLLAMA_TIMEOUT_SECONDS=300
+```
+
+在 Ollama 模式下，掌握等级和下一步动作仍由本地 `Mastery Engine` 与 `Learning Policy` 决定；模型只提供可追溯的证据。若要对扫描 PDF 使用视觉读取，仍需沿用本机已有的 DeepSeek Key，并显式设置 `LLM_PAID_CALLS_ALLOWED=true`；没有视觉配置时，普通文字教学仍可正常使用。
 
 ## GitHub 协作流程
 

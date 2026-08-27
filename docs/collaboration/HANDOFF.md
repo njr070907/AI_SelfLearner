@@ -2,13 +2,14 @@
 
 这份手册是当前阶段的“从哪里开始”说明。它服务于 Sprint 1 的 Mastery Protocol 实验，不要求新协作者重新阅读全部历史聊天记录。
 
-## 当前基线（2026-08-26）
+## 当前基线（2026-08-27）
 
 - `main` 已通过必需 CI，工程链路包括启动、迁移、Fake Provider、严格 Schema、事件历史、Mastery Engine、Learning Policy、端到端假闭环、资料库 CRUD、资料生成导学和第一版 Liquid Glass 学习工作区 UI。
 - 评测集包含 20 个高等数学案例。v0.2 主运行 `020209Z` 为 18/20 结构成功、18/18 自动通过；两条定向复测 `020421Z` 均通过，合并后的 20 条结果为 20/20 自动量表通过。
 - 20 条 v0.2 真实结果已逐条完成人工语义复核。当前结论是：接口和数据管道稳定，旧 Prompt/枚举结果存在历史差异，不能把自动通过数单独当作掌握度结论。
 - 真实 Provider 必须使用 `deepseek-v4-flash-vision-exp`。没有新的实验设计前，不要盲目重复完整付费运行。
-- UI v1 已在 PR #28–#29 合并，Prompt v0.2 候选版本在 PR #30 合并；PR #58/#59 已合并教学、错题本、复习复测、反馈/长期状态进度页、Fake 全链路和资料库基础版；当前协作分支又补齐“上传资料→生成常规课程→阅读→互动小测→保存/恢复进度→课程报告”，掌握检测为可选独立功能，离线回归为 212 个测试通过；课程报告指标已由 `TeachingService.get_learning_report()` 统一提供，系统页已接入本地导出下载；文本资料提取统一严格校验 UTF-8；两个受控真实 DeepSeek 教学案例已完成人工语义复核并通过；资料库大文件自动分卷已接入，新增和替换入口统一按同一规则处理。
+- 本地 Ollama 路由已接入：`gpt-oss:20b` 负责教学内容和回答证据，`qwen3.5:4b` 负责互动小题，`qwen3.5:0.8b` 作为轻量辅助模型预留；本地模式不需要 API Key。扫描 PDF 的视觉读取仍只使用固定 `deepseek-v4-flash-vision-exp`，并且必须显式允许付费调用。
+- UI v1 已在 PR #28–#29 合并，Prompt v0.2 候选版本在 PR #30 合并；PR #58/#59 已合并教学、错题本、复习复测、反馈/长期状态进度页、Fake 全链路和资料库基础版；当前协作分支又补齐“上传资料→生成常规课程→阅读→互动小测→保存/恢复进度→课程报告”，掌握检测为可选独立功能，离线回归为 228 个测试通过；课程报告指标已由 `TeachingService.get_learning_report()` 统一提供，系统页已接入本地导出下载；文本资料提取统一严格校验 UTF-8；两个受控真实 DeepSeek 教学案例已完成人工语义复核并通过；资料库大文件自动分卷已接入，新增和替换入口统一按同一规则处理。
 - 完整自学 MVP 按最终用户可正常使用的验收口径当前约完成 86%，预计还需 5–8 个有效工作日（含验证和发布准备），另需至少 7 个自然日试用；20 条真实语义人工验收已完成，剩余重点是来源内容质量人工验收、报告深化、发布边界确认和 7 天试用闭环。本地用户数据导出已提供 CLI，不含网络上传。
 - Mastery Protocol 已升级为 v0.6：`no_clue`=完全未掌握，`re_learn`=重新学习；明确错误概念和自述忘记都先进入 `review`，复测后低掌握再进入 `re_learn`。20 条 v0.2 结果已按新协议复核并归档，不能直接把旧枚举当作发布结论。
 - 完整阶段、时间估算、停止条件和前后端边界见 [完整自学 MVP 开发计划](../roadmap/FULL_SELF_STUDY_MVP_PLAN.md)。
@@ -73,12 +74,28 @@ uv run python scripts/run_golden_eval.py --provider fake --case-id hm-lhopital-s
 
 真实调用会产生费用，也会受到供应商配额影响。必须满足以下规则：
 
-- Provider 固定选择 `deepseek`，模型固定为 `deepseek-v4-flash-vision-exp`。
+- 付费真实实验固定选择 `deepseek`，模型固定为 `deepseek-v4-flash-vision-exp`；日常开发和本地文字教学可选择 `ollama`，不产生供应商 API 费用。
 - API Key 只放在本机 `.env`，不进入 Issue、PR、日志或提交。
 - 命令必须显式带 `--confirm-paid-calls`；第一次只跑一个明确的 `--case-id`。
 - 默认零重试；不要为了让数字好看而重复运行。
 - 运行记录保留在本地 `evals/runs/`，上传 GitHub 时只提交脱敏摘要。
 - 自动 Schema 通过只说明“结构可消费”，最终语义结论必须由人工复核确认。
+
+### 本地 Ollama 模式
+
+协作者不需要 API Key 就能运行本地文字链路。确保 Ollama 在 `127.0.0.1:11434` 监听，并在本机 `.env` 设置：
+
+```dotenv
+LLM_PROVIDER=ollama
+LLM_MODEL=gpt-oss:20b
+OLLAMA_BASE_URL=http://127.0.0.1:11434/v1
+OLLAMA_QUALITY_MODEL=gpt-oss:20b
+OLLAMA_BALANCED_MODEL=qwen3.5:4b
+OLLAMA_FAST_MODEL=qwen3.5:0.8b
+OLLAMA_TIMEOUT_SECONDS=300
+```
+
+UI 仍只调用 typed service models，不直接调用 Ollama。若本机没有 DeepSeek Key，视觉 PDF 按钮应显示不可用，但普通文字教学、互动小题和掌握检测不受影响。
 
 示例（确认费用后才能执行）：
 

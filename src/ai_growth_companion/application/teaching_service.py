@@ -1,6 +1,7 @@
 """Application service for source-grounded lesson generation."""
 
 import json
+import re
 from collections.abc import Sequence
 from datetime import datetime
 from uuid import uuid4
@@ -183,10 +184,11 @@ class TeachingService:
         if use_vision and not visual_pages:
             raise TeachingInputError("视觉读取模式至少需要选择一份 PDF 资料")
 
+        source_text = "\n\n".join(source_parts)[:60_000]
         response = self.provider.generate_lesson(
             TeachingRequest(
                 topic=normalized_topic,
-                source_text="\n\n".join(source_parts)[:60_000],
+                source_text=source_text,
                 sources=tuple(source_refs),
                 learning_goal=learning_goal.strip() if learning_goal else None,
                 learner_level=learner_level,
@@ -233,6 +235,13 @@ class TeachingService:
                 interaction.get("source_document_ids", []),
                 selected_source_ids,
             )
+            interaction["evidence"] = self._normalize_evidence(
+                interaction.get("evidence", interaction.get("source_evidence", []))
+            )
+        for section in lesson_payload["sections"]:
+            section["evidence"] = self._normalize_evidence(
+                section.get("evidence", section.get("source_evidence", []))
+            )
         lesson = TeachingLesson.model_validate(
             {
                 **lesson_payload,
@@ -242,6 +251,12 @@ class TeachingService:
                     for document_id, filename, excerpt in source_refs
                 ],
             }
+        )
+        self._validate_source_grounding(
+            lesson,
+            selected_source_ids=selected_source_ids,
+            source_text=source_text,
+            visual_pages=visual_pages,
         )
         self._validate_lesson_quality(lesson)
         lesson_id = str(uuid4())
@@ -417,6 +432,8 @@ class TeachingService:
                 # Some JSON responses omit the field while still following the four-section
                 # order required by the prompt. Only infer this exact, constrained shape.
                 section["section_type"] = section_types[index]
+            if "evidence" not in section and "source_evidence" in section:
+                section["evidence"] = section.pop("source_evidence")
             normalized_sections.append(section)
         payload["sections"] = normalized_sections
 
@@ -440,9 +457,30 @@ class TeachingService:
             check["correct_answer"] = cls._normalize_correct_answer(
                 check.get("correct_answer"), options
             )
+            if "evidence" not in check and "source_evidence" in check:
+                check["evidence"] = check.pop("source_evidence")
             normalized_checks.append(check)
         payload["interactive_checks"] = normalized_checks
         return payload
+
+    @staticmethod
+    def _normalize_evidence(raw: object) -> list[dict[str, object]]:
+        """Normalize small naming differences without weakening source validation."""
+        if not isinstance(raw, list):
+            return []
+        normalized: list[dict[str, object]] = []
+        for item in raw:
+            if not isinstance(item, dict):
+                continue
+            evidence = dict(item)
+            if "document_id" not in evidence and "source_document_id" in evidence:
+                evidence["document_id"] = evidence.pop("source_document_id")
+            if "page_number" not in evidence and "page" in evidence:
+                evidence["page_number"] = evidence.pop("page")
+            if "quote" not in evidence and "text" in evidence:
+                evidence["quote"] = evidence.pop("text")
+            normalized.append(evidence)
+        return normalized
 
     @staticmethod
     def _normalize_correct_answer(answer: object, options: list[str]) -> object:
@@ -477,11 +515,100 @@ class TeachingService:
 
     @staticmethod
     def _mentions_topic(lesson: TeachingLesson, topic: str) -> bool:
-        """Reject obviously generic output while leaving semantic review to humans."""
+        """Reject generic output while accepting common Chinese/English topic variants."""
         searchable = " ".join(
             [lesson.title, lesson.summary, *lesson.learning_objectives]
         ).casefold()
-        return topic.casefold() in searchable
+        compact_searchable = re.sub(r"\s+", "", searchable)
+        normalized_topic = topic.strip().casefold()
+        if normalized_topic in searchable or normalized_topic in compact_searchable:
+            return True
+
+        aliases: dict[str, tuple[str, ...]] = {
+            "极限": ("limit", "limits"),
+            "导数": ("derivative", "derivatives"),
+            "积分": ("integral", "integrals"),
+            "向量": ("vector", "vectors"),
+            "矩阵": ("matrix", "matrices"),
+            "函数": ("function", "functions"),
+        }
+        terms: list[str] = list(aliases.get(normalized_topic, ()))
+        for chunk in re.findall(r"[\u4e00-\u9fff]{2,}", normalized_topic):
+            terms.append(chunk)
+            terms.extend(chunk[index : index + 2] for index in range(len(chunk) - 1))
+        terms.extend(re.findall(r"[a-z0-9]+", normalized_topic))
+        return any(
+            term and re.sub(r"\s+", "", term) in compact_searchable for term in dict.fromkeys(terms)
+        )
+
+    @classmethod
+    def _validate_source_grounding(
+        cls,
+        lesson: TeachingLesson,
+        *,
+        selected_source_ids: set[str],
+        source_text: str,
+        visual_pages: list[TeachingPageImage],
+    ) -> None:
+        """Require every generated teaching unit to carry inspectable source evidence."""
+        allowed_pages = {(page.document_id, page.page_number) for page in visual_pages}
+        evidence_groups = [
+            *(section.evidence for section in lesson.sections),
+            *(check.evidence for check in lesson.interactive_checks),
+        ]
+        for evidence_group in evidence_groups:
+            if not evidence_group:
+                raise ProviderError(
+                    "教学内容缺少章节级资料证据，不能确认内容来自原文",
+                    code="TEACHING_SOURCE_EVIDENCE_MISSING",
+                    retryable=False,
+                )
+            for evidence in evidence_group:
+                if evidence.document_id not in selected_source_ids:
+                    raise ProviderError(
+                        "教学内容引用了未选择的资料",
+                        code="TEACHING_SOURCE_EVIDENCE_INVALID",
+                        retryable=False,
+                    )
+                quote = " ".join(evidence.quote.split())
+                if len(re.sub(r"\s+", "", quote)) < 4:
+                    raise ProviderError(
+                        "教学资料证据过短，无法人工核对",
+                        code="TEACHING_SOURCE_EVIDENCE_INVALID",
+                        retryable=False,
+                    )
+                if visual_pages:
+                    if (
+                        evidence.page_number is None
+                        or (
+                            evidence.document_id,
+                            evidence.page_number,
+                        )
+                        not in allowed_pages
+                    ):
+                        raise ProviderError(
+                            "视觉教学证据缺少有效页码",
+                            code="TEACHING_SOURCE_EVIDENCE_INVALID",
+                            retryable=False,
+                        )
+                elif evidence.page_number is not None:
+                    raise ProviderError(
+                        "文字资料证据不应伪造 PDF 页码",
+                        code="TEACHING_SOURCE_EVIDENCE_INVALID",
+                        retryable=False,
+                    )
+                elif source_text and not cls._quote_supported(quote, source_text):
+                    raise ProviderError(
+                        "教学内容包含无法在原文中核对的引文",
+                        code="TEACHING_SOURCE_EVIDENCE_UNSUPPORTED",
+                        retryable=False,
+                    )
+
+    @staticmethod
+    def _quote_supported(quote: str, source_text: str) -> bool:
+        compact_quote = re.sub(r"[^\w\u4e00-\u9fff]+", "", quote.casefold())
+        compact_source = re.sub(r"[^\w\u4e00-\u9fff]+", "", source_text.casefold())
+        return bool(compact_quote) and compact_quote in compact_source
 
     @staticmethod
     def _validate_lesson_quality(lesson: TeachingLesson) -> None:

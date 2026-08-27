@@ -15,6 +15,16 @@ class LessonSource(BaseModel):
     excerpt: str = Field(min_length=1, max_length=2_000)
 
 
+class LessonEvidence(BaseModel):
+    """A short, inspectable piece of source evidence behind generated content."""
+
+    model_config = ConfigDict(frozen=True)
+
+    document_id: str = Field(min_length=1, max_length=100)
+    page_number: int | None = Field(default=None, ge=1)
+    quote: str = Field(min_length=2, max_length=800)
+
+
 class LessonSection(BaseModel):
     """One readable teaching section with a concrete learning purpose."""
 
@@ -26,6 +36,7 @@ class LessonSection(BaseModel):
     key_points: list[str] = Field(min_length=1, max_length=8)
     example: str | None = Field(default=None, max_length=2_000)
     source_document_ids: list[str] = Field(default_factory=list, max_length=20)
+    evidence: list[LessonEvidence] = Field(default_factory=list, max_length=4)
 
 
 class LessonInteraction(BaseModel):
@@ -38,6 +49,7 @@ class LessonInteraction(BaseModel):
     correct_answer: str = Field(min_length=1, max_length=500)
     explanation: str = Field(min_length=1, max_length=1_500)
     source_document_ids: list[str] = Field(default_factory=list, max_length=20)
+    evidence: list[LessonEvidence] = Field(default_factory=list, max_length=4)
 
     @model_validator(mode="after")
     def correct_answer_is_available(self) -> "LessonInteraction":

@@ -15,7 +15,7 @@ from ai_growth_companion.application.teaching_service import (
     TeachingService,
 )
 from ai_growth_companion.providers.base import ProviderError
-from ai_growth_companion.schemas.teaching import LessonSource
+from ai_growth_companion.schemas.teaching import LessonEvidence, LessonSource
 
 StartLesson = Callable[[str, str | None, str | None], str | None]
 
@@ -34,6 +34,17 @@ def render_teaching_workspace(
         "课程包含讲解、例子和即时小测；掌握检测是后续可选步骤。</p>",
         unsafe_allow_html=True,
     )
+    if teaching_service.provider.provider_name == "fake":
+        st.warning(
+            "当前是 Fake Provider 流程演示：它只验证资料→课程→进度管道，"
+            "不会判断真实教材语义。要验收真实内容，请切换到 Ollama 本地文本模式或"
+            "已授权的 DeepSeek 视觉模式。"
+        )
+    elif teaching_service.provider.provider_name == "ollama":
+        st.info(
+            "当前使用 Ollama 本地文本模型生成常规教学内容；扫描版或乱码 PDF 只有在"
+            "显式配置 DeepSeek 视觉 Provider 后才能使用视觉读取。"
+        )
 
     documents = document_library.list_documents()
     if not documents:
@@ -245,6 +256,7 @@ def _render_lesson(
         if section_sources:
             st.caption(f"本节来源：{section_sources}")
             _render_source_excerpts(content.sources, section.source_document_ids)
+        _render_evidence(section.evidence)
 
     previous, next_step = st.columns(2)
     if previous.button(
@@ -367,6 +379,7 @@ def _render_interactive_checks(
                 source_names = _source_names(lesson.lesson.sources, check.source_document_ids)
                 if source_names:
                     st.caption(f"本题来源：{source_names}")
+                _render_evidence(check.evidence)
                 st.info(f"正确答案：{check.correct_answer}\n\n解析：{check.explanation}")
 
 
@@ -425,3 +438,13 @@ def _render_source_excerpts(sources: Sequence[LessonSource], source_ids: list[st
         for source in selected:
             st.markdown(f"**{escape(source.filename)}**")
             st.caption(source.excerpt)
+
+
+def _render_evidence(evidence: Sequence[LessonEvidence]) -> None:
+    """Show the exact source snippets that the generated unit claims to use."""
+    if not evidence:
+        return
+    with st.expander("查看生成依据"):
+        for item in evidence:
+            location = f" · 第 {item.page_number} 页" if item.page_number else ""
+            st.caption(f"原文依据{location}：{item.quote}")

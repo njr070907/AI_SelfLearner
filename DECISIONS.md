@@ -95,3 +95,10 @@
 - 资料库文件管理与教学生成分成两个服务：`DocumentLibraryService` 负责文件 CRUD，`TeachingService` 负责提取文字、调用 Teaching Provider、校验 `TeachingLesson` 并保存来源引用。
 - 教学内容必须经过 `concept`、`mechanism`、`boundary`、`example` 四类结构化章节；Provider 只整理资料，不能直接写入掌握等级，后续仍由回答证据、Mastery Engine 和 Learning Policy 判断。
 - 默认 Fake Provider 生成确定性免费导学；真实模式只允许 `deepseek-v4-flash-vision-exp`，并且必须显式允许付费调用。扫描版 PDF 没有 OCR 支持，RAG/向量数据库留到 MVP 之后。
+
+## 2026-08-27 — 本地 Ollama 三模型按职责路由
+
+- 增加 `ollama` Provider 模式，默认通过 `http://127.0.0.1:11434/v1` 访问本机服务，不要求 API Key、不自动重试，也不把本地模型输出直接当作掌握结论。
+- `gpt-oss:20b` 负责来源约束的常规教学内容和回答证据提取；`qwen3.5:4b` 负责互动小题生成；`qwen3.5:0.8b` 写入配置，作为后续翻译、摘要和元数据等轻量任务的预留模型。
+- 扫描版或乱码 PDF 的视觉路径仍固定使用 `deepseek-v4-flash-vision-exp`，只有用户显式开启视觉模式并满足既有付费许可时才调用；本地文字教学不依赖该 Key。
+- 所有模型返回值继续经过本地 JSON 解析、既有 Pydantic Schema、Mastery Engine 和 Learning Policy；Provider 只提供证据，不能绕过确定性业务规则。

@@ -37,6 +37,17 @@ def app_for_real_provider(tmp_path: Path, monkeypatch: MonkeyPatch, name: str) -
     return AppTest.from_file(APP_PATH).run(timeout=10)
 
 
+def app_for_ollama(tmp_path: Path, monkeypatch: MonkeyPatch, name: str) -> AppTest:
+    database_url = f"sqlite:///{(tmp_path / name).as_posix()}"
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    monkeypatch.setenv("LLM_PROVIDER", "ollama")
+    monkeypatch.setenv("LLM_MODEL", "gpt-oss:20b")
+    monkeypatch.setenv("LLM_PAID_CALLS_ALLOWED", "false")
+    load_settings.cache_clear()
+    run_migrations(Database(database_url))
+    return AppTest.from_file(APP_PATH).run(timeout=30)
+
+
 def app_for_seeded(tmp_path: Path, monkeypatch: MonkeyPatch, name: str) -> AppTest:
     database_url = f"sqlite:///{(tmp_path / name).as_posix()}"
     monkeypatch.setenv("DATABASE_URL", database_url)
@@ -358,6 +369,27 @@ def test_real_provider_mode_hides_fake_controls_and_reports_deepseek(
     )
     page = rendered_markdown(app)
     assert "DeepSeek Provider" in page
+    assert "当前仅使用 Fake Provider" not in page
+
+
+def test_ollama_mode_reports_local_provider_and_hides_fake_controls(
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    app = app_for_ollama(tmp_path, monkeypatch, "ui-ollama-provider.db")
+
+    app = open_learn(app)
+    assert not any(item.label == "诊断场景" for item in app.selectbox)
+    assert "Ollama Provider" in rendered_markdown(app)
+
+    app = (
+        next(item for item in app.sidebar.button if item.key == "nav_system")
+        .click()
+        .run(timeout=10)
+    )
+    page = rendered_markdown(app)
+    assert "Ollama Provider" in page
+    assert "gpt-oss:20b" in page
     assert "当前仅使用 Fake Provider" not in page
 
 

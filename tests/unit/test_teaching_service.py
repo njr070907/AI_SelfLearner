@@ -47,6 +47,23 @@ class UnrelatedTeachingProvider(FakeLLMProvider):
         return ProviderResponse(content=payload, metadata=response.metadata)
 
 
+class UngroundedTeachingProvider(FakeLLMProvider):
+    """Return a structurally valid lesson without chapter-level source proof."""
+
+    def generate_lesson(self, request: TeachingRequest, *, request_id: str) -> ProviderResponse:
+        response = super().generate_lesson(request, request_id=request_id)
+        payload = dict(response.content)
+        payload["sections"] = [
+            {key: value for key, value in section.items() if key != "evidence"}
+            for section in payload["sections"]
+        ]
+        payload["interactive_checks"] = [
+            {key: value for key, value in check.items() if key != "evidence"}
+            for check in payload["interactive_checks"]
+        ]
+        return ProviderResponse(content=payload, metadata=response.metadata)
+
+
 class AlternateTeachingProvider(FakeLLMProvider):
     """Emit common DeepSeek field variants to exercise service normalization."""
 
@@ -138,6 +155,8 @@ def test_uploaded_material_becomes_a_persisted_lesson(tmp_path: Path) -> None:
     assert source_fact in view.lesson.sections[0].explanation
     assert source_fact in view.lesson.sections[2].explanation
     assert source_fact in view.lesson.interactive_checks[0].explanation
+    assert source_fact in view.lesson.sections[0].evidence[0].quote
+    assert source_fact in view.lesson.interactive_checks[0].evidence[0].quote
     assert teaching.get_lesson(view.lesson_id).lesson == view.lesson
     assert len(teaching.list_lessons()) == 1
 
@@ -164,6 +183,7 @@ def test_visual_teaching_can_use_image_only_pdf_without_text_extraction(
     assert len(provider.last_request.visual_pages) == 1
     assert provider.last_request.visual_pages[0].page_number == 1
     assert view.lesson.sources[0].excerpt == "原始 PDF 页面将通过视觉输入读取。"
+    assert view.lesson.sections[0].evidence[0].page_number == 1
 
 
 def test_teaching_requires_a_topic_and_a_source(tmp_path: Path) -> None:
@@ -197,6 +217,21 @@ def test_teaching_rejects_obviously_unrelated_provider_content(tmp_path: Path) -
             request_id="teaching-unrelated-1",
         )
     assert captured.value.code == "TEACHING_CONTENT_NOT_RELEVANT"
+
+
+def test_teaching_rejects_structured_content_without_source_evidence(tmp_path: Path) -> None:
+    teaching, documents = service_for(tmp_path, provider=UngroundedTeachingProvider())
+    document = documents.upload(
+        filename="topic.md", content="# 函数极限\n\n极限描述变化趋势。".encode()
+    )
+
+    with pytest.raises(ProviderError, match="资料证据|source evidence") as captured:
+        teaching.generate_lesson(
+            topic="函数极限",
+            document_ids=(document.document_id,),
+            request_id="teaching-ungrounded-1",
+        )
+    assert captured.value.code == "TEACHING_SOURCE_EVIDENCE_MISSING"
 
 
 def test_teaching_normalizes_common_provider_field_variants(tmp_path: Path) -> None:

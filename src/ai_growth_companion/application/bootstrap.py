@@ -11,6 +11,11 @@ from ai_growth_companion.providers.base import TeachingProvider
 from ai_growth_companion.providers.deepseek_evaluation import DEEPSEEK_MODEL
 from ai_growth_companion.providers.deepseek_teaching import DeepSeekTeachingProvider
 from ai_growth_companion.providers.fake import FakeLLMProvider
+from ai_growth_companion.providers.ollama import (
+    OLLAMA_QUALITY_MODEL,
+    OllamaTeachingProvider,
+    RoutedTeachingProvider,
+)
 from ai_growth_companion.repositories.database import Database
 from ai_growth_companion.repositories.document_repository import SQLiteDocumentRepository
 from ai_growth_companion.repositories.lesson_progress_repository import (
@@ -42,14 +47,34 @@ def build_document_library(database: Database) -> DocumentLibraryService:
 
 
 def build_teaching_service(database: Database, settings: Settings) -> TeachingService:
-    """Build source-grounded teaching with the same explicit Fake/DeepSeek gate."""
+    """Build source-grounded teaching with explicit local/remote model routing."""
     document_library = build_document_library(database)
     provider: TeachingProvider
     if settings.is_fake_mode:
         provider = FakeLLMProvider()
+    elif settings.llm_provider.casefold() == "ollama":
+        quality_model = (
+            settings.ollama_quality_model
+            if settings.llm_model.casefold().startswith("fake")
+            else settings.llm_model
+        )
+        text_provider = OllamaTeachingProvider(
+            model=quality_model or OLLAMA_QUALITY_MODEL,
+            base_url=settings.ollama_base_url,
+            timeout_seconds=settings.ollama_timeout_seconds,
+            max_output_tokens=4_000,
+        )
+        vision_provider: TeachingProvider | None = None
+        if settings.llm_api_key is not None and settings.llm_paid_calls_allowed:
+            vision_provider = DeepSeekTeachingProvider(
+                api_key=settings.llm_api_key.get_secret_value(),
+                model=DEEPSEEK_MODEL,
+                timeout_seconds=settings.llm_timeout_seconds,
+            )
+        provider = RoutedTeachingProvider(text_provider, vision_provider)
     else:
         if settings.llm_provider.casefold() != "deepseek":
-            raise ValueError("教学内容目前只支持 Fake 或 DeepSeek Provider")
+            raise ValueError("教学内容目前只支持 Fake、Ollama 或 DeepSeek Provider")
         if not settings.llm_paid_calls_allowed:
             raise ValueError("DeepSeek 教学模式需要显式付费许可")
         if settings.llm_api_key is None:

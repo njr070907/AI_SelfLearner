@@ -146,9 +146,9 @@ class DeepSeekTeachingProvider:
                 model=self.model_name,
                 model_revision=(response.model if response.model != self.model_name else None),
                 prompt_version=(
-                    "teaching-v0.3+deepseek-vision-json"
+                    "teaching-v0.4+deepseek-grounded-vision-json"
                     if request.visual_pages
-                    else "teaching-v0.2+deepseek-json"
+                    else "teaching-v0.4+deepseek-grounded-json"
                 ),
                 schema_version="teaching-lesson-v0.2",
                 latency_ms=round((perf_counter() - started) * 1000),
@@ -174,11 +174,15 @@ class DeepSeekTeachingProvider:
             "interactive_checks 必须有 2–4 道单选题，每道有 prompt、options、"
             "correct_answer、explanation、source_document_ids。source_document_ids "
             "只能使用输入资料的 document_id；不要编造来源。"
+            "每个 section 和 interactive_check 都必须有 evidence 数组（1–3 项），"
+            "每项包含 document_id、quote 和可选 page_number。quote 必须是输入文字或图片中"
+            "可以逐字核对的短原文片段，不能把自己的解释冒充引文；不要使用资料中没有的引文。"
         )
         if request.visual_pages:
             system += (
                 "部分资料以原始 PDF 页面图片提供。必须阅读图片中的文字、公式、表格和图示，"
-                "图片内容优先于不完整的文字提取；看不清的内容不要猜测。"
+                "图片内容优先于不完整的文字提取；看不清的内容不要猜测。每条图片证据必须填写"
+                "对应的 page_number；page_number 只能使用输入图片列出的页码。"
             )
         user = json.dumps(
             {
