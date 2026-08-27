@@ -127,3 +127,4 @@
 - 2026-08-26 实现 PDF 视觉读取 fallback：新增 PyMuPDF 依赖和分页渲染模块，按主题选择最多 6 页并限制单页/总图片大小；`TeachingRequest` 支持 `TeachingPageImage`，DeepSeek 教学适配器在显式模式下发送 `image_url` data URL 内容块，文字路径保持兼容。文本资料上传提前拒绝非 UTF-8，PDF 提取发现替换字符时提示视觉读取；教学服务增加四类章节、最小讲解/例子长度、互动题数量和乱码质量门槛，拒绝半成品落库。
 - 新增视觉请求、页面渲染和视觉教学服务离线测试；全量回归为 220 tests，Ruff、format、Mypy 通过。使用临时无敏感单页英文 PDF 对固定 `deepseek-v4-flash-vision-exp` 做一次受控真实能力验证，端点接受图片并返回结构化 JSON；未保存课程，中文教材/公式页面仍需人工语义验收。
 - 2026-08-27 接入本地 Ollama Provider：通过 OpenAI 兼容端点调用 `gpt-oss:20b`（教学与证据提取）和 `qwen3.5:4b`（互动小题），并将 `qwen3.5:0.8b` 作为轻量辅助模型配置；Ollama 模式无需 API Key，零自动重试，返回值仍经 JSON/Schema 校验。教学视觉请求在本地模式下按条件路由到固定 `deepseek-v4-flash-vision-exp`，没有视觉凭证时安全拒绝而不影响文字教学。新增 21 个路由/配置/Provider 测试；定向回归 21 passed，随后完整回归 227 passed，Ruff、format、Mypy 全部通过。
+- 2026-08-27 修复教学页“输入主题后生成按钮仍灰掉”的交互问题：将主题、学习目标、基础和生成动作收进同一个 Streamlit 表单，用户选择资料后可直接点击生成，不再依赖先按 Enter 提交输入；教学端到端测试验证通过。

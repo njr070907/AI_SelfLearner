@@ -76,43 +76,44 @@ def render_teaching_workspace(
             for document in documents
         )
         vision_available = teaching_service.provider.supports_vision
-        topic = st.text_input(
-            "这次要学习的知识主题",
-            key="teaching_topic",
-            placeholder="例如：函数极限、梯度下降、机会成本",
-        )
-        goal = st.text_input(
-            "学习目标（可选）",
-            key="teaching_goal",
-            placeholder="例如：能解释定义、机制、边界并做一道新题",
-        )
-        level = st.selectbox(
-            "当前基础（可选）",
-            options=("", "beginner", "intermediate", "advanced"),
-            format_func=lambda value: {
-                "": "暂不填写",
-                "beginner": "刚开始接触",
-                "intermediate": "已有一些基础",
-                "advanced": "希望学习得更深入",
-            }[value],
-            key="teaching_level",
-        )
-        use_vision = st.checkbox(
-            "使用视觉读取 PDF 页面",
-            value=False,
-            disabled=not has_selected_pdf or not vision_available,
-            key="teaching_use_vision",
-            help=(
-                "仅对本次选中的 PDF 页面发送图片；适合扫描版、乱码或公式较多的资料。"
-                "当前模型端点必须支持图片输入；Fake Provider 不会伪装成视觉模式。"
-            ),
-        )
-        if st.button(
-            "生成我的教学内容",
-            type="primary",
-            disabled=not selected_ids or not topic.strip(),
-            key="teaching_generate",
-        ):
+        with st.form("teaching_generate_form", clear_on_submit=False):
+            topic = st.text_input(
+                "这次要学习的知识主题",
+                key="teaching_topic",
+                placeholder="例如：函数极限、梯度下降、机会成本",
+            )
+            goal = st.text_input(
+                "学习目标（可选）",
+                key="teaching_goal",
+                placeholder="例如：能解释定义、机制、边界并做一道新题",
+            )
+            level = st.selectbox(
+                "当前基础（可选）",
+                options=("", "beginner", "intermediate", "advanced"),
+                format_func=lambda value: {
+                    "": "暂不填写",
+                    "beginner": "刚开始接触",
+                    "intermediate": "已有一些基础",
+                    "advanced": "希望学习得更深入",
+                }[value],
+                key="teaching_level",
+            )
+            use_vision = st.checkbox(
+                "使用视觉读取 PDF 页面",
+                value=False,
+                disabled=not has_selected_pdf or not vision_available,
+                key="teaching_use_vision",
+                help=(
+                    "仅对本次选中的 PDF 页面发送图片；适合扫描版、乱码或公式较多的资料。"
+                    "当前模型端点必须支持图片输入；Fake Provider 不会伪装成视觉模式。"
+                ),
+            )
+            submitted = st.form_submit_button(
+                "生成我的教学内容",
+                type="primary",
+                disabled=not selected_ids,
+            )
+        if submitted:
             try:
                 with st.spinner("正在阅读资料并生成结构化导学……"):
                     lesson = teaching_service.generate_lesson(
