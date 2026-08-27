@@ -1,20 +1,27 @@
 """Application service for source-grounded lesson generation."""
 
+import io
 import json
 import re
 import unicodedata
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
+from pathlib import Path
 from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict
+from pypdf import PdfReader
 
 from ai_growth_companion.application.document_library import (
     DocumentLibraryService,
     DocumentValidationError,
 )
-from ai_growth_companion.application.knowledge_extraction import KnowledgeUnit, extract_knowledge
+from ai_growth_companion.application.knowledge_extraction import (
+    KnowledgeUnit,
+    decode_text_content,
+    extract_knowledge,
+)
 from ai_growth_companion.application.models import DocumentView
 from ai_growth_companion.application.pdf_visual import (
     MAX_VISION_PAGES,
@@ -50,6 +57,8 @@ from ai_growth_companion.repositories.lesson_progress_repository import (
 )
 from ai_growth_companion.repositories.lesson_repository import LessonRecord, SQLiteLessonRepository
 from ai_growth_companion.schemas.teaching import TeachingLesson
+
+_TOPIC_SAMPLE_CACHE: dict[tuple[str, str], str] = {}
 
 
 class TeachingInputError(ValueError):
@@ -126,6 +135,9 @@ class TeachingService:
 
     MAX_SOURCE_CONTEXT_CHARS = 60_000
     MAX_UNITS_PER_DOCUMENT = 12
+    MAX_TOPIC_SAMPLE_CHARS = 6_000
+    MAX_TOPIC_CONTEXT_CHARS = 50_000
+    MAX_TOPIC_DOCUMENT_SAMPLES = 8
 
     def __init__(
         self,
@@ -196,40 +208,93 @@ class TeachingService:
             return TopicSuggestionResult(suggestions=(), status="unavailable")
         labels: list[tuple[str, str]] = []
         signatures: list[tuple[str, str, str]] = []
-        source_units: list[TeachingSourceUnit] = []
-        for document_id in document_ids:
+        sampled_parts: list[str] = []
+        filename_parts: list[str] = []
+        sample_indexes = self._topic_sample_indexes(len(document_ids))
+        for index, document_id in enumerate(document_ids):
             try:
                 document, content = self.document_library.read(document_id)
-                extracted = extract_knowledge(document.filename, content)
             except (DocumentValidationError, LookupError):
                 continue
             labels.append((document.document_id, document.filename))
             signatures.append((document.document_id, document.filename, document.sha256))
-            source_units.extend(
-                TeachingSourceUnit(
-                    document_id=document.document_id,
-                    filename=document.filename,
-                    page_number=unit.page_number,
-                    text=unit.text,
-                    quality=unit.quality,
-                )
-                for unit in extracted.units
-            )
-        if not labels or not source_units:
+            # Topic choices are an index operation, not lesson generation.  Read
+            # only a small representative sample so opening the teaching page does
+            # not walk every page in a large PDF.  The full, page-aware extraction
+            # remains in generate_lesson where it is needed for source evidence.
+            cache_key = (document.document_id, document.sha256)
+            sample = _TOPIC_SAMPLE_CACHE.get(cache_key, "")
+            if index in sample_indexes and cache_key not in _TOPIC_SAMPLE_CACHE:
+                sample = self._topic_sample(document.filename, content)
+                _TOPIC_SAMPLE_CACHE[cache_key] = sample
+            if sample:
+                sampled_parts.append(f"【资料：{document.filename}】\n{sample}")
+            else:
+                filename_parts.append(f"【资料标题：{document.filename}】")
+        if not labels:
             return TopicSuggestionResult(suggestions=(), status="unavailable")
-        hashes = {document_id: digest for document_id, _, digest in signatures}
-        translation = self.translation_service.prepare_units(
-            tuple(source_units),
-            source_hashes=hashes,
-            request_id=f"{request_id or 'topics'}:translation",
-        )
-        text = build_bilingual_context(translation.units)
+        text = "\n\n".join(sampled_parts + filename_parts)[: self.MAX_TOPIC_CONTEXT_CHARS]
         return self.topic_service.get_or_schedule(
-            source_text=text[:50_000],
+            source_text=text,
             source_labels=tuple(labels),
             source_signature=source_signature(tuple(signatures)),
             request_id=request_id or "topics:background",
         )
+
+    @classmethod
+    def _topic_sample_indexes(cls, document_count: int) -> set[int]:
+        """Choose evenly spaced chunks so a large library stays responsive."""
+        if document_count <= cls.MAX_TOPIC_DOCUMENT_SAMPLES:
+            return set(range(document_count))
+        last_index = document_count - 1
+        return {
+            round(index * last_index / (cls.MAX_TOPIC_DOCUMENT_SAMPLES - 1))
+            for index in range(cls.MAX_TOPIC_DOCUMENT_SAMPLES)
+        }
+
+    @classmethod
+    def _topic_sample(cls, filename: str, content: bytes) -> str:
+        """Extract a bounded representative sample for fast topic analysis.
+
+        This intentionally does not perform full page extraction or translation.
+        Topic analysis runs in the background and only needs enough context to
+        propose learner-facing choices; lesson generation later performs the
+        authoritative extraction and keeps page-level evidence.
+        """
+        extension = Path(filename).suffix.casefold()
+        if extension in {".md", ".markdown", ".txt"}:
+            try:
+                text = decode_text_content(content)
+            except DocumentValidationError:
+                return ""
+            return cls._bounded_topic_text(text, cls.MAX_TOPIC_SAMPLE_CHARS)
+        if extension != ".pdf":
+            return ""
+        try:
+            reader = PdfReader(io.BytesIO(content))
+            page_count = len(reader.pages)
+            if page_count == 0:
+                return ""
+            # The first page usually contains the chapter/section heading.  One
+            # page per uploaded chunk keeps this index operation fast even for a
+            # multi-hundred-page textbook; the lesson path still reads every page
+            # when it needs authoritative evidence.
+            indexes = (0,) if page_count > 8 else tuple(range(page_count))
+            text = "\n\n".join(reader.pages[index].extract_text() or "" for index in indexes)
+        except Exception:
+            return ""
+        return cls._bounded_topic_text(text, cls.MAX_TOPIC_SAMPLE_CHARS)
+
+    @staticmethod
+    def _bounded_topic_text(text: str, limit: int = 6_000) -> str:
+        normalized = "\n".join(line.rstrip() for line in text.splitlines()).strip()
+        if len(normalized) <= limit:
+            return normalized
+        # Keep both the beginning (usually headings/definitions) and the ending
+        # (often summary/chapters) rather than blindly truncating at the front.
+        head = int(limit * 0.7)
+        tail = limit - head
+        return f"{normalized[:head]}\n…\n{normalized[-tail:]}"
 
     def recommend_sources(
         self,

@@ -94,6 +94,24 @@ def test_topic_suggestions_are_cached_after_background_generation(tmp_path: Path
     assert len(provider.requests) == 1
 
 
+def test_topic_suggestions_cap_source_ids_for_large_libraries(tmp_path: Path) -> None:
+    service = TopicSuggestionService(None, cache_root=tmp_path)
+    labels = tuple((f"doc-{index}", f"part-{index}.md") for index in range(22))
+    signature = source_signature(
+        tuple((document_id, filename, "d" * 64) for document_id, filename in labels)
+    )
+
+    pending = service.get_or_schedule(
+        source_text="# 函数极限\n\nFunction limits describe change.",
+        source_labels=labels,
+        source_signature=signature,
+        request_id="topics-large-library-1",
+    )
+
+    assert pending.suggestions
+    assert len(pending.suggestions[0].source_document_ids) == 20
+
+
 def test_topic_provider_failure_returns_a_selectable_fallback(tmp_path: Path) -> None:
     provider = StubTopicProvider(invalid=True)
     service = TopicSuggestionService(provider, cache_root=tmp_path)

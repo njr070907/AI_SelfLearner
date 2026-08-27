@@ -471,6 +471,9 @@ def test_teaching_workspace_generates_a_conventional_lesson_with_interactive_che
     next(item for item in app.multiselect if item.label == "分析哪些资料（默认全部）").select(
         "limits.md"
     )
+    assert not any(item.label == "这次要学习的知识主题" for item in app.text_input)
+    assert not any(item.label == "学习目标（可选）" for item in app.text_input)
+    app = select_with_label(app, "学习目标").select("理解机制与步骤").run(timeout=10)
     app = button_with_label(app, "生成我的教学内容").click().run(timeout=10)
 
     assert not app.exception

@@ -253,7 +253,10 @@ def _parse_topics(
                 summary=summary,
                 key_concepts=concepts,
                 confidence=confidence,
-                source_document_ids=source_document_ids,
+                # A topic may span more than the UI/API evidence limit.  Keep
+                # the first 20 source IDs so one large library cannot turn a
+                # temporary fallback into a validation error.
+                source_document_ids=source_document_ids[:20],
             )
         )
         seen.add(title.casefold())
@@ -285,7 +288,7 @@ def _fallback_topics(
             if stem:
                 candidates.append(stem)
     unique = list(dict.fromkeys(candidates))[:MAX_TOPIC_COUNT]
-    document_ids = tuple(document_id for document_id, _ in source_labels)
+    document_ids = tuple(document_id for document_id, _ in source_labels[:20])
     result: list[TopicSuggestion] = []
     for title in unique:
         suggestion_id = hashlib.sha256(title.encode("utf-8")).hexdigest()[:24]

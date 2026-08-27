@@ -1,8 +1,10 @@
 """Teaching workspace: upload knowledge, generate a lesson, then study it."""
 
 from collections.abc import Callable, Sequence
+from concurrent.futures import Future, ThreadPoolExecutor
 from hashlib import sha256
 from html import escape
+from time import monotonic, sleep
 from uuid import uuid4
 
 import streamlit as st
@@ -20,6 +22,19 @@ from ai_growth_companion.providers.base import ProviderError
 from ai_growth_companion.schemas.teaching import LessonEvidence, LessonSource
 
 StartLesson = Callable[[str, str | None, str | None], str | None]
+
+LEARNING_GOAL_CHOICES: tuple[tuple[str, str | None], ...] = (
+    ("不指定（由 AI 自动安排）", None),
+    ("理解核心概念", "能用自己的话解释核心概念、定义和关键术语"),
+    ("理解机制与步骤", "能说明知识的运作机制、推导步骤和因果关系"),
+    ("掌握适用条件与边界", "能判断适用条件、限制和常见误区"),
+    ("能够通过例子应用", "能把知识应用到一个新例子或实际问题"),
+    ("综合掌握并迁移", "能综合解释概念、机制、边界，并迁移到新情境"),
+)
+_GENERATION_EXECUTOR = ThreadPoolExecutor(
+    max_workers=1,
+    thread_name_prefix="ai-selflearner-teaching",
+)
 
 
 def render_teaching_workspace(
@@ -147,11 +162,14 @@ def render_teaching_workspace(
                 document.document_id in final_document_ids and document.extension == ".pdf"
                 for document in documents
             )
-            goal = st.text_input(
-                "学习目标（可选）",
-                key="teaching_goal",
-                placeholder="例如：能解释定义、机制、边界并做一道新题",
+            goal_choice = st.selectbox(
+                "学习目标",
+                options=tuple(label for label, _ in LEARNING_GOAL_CHOICES),
+                key="teaching_goal_choice",
+                help="选择希望课程重点照顾的方向；不指定时由 AI 按资料自动安排。",
             )
+            goal = dict(LEARNING_GOAL_CHOICES)[goal_choice]
+            st.session_state["teaching_goal_value"] = goal
             level = st.selectbox(
                 "当前基础（可选）",
                 options=("", "beginner", "intermediate", "advanced"),
@@ -180,15 +198,15 @@ def render_teaching_workspace(
             )
         if submitted:
             try:
-                with st.spinner("正在阅读资料并生成结构化导学……"):
-                    lesson = teaching_service.generate_lesson(
-                        topic=topic,
-                        document_ids=final_document_ids,
-                        learning_goal=goal or None,
-                        learner_level=level or None,
-                        request_id=str(uuid4()),
-                        use_vision=use_vision,
-                    )
+                lesson = _generate_lesson_with_countdown(
+                    teaching_service,
+                    topic=topic,
+                    document_ids=final_document_ids,
+                    learning_goal=goal,
+                    learner_level=level or None,
+                    request_id=str(uuid4()),
+                    use_vision=use_vision,
+                )
             except ProviderError as error:
                 st.error(str(error))
                 st.caption(f"错误代码：{error.code}")
@@ -392,13 +410,82 @@ def _render_lesson(
         ):
             start_error = start_lesson(
                 content.topic,
-                st.session_state.get("teaching_goal") or None,
+                st.session_state.get("teaching_goal_value") or None,
                 st.session_state.get("teaching_level") or None,
             )
             if start_error:
                 st.error(start_error)
             else:
                 st.rerun()
+
+
+def _generate_lesson_with_countdown(
+    teaching_service: TeachingService,
+    *,
+    topic: str,
+    document_ids: tuple[str, ...],
+    learning_goal: str | None,
+    learner_level: str | None,
+    request_id: str,
+    use_vision: bool,
+) -> TeachingLessonView:
+    """Run generation off the UI thread while keeping a live, honest time estimate."""
+    estimate_seconds = _generation_estimate_seconds(teaching_service)
+    started = monotonic()
+    job: Future[TeachingLessonView] = _GENERATION_EXECUTOR.submit(
+        teaching_service.generate_lesson,
+        topic=topic,
+        document_ids=document_ids,
+        learning_goal=learning_goal,
+        learner_level=learner_level,
+        request_id=request_id,
+        use_vision=use_vision,
+    )
+    progress = st.progress(0.0, text="正在启动教学内容生成……")
+    status = st.empty()
+    while not job.done():
+        elapsed = monotonic() - started
+        remaining = max(0.0, estimate_seconds - elapsed)
+        if remaining > 0:
+            status.info(
+                f"正在阅读资料并生成教学内容 · 已用 {_format_duration(elapsed)} · "
+                f"预计剩余约 {_format_duration(remaining)}"
+            )
+        else:
+            status.warning(
+                f"已超过预计 {_format_duration(estimate_seconds)}，模型仍在返回；"
+                f"已等待 {_format_duration(elapsed)}，请不要重复提交。"
+            )
+        progress.progress(
+            min(0.99, elapsed / estimate_seconds),
+            text=f"生成中 · 预计剩余约 {_format_duration(remaining)}",
+        )
+        sleep(0.5)
+
+    lesson = job.result()
+    elapsed = monotonic() - started
+    progress.progress(1.0, text="教学内容生成完成")
+    status.success(f"教学内容已生成，用时 {_format_duration(elapsed)}")
+    return lesson
+
+
+def _generation_estimate_seconds(teaching_service: TeachingService) -> int:
+    """Return a conservative UI estimate, not a promise about model latency."""
+    provider_name = str(getattr(teaching_service.provider, "provider_name", "")).casefold()
+    if provider_name == "fake":
+        return 5
+    if provider_name == "ollama":
+        return 300
+    return 120
+
+
+def _format_duration(seconds: float) -> str:
+    """Format a countdown so users can scan it without doing mental arithmetic."""
+    total_seconds = max(0, int(seconds + 0.999))
+    minutes, remainder = divmod(total_seconds, 60)
+    if minutes:
+        return f"{minutes} 分 {remainder:02d} 秒"
+    return f"{remainder} 秒"
 
 
 def _render_interactive_checks(
