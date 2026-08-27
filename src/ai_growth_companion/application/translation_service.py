@@ -356,6 +356,11 @@ def _translated_text(content: object) -> str:
     normalized = translated.strip()
     if not normalized or "\ufffd" in normalized:
         raise ValueError("translation response is empty or garbled")
+    # A successful translation must actually provide a Chinese reading aid.
+    # Returning the English input unchanged would make the cache look healthy
+    # while leaving the teaching model with the same language problem.
+    if not re.search(r"[\u3400-\u4dbf\u4e00-\u9fff]", normalized):
+        raise ValueError("translation response is not Chinese")
     return normalized
 
 

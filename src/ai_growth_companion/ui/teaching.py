@@ -1,6 +1,7 @@
 """Teaching workspace: upload knowledge, generate a lesson, then study it."""
 
 from collections.abc import Callable, Sequence
+from hashlib import sha256
 from html import escape
 from uuid import uuid4
 
@@ -14,6 +15,7 @@ from ai_growth_companion.application.teaching_service import (
     TeachingReportView,
     TeachingService,
 )
+from ai_growth_companion.application.topic_suggestions import TopicSuggestion
 from ai_growth_companion.providers.base import ProviderError
 from ai_growth_companion.schemas.teaching import LessonEvidence, LessonSource
 
@@ -65,23 +67,85 @@ def render_teaching_workspace(
         )
         selected_ids = tuple(
             st.multiselect(
-                "选择一份或多份资料",
+                "分析哪些资料（默认全部）",
                 options=tuple(document_labels),
                 format_func=document_labels.__getitem__,
+                default=tuple(document_labels),
                 key="teaching_selected_documents",
-                help="教学内容只会根据你选择的资料生成，并保留来源文件记录。",
+                help="系统会先从这些资料总结学习主题；你不需要自己填写主题。",
             )
         )
-        has_selected_pdf = any(
-            document.document_id in selected_ids and document.extension == ".pdf"
-            for document in documents
+        topic_result = teaching_service.get_topic_suggestions(
+            selected_ids,
+            request_id="ui-topic-analysis",
         )
+        if topic_result.status == "pending":
+            st.info(
+                "AI 正在阅读资料并整理学习主题。主题生成在后台进行，不会阻塞资料上传；"
+                "当前先显示临时主题，不会阻塞课程生成；完成后点击下方按钮刷新为 AI 候选。"
+            )
+            if st.button("刷新 AI 主题候选", key="teaching_refresh_topics"):
+                st.rerun()
+        elif topic_result.status == "fallback":
+            st.warning("AI 主题分析暂时不可用，当前显示的是根据资料标题生成的临时选项。")
+        elif topic_result.status == "unavailable":
+            st.warning("当前资料暂时无法提取文字，无法自动总结主题。")
+
+        suggestions = topic_result.suggestions
+        suggestion_by_id = {item.suggestion_id: item for item in suggestions}
         vision_available = teaching_service.provider.supports_vision
         with st.form("teaching_generate_form", clear_on_submit=False):
-            topic = st.text_input(
-                "这次要学习的知识主题",
-                key="teaching_topic",
-                placeholder="例如：函数极限、梯度下降、机会成本",
+            if suggestions:
+                topic_selection_key = (
+                    "teaching_topic_suggestion_"
+                    + sha256("|".join(selected_ids).encode()).hexdigest()[:12]
+                )
+                suggestion_id = st.selectbox(
+                    (
+                        "选择 AI 总结的学习主题"
+                        if topic_result.status != "pending"
+                        else "选择学习主题（AI 分析完成后可刷新替换）"
+                    ),
+                    options=tuple(suggestion_by_id),
+                    format_func=lambda value: suggestion_by_id[value].title,
+                    key=topic_selection_key,
+                )
+                selected_suggestion: TopicSuggestion = suggestion_by_id[suggestion_id]
+                topic = selected_suggestion.title
+                st.caption(selected_suggestion.summary)
+                if selected_suggestion.key_concepts:
+                    st.caption("关键概念：" + "、".join(selected_suggestion.key_concepts))
+            else:
+                topic = ""
+
+            source_selection = None
+            if topic and selected_ids:
+                source_selection = teaching_service.recommend_sources(
+                    topic=topic,
+                    document_ids=selected_ids,
+                    limit=8,
+                )
+                recommended_ids = source_selection.selected_document_ids or selected_ids
+                final_document_ids = tuple(
+                    st.multiselect(
+                        "本次使用的资料分卷（AI 已推荐，可调整）",
+                        options=selected_ids,
+                        default=recommended_ids,
+                        format_func=document_labels.__getitem__,
+                        key=("teaching_final_documents_" + sha256(topic.encode()).hexdigest()[:12]),
+                        help="默认使用与主题最相关的分卷；你可以增删，但不需要手动寻找分卷。",
+                    )
+                )
+                if source_selection.confidence == "low":
+                    st.caption("暂未找到高置信度匹配，已暂用你选定的资料范围。")
+                elif source_selection.requires_confirmation:
+                    st.caption("AI 已按主题推荐资料范围，请在生成前确认是否需要调整。")
+            else:
+                final_document_ids = selected_ids
+
+            has_selected_pdf = any(
+                document.document_id in final_document_ids and document.extension == ".pdf"
+                for document in documents
             )
             goal = st.text_input(
                 "学习目标（可选）",
@@ -112,14 +176,14 @@ def render_teaching_workspace(
             submitted = st.form_submit_button(
                 "生成我的教学内容",
                 type="primary",
-                disabled=not selected_ids,
+                disabled=not topic or not final_document_ids,
             )
         if submitted:
             try:
                 with st.spinner("正在阅读资料并生成结构化导学……"):
                     lesson = teaching_service.generate_lesson(
                         topic=topic,
-                        document_ids=selected_ids,
+                        document_ids=final_document_ids,
                         learning_goal=goal or None,
                         learner_level=level or None,
                         request_id=str(uuid4()),

@@ -32,6 +32,7 @@ class TeachingRequest:
     sources: tuple[tuple[str, str, str], ...]
     learning_goal: str | None = None
     learner_level: str | None = None
+    output_language: str = "zh-CN"
     source_units: tuple["TeachingSourceUnit", ...] = ()
     visual_pages: tuple["TeachingPageImage", ...] = ()
 
@@ -94,6 +95,16 @@ class TranslationRequest:
     target_language: str = "zh-CN"
 
 
+@dataclass(frozen=True)
+class TopicSuggestionRequest:
+    """Source material used to propose learner-selectable study topics."""
+
+    source_text: str
+    source_labels: tuple[tuple[str, str], ...] = ()
+    max_topics: int = 8
+    output_language: str = "zh-CN"
+
+
 class TranslationProvider(Protocol):
     """Provider contract for optional, best-effort source translation."""
 
@@ -103,6 +114,23 @@ class TranslationProvider(Protocol):
 
     def translate(self, request: TranslationRequest, *, request_id: str) -> ProviderResponse:
         """Return a translated fragment while preserving the original separately."""
+        ...
+
+
+class TopicSuggestionProvider(Protocol):
+    """Provider contract for deriving topic choices from uploaded material."""
+
+    provider_name: str
+    model_name: str
+    model_revision: str | None
+
+    def suggest_topics(
+        self,
+        request: TopicSuggestionRequest,
+        *,
+        request_id: str,
+    ) -> ProviderResponse:
+        """Return structured, Chinese learner-facing topic candidates."""
         ...
 
 

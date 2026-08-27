@@ -195,6 +195,31 @@ Provider 选择由后端工厂统一控制：Fake 模式免费且默认；真实
 
 翻译属于可选的派生步骤，不新增阻塞错误：模型不可用、超时、返回乱码或单个片段失败时，服务以英文原文继续生成，并在 `TeachingLesson` 中返回 `translation_status`（`not_needed`、`translated`、`fallback_original`）、`translation_model`、成功/失败片段数。前端只展示该状态，不自行重试或修改来源证据。默认翻译超时为 60 秒，避免 CPU-only 环境长时间阻塞课程/报告生成。
 
+### 10.4 AI 主题候选与自动分卷推荐
+
+学习页通过 `TeachingService.get_topic_suggestions(document_ids)` 获取主题候选，不再要求客户端让用户手写主题。服务先读取并提取所选资料，使用资料内容签名查找本地缓存；没有缓存时提交后台 `TopicSuggestionProvider` 任务并返回 `status=pending`。候选结构为：
+
+```json
+{
+  "status": "ready",
+  "model_name": "qwen3.5:4b",
+  "suggestions": [
+    {
+      "suggestion_id": "stable-id",
+      "title": "函数极限的定义",
+      "summary": "理解函数在某点附近趋近的含义。",
+      "key_concepts": ["极限", "趋近"],
+      "confidence": "high",
+      "source_document_ids": ["document-id"]
+    }
+  ]
+}
+```
+
+`status` 可以是 `pending`、`ready`、`fallback` 或 `unavailable`。`pending`/`fallback` 时服务仍返回明确标注的临时候选，客户端不得因此阻塞课程保存。客户端将用户选中的 `title` 传给 `TeachingService.recommend_sources(topic, document_ids, limit)`；该服务返回置信度、命中词、页码/分卷范围和最终 document IDs，客户端只负责展示和允许调整，不能自行计算匹配分数或直接访问 SQL。
+
+主题 Provider 的学习者可见字段默认必须是简体中文；如果模型返回英文，应用层会为标签加中文保护前缀并保留技术原词。主题候选只用于选题和选源，不写入掌握状态，也不能替代课程生成后的来源证据校验。
+
 ## 11. 错误格式
 
 ```json

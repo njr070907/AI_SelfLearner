@@ -140,3 +140,11 @@
 - 翻译失败不阻塞课程或报告：课程 JSON 记录 `translation_status`、模型名、成功/失败片段数，UI 显示翻译状态；旧课程通过默认值保持兼容。
 - 增加语言检测、长片段分块、翻译回退、原文证据保留、Ollama 翻译 Provider 和端到端 TeachingService 测试；全量回归为 **244 tests**，Ruff、format、Mypy 全部通过。
 - 将翻译改为上传/替换后的后台任务：资料库入口自动排队，单线程执行器在 Streamlit rerun 间保持任务，结果按文件 SHA-256 原子写入本地缓存；课程生成不等待后台任务，优先读取完成缓存，未完成或失败时继续使用原文。补充替换入口、缓存读取和 pending 状态说明，245 tests、Ruff、format、Mypy 和 Streamlit smoke test 均通过。
+
+## 2026-08-27 — 中文学习输出与 AI 主题选择
+
+- 教学请求新增 `output_language=zh-CN`；Ollama 与 DeepSeek 的教学生成/补全 Prompt 明确要求标题、摘要、目标、章节讲解、例子和互动题使用简体中文，必要的英文术语及原文证据除外。
+- 教学服务增加中文讲解质量检查。若 Provider 返回完整但主要是英文，最多调用一次受限课程补全进行语言修复；修复仍不合格时保存中文资料导读草稿，不让英文输出阻塞课程落库。
+- 翻译缓存现在拒绝“看似成功但仍是纯英文”的译文，避免把未翻译内容标记为 `translated`；原文和页码仍保持唯一证据来源。
+- 新增 `TopicSuggestionProvider`、`TopicSuggestionService` 和 Ollama `qwen3.5:4b` 主题适配器：按所选资料提炼最多 8 个结构化主题，按资料哈希后台缓存，学习页用下拉候选替代主题输入框，并自动调用已有 `recommend_sources()` 推荐分卷。
+- 主题分析运行或失败时显示明确标注的临时主题，课程仍可生成；模型返回英文主题时自动加中文 UI 标签。新增主题异步、回退、语言保护和 Provider 契约测试；全量回归为 **251 tests**，Ruff、format、Mypy、Streamlit E2E 通过。

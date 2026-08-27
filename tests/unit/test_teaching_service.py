@@ -166,6 +166,50 @@ class CompletingTeachingProvider(FakeLLMProvider):
         return ProviderResponse(content=response.content, metadata=response.metadata)
 
 
+class EnglishFirstTeachingProvider(FakeLLMProvider):
+    """Simulate a model that ignores the requested Chinese output once."""
+
+    def generate_lesson(self, request: TeachingRequest, *, request_id: str) -> ProviderResponse:
+        response = super().generate_lesson(request, request_id=request_id)
+        payload = dict(response.content)
+        payload.update(
+            {
+                "title": "Function limits course",
+                "summary": "This lesson explains how a function approaches a value.",
+                "learning_objectives": [
+                    "Explain the definition of a function limit",
+                    "Check the conditions and use a new example",
+                ],
+                "check_questions": [
+                    "What does a function limit describe?",
+                    "When should the usual method not be used?",
+                ],
+            }
+        )
+        for section in payload["sections"]:
+            section["title"] = "Understand the concept"
+            section["explanation"] = "This explanation is intentionally in English."
+            section["key_points"] = ["definition", "mechanism"]
+            section["example"] = "Apply the idea to a new example."
+        for check in payload["interactive_checks"]:
+            check["prompt"] = "Choose the correct interpretation."
+            check["options"] = ["The first option", "The second option"]
+            check["correct_answer"] = "The first option"
+            check["explanation"] = "The first option matches the concept."
+        return ProviderResponse(content=payload, metadata=response.metadata)
+
+    def complete_lesson(
+        self,
+        request: TeachingRequest,
+        lesson_content: dict[str, object],
+        *,
+        request_id: str,
+    ) -> ProviderResponse:
+        del lesson_content
+        response = super().generate_lesson(request, request_id=request_id)
+        return ProviderResponse(content=response.content, metadata=response.metadata)
+
+
 class PageAwareTeachingProvider(FakeLLMProvider):
     """Return genuine page numbers from text-extractable PDF source units."""
 
@@ -383,6 +427,23 @@ def test_abbreviated_real_provider_output_can_be_completed(tmp_path: Path) -> No
 
     assert len(lesson.lesson.sections) == 4
     assert len(lesson.lesson.interactive_checks) == 2
+
+
+def test_english_provider_output_gets_one_bounded_chinese_repair(tmp_path: Path) -> None:
+    teaching, documents = service_for(tmp_path, provider=EnglishFirstTeachingProvider())
+    document = documents.upload(
+        filename="topic.md",
+        content=b"# Function limits\n\nFunction limits describe change near a point.",
+    )
+
+    lesson = teaching.generate_lesson(
+        topic="函数极限",
+        document_ids=(document.document_id,),
+        request_id="teaching-language-repair-1",
+    )
+
+    assert lesson.lesson.title == "函数极限：从材料到理解"
+    assert TeachingService._has_chinese_prose(lesson.lesson)
 
 
 def test_text_pdf_page_evidence_is_accepted(tmp_path: Path) -> None:

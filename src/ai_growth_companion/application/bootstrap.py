@@ -15,6 +15,7 @@ from ai_growth_companion.providers.ollama import (
     OLLAMA_FAST_MODEL,
     OLLAMA_QUALITY_MODEL,
     OllamaTeachingProvider,
+    OllamaTopicSuggestionProvider,
     OllamaTranslationProvider,
     RoutedTeachingProvider,
 )
@@ -53,6 +54,7 @@ def build_teaching_service(database: Database, settings: Settings) -> TeachingSe
     document_library = build_document_library(database)
     provider: TeachingProvider
     translation_provider: OllamaTranslationProvider | None = None
+    topic_provider: OllamaTopicSuggestionProvider | None = None
     if settings.is_fake_mode:
         provider = FakeLLMProvider()
     elif settings.llm_provider.casefold() == "ollama":
@@ -69,6 +71,12 @@ def build_teaching_service(database: Database, settings: Settings) -> TeachingSe
         )
         translation_provider = OllamaTranslationProvider(
             model=settings.ollama_fast_model or OLLAMA_FAST_MODEL,
+            base_url=settings.ollama_base_url,
+            timeout_seconds=settings.ollama_translation_timeout_seconds,
+            max_output_tokens=2_000,
+        )
+        topic_provider = OllamaTopicSuggestionProvider(
+            model=settings.ollama_balanced_model,
             base_url=settings.ollama_base_url,
             timeout_seconds=settings.ollama_translation_timeout_seconds,
             max_output_tokens=2_000,
@@ -103,10 +111,17 @@ def build_teaching_service(database: Database, settings: Settings) -> TeachingSe
             timeout_seconds=settings.ollama_translation_timeout_seconds,
             max_output_tokens=2_000,
         )
+        topic_provider = OllamaTopicSuggestionProvider(
+            model=settings.ollama_balanced_model,
+            base_url=settings.ollama_base_url,
+            timeout_seconds=settings.ollama_translation_timeout_seconds,
+            max_output_tokens=2_000,
+        )
     return TeachingService(
         document_library,
         SQLiteLessonRepository(database),
         provider,
         SQLiteLessonProgressRepository(database),
         translation_provider=translation_provider,
+        topic_provider=topic_provider,
     )

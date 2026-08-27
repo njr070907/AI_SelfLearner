@@ -25,6 +25,11 @@ from ai_growth_companion.application.source_selector import (
     TopicSourceSelection,
     TopicSourceSelector,
 )
+from ai_growth_companion.application.topic_suggestions import (
+    TopicSuggestionResult,
+    TopicSuggestionService,
+    source_signature,
+)
 from ai_growth_companion.application.translation_service import (
     TranslationService,
     build_bilingual_context,
@@ -36,6 +41,7 @@ from ai_growth_companion.providers.base import (
     TeachingProvider,
     TeachingRequest,
     TeachingSourceUnit,
+    TopicSuggestionProvider,
     TranslationProvider,
 )
 from ai_growth_companion.repositories.lesson_progress_repository import (
@@ -128,6 +134,7 @@ class TeachingService:
         provider: TeachingProvider,
         progress_repository: SQLiteLessonProgressRepository,
         translation_provider: TranslationProvider | None = None,
+        topic_provider: TopicSuggestionProvider | None = None,
     ) -> None:
         self.document_library = document_library
         self.repository = repository
@@ -138,31 +145,90 @@ class TeachingService:
             translation_provider,
             cache_root=document_library.storage_root.parent / "translations",
         )
+        self.topic_service = TopicSuggestionService(
+            topic_provider,
+            cache_root=document_library.storage_root.parent / "topic_suggestions",
+        )
 
     def schedule_translation(self, document_id: str, *, request_id: str | None = None) -> bool:
         """Start upload-time translation in the background when the source is English."""
         if self.translation_service.provider is None:
-            return False
-        document, content = self.document_library.read(document_id)
-        try:
-            extracted = extract_knowledge(document.filename, content)
-        except DocumentValidationError:
-            # Scanned/garbled PDFs are handled by the explicit visual path instead.
-            return False
-        source_units = tuple(
-            TeachingSourceUnit(
-                document_id=document.document_id,
-                filename=document.filename,
-                page_number=unit.page_number,
-                text=unit.text,
-                quality=unit.quality,
+            translation_queued = False
+        else:
+            document, content = self.document_library.read(document_id)
+            try:
+                extracted = extract_knowledge(document.filename, content)
+            except DocumentValidationError:
+                # Scanned/garbled PDFs are handled by the explicit visual path instead.
+                extracted = None
+            if extracted is None:
+                translation_queued = False
+            else:
+                source_units = tuple(
+                    TeachingSourceUnit(
+                        document_id=document.document_id,
+                        filename=document.filename,
+                        page_number=unit.page_number,
+                        text=unit.text,
+                        quality=unit.quality,
+                    )
+                    for unit in extracted.units
+                )
+                translation_queued = self.translation_service.schedule_units(
+                    source_units,
+                    source_sha256=document.sha256,
+                    request_id=request_id or f"upload:{document.document_id}",
+                )
+        # Topic extraction is independent of the translation cache. This means a
+        # user can choose a topic while the optional translation worker is still
+        # running; the final lesson still enforces Chinese output.
+        self.get_topic_suggestions((document_id,), request_id=request_id)
+        return translation_queued
+
+    def get_topic_suggestions(
+        self,
+        document_ids: tuple[str, ...],
+        *,
+        request_id: str | None = None,
+    ) -> TopicSuggestionResult:
+        """Return cached AI topics or queue analysis for the selected materials."""
+        if not document_ids:
+            return TopicSuggestionResult(suggestions=(), status="unavailable")
+        labels: list[tuple[str, str]] = []
+        signatures: list[tuple[str, str, str]] = []
+        source_units: list[TeachingSourceUnit] = []
+        for document_id in document_ids:
+            try:
+                document, content = self.document_library.read(document_id)
+                extracted = extract_knowledge(document.filename, content)
+            except (DocumentValidationError, LookupError):
+                continue
+            labels.append((document.document_id, document.filename))
+            signatures.append((document.document_id, document.filename, document.sha256))
+            source_units.extend(
+                TeachingSourceUnit(
+                    document_id=document.document_id,
+                    filename=document.filename,
+                    page_number=unit.page_number,
+                    text=unit.text,
+                    quality=unit.quality,
+                )
+                for unit in extracted.units
             )
-            for unit in extracted.units
+        if not labels or not source_units:
+            return TopicSuggestionResult(suggestions=(), status="unavailable")
+        hashes = {document_id: digest for document_id, _, digest in signatures}
+        translation = self.translation_service.prepare_units(
+            tuple(source_units),
+            source_hashes=hashes,
+            request_id=f"{request_id or 'topics'}:translation",
         )
-        return self.translation_service.schedule_units(
-            source_units,
-            source_sha256=document.sha256,
-            request_id=request_id or f"upload:{document.document_id}",
+        text = build_bilingual_context(translation.units)
+        return self.topic_service.get_or_schedule(
+            source_text=text[:50_000],
+            source_labels=tuple(labels),
+            source_signature=source_signature(tuple(signatures)),
+            request_id=request_id or "topics:background",
         )
 
     def recommend_sources(
@@ -268,6 +334,7 @@ class TeachingService:
             sources=tuple(source_refs),
             learning_goal=learning_goal.strip() if learning_goal else None,
             learner_level=learner_level,
+            output_language="zh-CN",
             source_units=tuple(source_units),
             visual_pages=tuple(visual_pages),
         )
@@ -323,6 +390,23 @@ class TeachingService:
                 candidate = TeachingLesson.model_validate(lesson_payload)
                 if not candidate.interactive_checks:
                     raise ValueError("no interactive checks")
+                if not self._has_chinese_prose(candidate):
+                    repaired_language = self._repair_lesson_language(
+                        teaching_request,
+                        lesson_payload,
+                        request_id=request_id,
+                        source_refs=source_refs,
+                    )
+                    if repaired_language is not None:
+                        lesson_payload = self._normalize_lesson_payload(
+                            repaired_language,
+                            topic=normalized_topic,
+                            source_refs=source_refs,
+                            selected_source_ids=selected_source_ids,
+                        )
+                        candidate = TeachingLesson.model_validate(lesson_payload)
+                    if not self._has_chinese_prose(candidate):
+                        raise ValueError("lesson prose is not Chinese")
                 if not self._mentions_topic(candidate, normalized_topic):
                     raise ValueError("content unrelated to requested topic")
             except Exception:
@@ -1119,6 +1203,36 @@ class TeachingService:
                 merged[key] = candidate_value
         return merged
 
+    def _repair_lesson_language(
+        self,
+        request: TeachingRequest,
+        lesson_payload: dict[str, object],
+        *,
+        request_id: str,
+        source_refs: list[tuple[str, str, str]],
+    ) -> dict[str, object] | None:
+        """Ask a capable Provider for one bounded Chinese-output repair."""
+        complete = getattr(self.provider, "complete_lesson", None)
+        if not callable(complete):
+            return None
+        try:
+            response = complete(
+                request,
+                lesson_payload,
+                request_id=f"{request_id}:language-repair",
+            )
+        except Exception:
+            return None
+        candidate = response.content
+        if not isinstance(candidate, dict):
+            return None
+        normalized = self._normalize_provider_lesson(
+            candidate,
+            topic=request.topic,
+            source_refs=source_refs,
+        )
+        return normalized if isinstance(normalized, dict) else None
+
     @staticmethod
     def _has_incomplete_structure(lesson_payload: dict[str, object]) -> bool:
         sections = lesson_payload.get("sections")
@@ -1467,6 +1581,29 @@ class TeachingService:
                 code="TEACHING_CONTENT_QUALITY_INVALID",
                 retryable=False,
             )
+        if not TeachingService._has_chinese_prose(lesson):
+            raise ProviderError(
+                "教学内容没有形成中文讲解",
+                code="TEACHING_OUTPUT_LANGUAGE_INVALID",
+                retryable=False,
+            )
+
+    @staticmethod
+    def _has_chinese_prose(lesson: TeachingLesson) -> bool:
+        """Require a meaningful amount of Chinese in learner-facing prose."""
+        prose_parts = [lesson.title, lesson.summary, *lesson.learning_objectives]
+        prose_parts.extend(lesson.check_questions)
+        for section in lesson.sections:
+            prose_parts.extend((section.title, section.explanation, section.example or ""))
+            prose_parts.extend(section.key_points)
+        for check in lesson.interactive_checks:
+            prose_parts.extend((check.prompt, check.explanation, *check.options))
+        prose = " ".join(prose_parts)
+        chinese = len(re.findall(r"[\u3400-\u4dbf\u4e00-\u9fff]", prose))
+        latin = len(re.findall(r"[A-Za-z]{2,}", prose))
+        if chinese < 12:
+            return False
+        return chinese >= latin * 0.15 or latin == 0
 
     def _view(
         self,

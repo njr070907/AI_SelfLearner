@@ -3,13 +3,19 @@
 from dataclasses import dataclass
 from typing import Any
 
-from ai_growth_companion.providers.base import EvaluationRequest, QuestionRequest, TeachingRequest
+from ai_growth_companion.providers.base import (
+    EvaluationRequest,
+    QuestionRequest,
+    TeachingRequest,
+    TopicSuggestionRequest,
+)
 from ai_growth_companion.providers.ollama import (
     OLLAMA_BALANCED_MODEL,
     OLLAMA_QUALITY_MODEL,
     OllamaEvaluationProvider,
     OllamaQuestionProvider,
     OllamaTeachingProvider,
+    OllamaTopicSuggestionProvider,
 )
 from ai_growth_companion.schemas.diagnosis import ProviderObservation, QuestionDraft
 from ai_growth_companion.schemas.teaching import (
@@ -189,3 +195,35 @@ def test_ollama_teaching_provider_is_text_only_and_source_grounded() -> None:
     assert provider.supports_vision is False
     assert result.metadata.model == OLLAMA_QUALITY_MODEL
     assert result.metadata.prompt_version == "teaching-v0.4+ollama-grounded-json"
+
+
+def test_ollama_topic_provider_returns_structured_chinese_choices() -> None:
+    response = StubCompletion(
+        choices=[
+            StubChoice(
+                StubMessage(
+                    '{"topics":[{"title":"函数极限的定义",'
+                    '"summary":"理解函数在某点附近趋近的含义。",'
+                    '"key_concepts":["极限"],"confidence":"high"}]}'
+                )
+            )
+        ],
+        model=OLLAMA_BALANCED_MODEL,
+    )
+    client = StubClient(response)
+    provider = OllamaTopicSuggestionProvider(
+        model=OLLAMA_BALANCED_MODEL,
+        client=client,
+    )
+
+    result = provider.suggest_topics(
+        TopicSuggestionRequest(
+            source_text="Function limits describe change near a point.",
+            source_labels=(("doc-1", "limits.md"),),
+        ),
+        request_id="topic-provider-1",
+    )
+
+    assert result.content["topics"][0]["title"] == "函数极限的定义"
+    assert result.metadata.schema_version == "topic-suggestion-v0.1"
+    assert client.chat.completions.calls[0]["model"] == OLLAMA_BALANCED_MODEL

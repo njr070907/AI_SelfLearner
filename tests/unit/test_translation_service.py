@@ -108,7 +108,7 @@ def test_translation_failure_falls_back_without_blocking() -> None:
     assert result.failed_unit_count == 1
 
 
-@pytest.mark.parametrize("content", ["", "中文内容\ufffd"])
+@pytest.mark.parametrize("content", ["", "中文内容\ufffd", "Function limits remain untranslated."])
 def test_invalid_translation_content_falls_back(content: str) -> None:
     class InvalidProvider(StubTranslationProvider):
         def translate(self, request: TranslationRequest, *, request_id: str) -> ProviderResponse:
