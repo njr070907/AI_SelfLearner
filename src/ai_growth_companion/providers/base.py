@@ -45,6 +45,10 @@ class TeachingSourceUnit:
     page_number: int | None
     text: str
     quality: str = "clear"
+    # Optional derived text used to help a Chinese-language lesson model understand
+    # an English source. ``text`` always remains the canonical original used for
+    # evidence quotes and page-level verification.
+    translated_text: str | None = None
 
 
 @dataclass(frozen=True)
@@ -79,6 +83,27 @@ class ProviderResponse:
 
     content: Any
     metadata: ProviderMetadata
+
+
+@dataclass(frozen=True)
+class TranslationRequest:
+    """A bounded source fragment to translate without changing its meaning."""
+
+    text: str
+    source_language: str = "en"
+    target_language: str = "zh-CN"
+
+
+class TranslationProvider(Protocol):
+    """Provider contract for optional, best-effort source translation."""
+
+    provider_name: str
+    model_name: str
+    model_revision: str | None
+
+    def translate(self, request: TranslationRequest, *, request_id: str) -> ProviderResponse:
+        """Return a translated fragment while preserving the original separately."""
+        ...
 
 
 class ProviderError(RuntimeError):

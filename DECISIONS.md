@@ -108,3 +108,11 @@
 - `TEACHING_SOURCE_EVIDENCE_INVALID` 不再作为正常课程生成的终止条件。教学服务先规范化自然语言页码、0/1 起始页码和资料分卷原始页码，再按分页原文和视觉页面集合匹配；Provider 只接受一次证据修复请求。
 - 无法完全核验的课程仍保存，并在课程 JSON 中记录 `grounding_status`：`verified`、`repaired`、`partial` 或 `draft`。UI 和学习报告明确显示状态，不把部分核验课程伪装成已核验课程。
 - Provider 超时、不可用、结构缩略、跑题或质量不足时，使用资料原文构造确定性的资料导读草稿并保存。真正阻止的范围收窄为：没有资料、资料不可读且无任何可用内容，或无法生成最低可用课程结构。
+
+## 2026-08-27 — 英文资料先翻译，原文仍是证据唯一来源
+
+- 在 Ollama 模式下，教学服务先用 `OLLAMA_FAST_MODEL`（默认 `qwen3.5:0.8b`）检测并分段翻译英文/中英混排 source units，再把中文译文和英文原文的双语上下文交给教学模型。
+- `TeachingSourceUnit.text` 始终保存原文，新增的 `translated_text` 只是理解辅助；章节和互动题的 `evidence.quote` 仍必须从原文逐字复制，页码继续绑定原始 source unit。
+- 翻译是 best-effort 派生步骤：单个片段失败、模型不可用或返回乱码时，课程继续使用英文原文生成，并在课程 JSON/UI 中记录 `translation_status`、模型名和失败片段数；不因翻译故障拒绝生成报告。
+- 翻译仅影响教学内容的可读性，不改变 Mastery Engine、Learning Policy 或长期掌握结论。
+- 上传/替换入口负责排队，教学生成入口只读取缓存：翻译任务使用进程级单线程执行器和原子 JSON 写入，避免 Streamlit rerun 丢失任务或让用户等待；缓存不存在/仍在运行时直接使用原文。

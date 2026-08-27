@@ -27,6 +27,7 @@ def test_ollama_provider_does_not_require_an_api_key() -> None:
     assert settings.ollama_quality_model == "gpt-oss:20b"
     assert settings.ollama_balanced_model == "qwen3.5:4b"
     assert settings.ollama_fast_model == "qwen3.5:0.8b"
+    assert settings.ollama_translation_timeout_seconds == 60
 
 
 def test_production_rejects_content_logging() -> None:

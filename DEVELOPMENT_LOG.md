@@ -133,3 +133,10 @@
 - 2026-08-27 使用资料库 Calculus 分卷做本地模型模拟：20B 纯 CPU 请求曾返回只有标题/摘要的缩略 JSON，确认结构补全机制是必要的；4B 同样受 CPU 推理速度限制并在 180 秒超时。该结果不代表资料内容错误，而是记录本机模型性能和结构遵循边界。
 - 2026-08-27 完成资料质量门槛优化：资料库上传、自动分卷、主题推荐、教学提取和文本预览统一支持 UTF-8、UTF-16、GB18030、Big5 等常见编码；PDF 保留页级 source units，长文本保留片段级 source units，并按主题选取相关页和邻近上下文。真实 Ollama/DeepSeek 输出若结构缩略或缺少章节证据，会分别触发一次受限结构补全和 evidence-only 修复；所有引文仍需通过原文/页码校验。使用 Calculus 分卷完成离线 Fake 教学闭环模拟（按主题命中页面、四段课程、2 道互动题和来源证据）；全量回归为 235 tests，Ruff、format、Mypy 通过。
 - 2026-08-27 优化教学生成容错：视觉证据页码支持字符串/自然语言页码、0/1 起始页码和资料分卷原始页码换算；证据缺失、页码错误或无法完全核验时不再阻止课程保存，改为 `verified`、`repaired`、`partial` 或 `draft` 状态。模型跑题、结构不完整、质量不足、Provider 超时/不可用时，自动生成基于本地资料的资料导读草稿并保存；学习报告新增各状态课程统计。DeepSeek 视觉证据修复 Prompt 改为强制使用当前分卷物理页码。全量回归为 237 tests，Ruff、format、Mypy 通过。
+
+## 2026-08-27
+
+- 完成英文资料翻译链路：新增 `TranslationProvider` 契约和 `OllamaTranslationProvider`，默认使用 `qwen3.5:0.8b` 对英文/中英混排 source units 分段翻译；教学模型收到中文译文与原文双轨上下文，原文仍是唯一证据来源。
+- 翻译失败不阻塞课程或报告：课程 JSON 记录 `translation_status`、模型名、成功/失败片段数，UI 显示翻译状态；旧课程通过默认值保持兼容。
+- 增加语言检测、长片段分块、翻译回退、原文证据保留、Ollama 翻译 Provider 和端到端 TeachingService 测试；全量回归为 **244 tests**，Ruff、format、Mypy 全部通过。
+- 将翻译改为上传/替换后的后台任务：资料库入口自动排队，单线程执行器在 Streamlit rerun 间保持任务，结果按文件 SHA-256 原子写入本地缓存；课程生成不等待后台任务，优先读取完成缓存，未完成或失败时继续使用原文。补充替换入口、缓存读取和 pending 状态说明，245 tests、Ruff、format、Mypy 和 Streamlit smoke test 均通过。

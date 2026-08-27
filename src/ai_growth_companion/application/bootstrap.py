@@ -12,8 +12,10 @@ from ai_growth_companion.providers.deepseek_evaluation import DEEPSEEK_MODEL
 from ai_growth_companion.providers.deepseek_teaching import DeepSeekTeachingProvider
 from ai_growth_companion.providers.fake import FakeLLMProvider
 from ai_growth_companion.providers.ollama import (
+    OLLAMA_FAST_MODEL,
     OLLAMA_QUALITY_MODEL,
     OllamaTeachingProvider,
+    OllamaTranslationProvider,
     RoutedTeachingProvider,
 )
 from ai_growth_companion.repositories.database import Database
@@ -50,6 +52,7 @@ def build_teaching_service(database: Database, settings: Settings) -> TeachingSe
     """Build source-grounded teaching with explicit local/remote model routing."""
     document_library = build_document_library(database)
     provider: TeachingProvider
+    translation_provider: OllamaTranslationProvider | None = None
     if settings.is_fake_mode:
         provider = FakeLLMProvider()
     elif settings.llm_provider.casefold() == "ollama":
@@ -63,6 +66,12 @@ def build_teaching_service(database: Database, settings: Settings) -> TeachingSe
             base_url=settings.ollama_base_url,
             timeout_seconds=settings.ollama_timeout_seconds,
             max_output_tokens=4_000,
+        )
+        translation_provider = OllamaTranslationProvider(
+            model=settings.ollama_fast_model or OLLAMA_FAST_MODEL,
+            base_url=settings.ollama_base_url,
+            timeout_seconds=settings.ollama_translation_timeout_seconds,
+            max_output_tokens=2_000,
         )
         vision_provider: TeachingProvider | None = None
         if settings.llm_api_key is not None and settings.llm_paid_calls_allowed:
@@ -86,9 +95,18 @@ def build_teaching_service(database: Database, settings: Settings) -> TeachingSe
             model=settings.llm_model,
             timeout_seconds=settings.llm_timeout_seconds,
         )
+        # Keep translation local even when DeepSeek is selected for the main lesson.
+        # If Ollama is unavailable, TeachingService transparently uses the English source.
+        translation_provider = OllamaTranslationProvider(
+            model=settings.ollama_fast_model or OLLAMA_FAST_MODEL,
+            base_url=settings.ollama_base_url,
+            timeout_seconds=settings.ollama_translation_timeout_seconds,
+            max_output_tokens=2_000,
+        )
     return TeachingService(
         document_library,
         SQLiteLessonRepository(database),
         provider,
         SQLiteLessonProgressRepository(database),
+        translation_provider=translation_provider,
     )

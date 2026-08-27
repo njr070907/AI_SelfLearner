@@ -189,6 +189,12 @@ Provider 选择由后端工厂统一控制：Fake 模式免费且默认；真实
 
 复测会保存 `retest_submitted` 和 `review_scheduled` 事件。复测结果是调度证据，不会绕过 Mastery Engine 直接把概念永久标记为掌握。
 
+## 10.3 常规教学与英文资料翻译
+
+教学服务接收用户确认的 `document_ids`，先在本地提取分页/片段级 `source_units`。资料库上传或替换成功后，应用会调用 `schedule_translation()` 把英文/中英混排分卷放入单线程后台队列；结果按文件 SHA-256 写入本地派生缓存，Streamlit 页面刷新不会让已完成的翻译丢失。Ollama 模式会用 `OLLAMA_FAST_MODEL` 自动检测并分段翻译；生成课程时优先使用缓存，若翻译仍在进行则直接使用原文，不等待、不阻塞保存。`TeachingSourceUnit.text` 保留原文，`translated_text` 只作为中文教学模型的理解辅助。课程生成仍要求 `evidence.quote` 从原文逐字复制，页码绑定原始 source unit。
+
+翻译属于可选的派生步骤，不新增阻塞错误：模型不可用、超时、返回乱码或单个片段失败时，服务以英文原文继续生成，并在 `TeachingLesson` 中返回 `translation_status`（`not_needed`、`translated`、`fallback_original`）、`translation_model`、成功/失败片段数。前端只展示该状态，不自行重试或修改来源证据。默认翻译超时为 60 秒，避免 CPU-only 环境长时间阻塞课程/报告生成。
+
 ## 11. 错误格式
 
 ```json

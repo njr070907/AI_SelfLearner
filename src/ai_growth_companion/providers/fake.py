@@ -90,7 +90,11 @@ class FakeLLMProvider:
             for document_id, filename, source_excerpt in request.sources
         ]
         source_ids = [document_id for document_id, _, _ in request.sources]
-        source_fact = excerpt[:240] or "资料中暂未提取到可展示的文字。"
+        source_fact = (
+            " ".join(request.source_units[0].text.split())[:240]
+            if request.source_units and request.source_units[0].text.strip()
+            else excerpt[:240]
+        ) or "资料中暂未提取到可展示的文字。"
         source_evidence: list[dict[str, object]] = []
         if source_ids:
             evidence: dict[str, object] = {

@@ -76,3 +76,11 @@ class TeachingLesson(BaseModel):
     # fatal.  A lesson can be useful before every visual page has been reconciled.
     grounding_status: Literal["verified", "repaired", "partial", "draft"] = "verified"
     grounding_issues: list[str] = Field(default_factory=list, max_length=20)
+    # Translation is a derived aid for English/mixed source material.  It never
+    # replaces the original evidence stored in the lesson sources.
+    translation_status: Literal["not_needed", "pending", "translated", "fallback_original"] = (
+        "not_needed"
+    )
+    translation_model: str | None = Field(default=None, max_length=120)
+    translated_unit_count: int = Field(default=0, ge=0)
+    translation_failed_unit_count: int = Field(default=0, ge=0)

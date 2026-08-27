@@ -190,7 +190,7 @@ uv run python scripts/run_golden_eval.py `
 | --- | --- | --- |
 | 教学内容、回答证据提取、课程报告 | `gpt-oss:20b` | 质量优先，输出严格结构化 JSON |
 | 互动小题生成 | `qwen3.5:4b` | 速度和质量平衡，生成常规教学后的练习题 |
-| 轻量翻译、摘要和元数据（预留） | `qwen3.5:0.8b` | 低成本辅助任务，不参与掌握度最终判断 |
+| 英文资料翻译、轻量摘要和元数据 | `qwen3.5:0.8b` | 先把英文/中英混排资料翻译为中文；失败时回退原文，不参与掌握度最终判断 |
 | 扫描版/乱码 PDF 的视觉读取 | `deepseek-v4-flash-vision-exp` | 仅在显式开启视觉模式且已配置 DeepSeek 时使用 |
 
 先确认 Ollama 服务和模型已就绪：
@@ -210,9 +210,10 @@ OLLAMA_QUALITY_MODEL=gpt-oss:20b
 OLLAMA_BALANCED_MODEL=qwen3.5:4b
 OLLAMA_FAST_MODEL=qwen3.5:0.8b
 OLLAMA_TIMEOUT_SECONDS=300
+OLLAMA_TRANSLATION_TIMEOUT_SECONDS=60
 ```
 
-在 Ollama 模式下，掌握等级和下一步动作仍由本地 `Mastery Engine` 与 `Learning Policy` 决定；模型只提供可追溯的证据。若要对扫描 PDF 使用视觉读取，仍需沿用本机已有的 DeepSeek Key，并显式设置 `LLM_PAID_CALLS_ALLOWED=true`；没有视觉配置时，普通文字教学仍可正常使用。
+在 Ollama 模式下，英文/中英混排资料上传成功后会立即交给后台队列，由 `OLLAMA_FAST_MODEL` 分段翻译为中文并按文件 SHA-256 缓存；用户不需要等待翻译完成就能继续浏览资料库或生成课程。生成课程时优先读取已经完成的译文，仍在处理时先用原文生成，下一次生成会自动使用缓存结果。译文和原文会一起传入 `OLLAMA_QUALITY_MODEL`，证据引用仍只能来自原文，因此页码和引文可以回看。翻译不可用、超时或单段失败时自动使用原文继续生成，不会阻塞课程保存。掌握等级和下一步动作仍由本地 `Mastery Engine` 与 `Learning Policy` 决定；模型只提供可追溯的证据。若要对扫描 PDF 使用视觉读取，仍需沿用本机已有的 DeepSeek Key，并显式设置 `LLM_PAID_CALLS_ALLOWED=true`；没有视觉配置时，普通文字教学仍可正常使用。
 
 ## GitHub 协作流程
 

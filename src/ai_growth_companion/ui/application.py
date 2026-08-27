@@ -153,7 +153,14 @@ def render_application(
             if document_library is None:
                 st.error("资料库服务尚未配置。")
             else:
-                render_document_library(document_library)
+                render_document_library(
+                    document_library,
+                    schedule_translation=(
+                        teaching_service.schedule_translation
+                        if teaching_service is not None
+                        else None
+                    ),
+                )
         elif page == "错题":
             render_mistake_notebook(
                 service,

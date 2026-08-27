@@ -43,7 +43,8 @@ def render_teaching_workspace(
     elif teaching_service.provider.provider_name == "ollama":
         st.info(
             "当前使用 Ollama 本地文本模型生成常规教学内容；扫描版或乱码 PDF 只有在"
-            "显式配置 DeepSeek 视觉 Provider 后才能使用视觉读取。"
+            "显式配置 DeepSeek 视觉 Provider 后才能使用视觉读取。英文资料会先尝试用"
+            "本地 Qwen 0.8B 翻译成中文，翻译失败时自动保留英文原文继续生成。"
         )
 
     documents = document_library.list_documents()
@@ -226,6 +227,7 @@ def _render_lesson(
         f"来源：{source_names} · 生成方式：{escape(lesson.provider)} / {escape(lesson.model_name)}"
     )
     _render_grounding_status(content)
+    _render_translation_status(content)
     activity_count = len(content.interactive_checks)
     completed_count = lesson.progress.completed_activity_count
     st.progress(
@@ -480,3 +482,30 @@ def _render_grounding_status(content: object) -> None:
         with st.expander("查看生成提示"):
             for issue in issues:
                 st.caption(f"• {issue}")
+
+
+def _render_translation_status(content: object) -> None:
+    """Explain whether an English source was translated without blocking the lesson."""
+    status = getattr(content, "translation_status", "not_needed")
+    if status == "not_needed":
+        return
+    model = getattr(content, "translation_model", None)
+    translated_count = getattr(content, "translated_unit_count", 0)
+    failed_count = getattr(content, "translation_failed_unit_count", 0)
+    if status == "pending":
+        model_label = f"（{escape(str(model))}）" if model else ""
+        st.info(
+            f"英文资料正在后台翻译{model_label}；本次课程先使用原文生成，"
+            "下次生成课程时会优先使用已完成的中文译文。"
+        )
+        return
+    if status == "translated":
+        model_label = f"（{escape(str(model))}）" if model else ""
+        st.info(f"英文资料已先翻译成中文再生成课程{model_label}，原文证据仍已保留。")
+        if failed_count:
+            st.caption(
+                f"其中 {failed_count} 个片段翻译失败，已自动保留原文；"
+                f"成功翻译 {translated_count} 个片段。"
+            )
+        return
+    st.warning("英文资料翻译暂不可用，课程已使用原文继续生成；不会影响课程保存。")

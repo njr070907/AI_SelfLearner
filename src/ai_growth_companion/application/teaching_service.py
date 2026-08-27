@@ -25,6 +25,10 @@ from ai_growth_companion.application.source_selector import (
     TopicSourceSelection,
     TopicSourceSelector,
 )
+from ai_growth_companion.application.translation_service import (
+    TranslationService,
+    build_bilingual_context,
+)
 from ai_growth_companion.domain.events import LOCAL_USER_ID
 from ai_growth_companion.providers.base import (
     ProviderError,
@@ -32,6 +36,7 @@ from ai_growth_companion.providers.base import (
     TeachingProvider,
     TeachingRequest,
     TeachingSourceUnit,
+    TranslationProvider,
 )
 from ai_growth_companion.repositories.lesson_progress_repository import (
     LessonProgressRecord,
@@ -122,12 +127,43 @@ class TeachingService:
         repository: SQLiteLessonRepository,
         provider: TeachingProvider,
         progress_repository: SQLiteLessonProgressRepository,
+        translation_provider: TranslationProvider | None = None,
     ) -> None:
         self.document_library = document_library
         self.repository = repository
         self.provider = provider
         self.progress_repository = progress_repository
         self.source_selector = TopicSourceSelector(document_library)
+        self.translation_service = TranslationService(
+            translation_provider,
+            cache_root=document_library.storage_root.parent / "translations",
+        )
+
+    def schedule_translation(self, document_id: str, *, request_id: str | None = None) -> bool:
+        """Start upload-time translation in the background when the source is English."""
+        if self.translation_service.provider is None:
+            return False
+        document, content = self.document_library.read(document_id)
+        try:
+            extracted = extract_knowledge(document.filename, content)
+        except DocumentValidationError:
+            # Scanned/garbled PDFs are handled by the explicit visual path instead.
+            return False
+        source_units = tuple(
+            TeachingSourceUnit(
+                document_id=document.document_id,
+                filename=document.filename,
+                page_number=unit.page_number,
+                text=unit.text,
+                quality=unit.quality,
+            )
+            for unit in extracted.units
+        )
+        return self.translation_service.schedule_units(
+            source_units,
+            source_sha256=document.sha256,
+            request_id=request_id or f"upload:{document.document_id}",
+        )
 
     def recommend_sources(
         self,
@@ -162,9 +198,9 @@ class TeachingService:
             raise TeachingInputError("当前 Provider 不支持视觉读取，请切换到 DeepSeek 教学模式")
 
         source_documents: list[DocumentView] = []
-        source_parts: list[str] = []
         source_refs: list[tuple[str, str, str]] = []
         source_units: list[TeachingSourceUnit] = []
+        source_hashes: dict[str, str] = {}
         visual_pages: list[TeachingPageImage] = []
         for document_id in document_ids:
             document, content = self.document_library.read(document_id)
@@ -175,6 +211,7 @@ class TeachingService:
                 if not use_vision or document.extension != ".pdf":
                     raise
             source_documents.append(document)
+            source_hashes[document.document_id] = document.sha256
             source_excerpt = (
                 " ".join(extracted.text.split())[:1_800]
                 if extracted is not None
@@ -198,10 +235,6 @@ class TeachingService:
                         quality=unit.quality,
                     )
                     source_units.append(source_unit)
-                    page_label = (
-                        f"第 {unit.page_number} 页" if unit.page_number is not None else "文本内容"
-                    )
-                    source_parts.append(f"【{document.filename} · {page_label}】\n{unit.text}")
             if use_vision and document.extension == ".pdf":
                 remaining = MAX_VISION_PAGES - len(visual_pages)
                 if remaining > 0:
@@ -222,7 +255,13 @@ class TeachingService:
         if use_vision and not visual_pages:
             raise TeachingInputError("视觉读取模式至少需要选择一份 PDF 资料")
 
-        source_text = "\n\n".join(source_parts)[: self.MAX_SOURCE_CONTEXT_CHARS]
+        translation_result = self.translation_service.prepare_units(
+            tuple(source_units),
+            source_hashes=source_hashes,
+            request_id=f"{request_id}:translation",
+        )
+        source_units = list(translation_result.units)
+        source_text = build_bilingual_context(tuple(source_units))[: self.MAX_SOURCE_CONTEXT_CHARS]
         teaching_request = TeachingRequest(
             topic=normalized_topic,
             source_text=source_text,
@@ -327,6 +366,10 @@ class TeachingService:
                 ],
                 "grounding_status": resolution.status,
                 "grounding_issues": list(resolution.issues),
+                "translation_status": translation_result.status,
+                "translation_model": translation_result.model_name,
+                "translated_unit_count": translation_result.translated_unit_count,
+                "translation_failed_unit_count": translation_result.failed_unit_count,
             }
         )
         lesson = TeachingLesson.model_validate(lesson_payload)
@@ -366,6 +409,10 @@ class TeachingService:
                             (*resolution.issues, "模型内容质量不足，已切换为资料导读草稿")
                         )
                     ),
+                    "translation_status": translation_result.status,
+                    "translation_model": translation_result.model_name,
+                    "translated_unit_count": translation_result.translated_unit_count,
+                    "translation_failed_unit_count": translation_result.failed_unit_count,
                 }
             )
             lesson = TeachingLesson.model_validate(lesson_payload)

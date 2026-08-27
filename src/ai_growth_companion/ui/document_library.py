@@ -1,5 +1,6 @@
 """Streamlit page for the local document-library CRUD flow."""
 
+from collections.abc import Callable
 from html import escape
 
 import streamlit as st
@@ -11,8 +12,14 @@ from ai_growth_companion.application.document_library import (
 from ai_growth_companion.application.knowledge_extraction import decode_text_content
 from ai_growth_companion.application.models import DocumentView
 
+TranslationScheduler = Callable[[str], bool]
 
-def render_document_library(service: DocumentLibraryService) -> None:
+
+def render_document_library(
+    service: DocumentLibraryService,
+    *,
+    schedule_translation: TranslationScheduler | None = None,
+) -> None:
     """Render upload, list, download, rename, replacement and deletion controls."""
     st.markdown('<div class="eyebrow">资料库 · 你的学习材料</div>', unsafe_allow_html=True)
     st.markdown('<h1 class="hero-title">资料库</h1>', unsafe_allow_html=True)
@@ -39,6 +46,7 @@ def render_document_library(service: DocumentLibraryService) -> None:
         ):
             uploaded = 0
             split_count = 0
+            translation_count = 0
             for item in uploads:
                 try:
                     documents = service.upload_documents(
@@ -49,12 +57,26 @@ def render_document_library(service: DocumentLibraryService) -> None:
                     st.error(f"{item.name}：{error}")
                 else:
                     uploaded += 1
+                    if schedule_translation is not None:
+                        for document in documents:
+                            try:
+                                translation_count += schedule_translation(document.document_id)
+                            except Exception:
+                                # Translation is an optional background aid; upload
+                                # success must never be rolled back because a local
+                                # model is unavailable.
+                                continue
                     if len(documents) > 1:
                         split_count += len(documents)
                         st.info(f"{item.name} 超过 20 MB，已自动拆分为 {len(documents)} 个分卷。")
             if uploaded:
                 suffix = f"，其中自动拆分生成 {split_count} 个分卷" if split_count else ""
                 st.success(f"已上传 {uploaded} 个文件{suffix}。")
+                if translation_count:
+                    st.info(
+                        f"已将 {translation_count} 个英文资料分卷交给后台翻译；"
+                        "你可以先继续浏览资料库，生成课程时会优先使用已完成的中文译文。"
+                    )
 
     documents = service.list_documents()
     st.markdown('<div class="rule"></div>', unsafe_allow_html=True)
@@ -67,10 +89,19 @@ def render_document_library(service: DocumentLibraryService) -> None:
         return
 
     for document in documents:
-        _render_document(service, document)
+        _render_document(
+            service,
+            document,
+            schedule_translation=schedule_translation,
+        )
 
 
-def _render_document(service: DocumentLibraryService, document: DocumentView) -> None:
+def _render_document(
+    service: DocumentLibraryService,
+    document: DocumentView,
+    *,
+    schedule_translation: TranslationScheduler | None = None,
+) -> None:
     with st.container(border=True):
         left, middle, right = st.columns([2.8, 1.5, 1.2], vertical_alignment="center")
         left.markdown(
@@ -141,6 +172,12 @@ def _render_document(service: DocumentLibraryService, document: DocumentView) ->
                 except (DocumentValidationError, LookupError) as error:
                     st.error(str(error))
                 else:
+                    if schedule_translation is not None:
+                        for document in documents:
+                            try:
+                                schedule_translation(document.document_id)
+                            except Exception:
+                                continue
                     if len(documents) > 1:
                         st.info(f"替换内容超过 20 MB，已自动拆分为 {len(documents)} 个分卷。")
                     st.success("资料内容已替换。")

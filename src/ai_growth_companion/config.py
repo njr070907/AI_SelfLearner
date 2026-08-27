@@ -29,6 +29,9 @@ class Settings(BaseSettings):
     ollama_balanced_model: str = "qwen3.5:4b"
     ollama_fast_model: str = "qwen3.5:0.8b"
     ollama_timeout_seconds: int = Field(default=300, ge=1, le=600)
+    # Translation is optional and should fail fast to keep report generation usable
+    # on CPU-only machines; the lesson then falls back to the original text.
+    ollama_translation_timeout_seconds: int = Field(default=60, ge=1, le=300)
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
     log_content_enabled: bool = False
     telemetry_enabled: bool = False

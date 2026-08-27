@@ -22,6 +22,7 @@ from ai_growth_companion.providers.base import (
     TeachingEvidenceRepairProvider,
     TeachingProvider,
     TeachingRequest,
+    TranslationRequest,
 )
 
 OLLAMA_BASE_URL = "http://127.0.0.1:11434/v1"
@@ -217,6 +218,65 @@ class _OllamaJSONProvider:
         }
 
 
+class OllamaTranslationProvider(_OllamaJSONProvider):
+    """Translate bounded English source fragments with the fast local model."""
+
+    def translate(self, request: TranslationRequest, *, request_id: str) -> ProviderResponse:
+        started = perf_counter()
+        response = self._create_json(
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "你是严谨的英译中助手。只翻译用户提供的原文，不总结、不删减、不补充事实。"
+                        "保留数学公式、变量、代码、URL、文件名、标题层级、表格结构和专有名词；"
+                        "必要时在中文后保留原始术语。只输出合法 JSON，不要 Markdown，结构必须是："
+                        '{"translated_text": "完整中文译文"}。'
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": json.dumps(
+                        {
+                            "source_language": request.source_language,
+                            "target_language": request.target_language,
+                            "source_text": request.text,
+                        },
+                        ensure_ascii=False,
+                    ),
+                },
+            ]
+        )
+        content, finish_reason = self._response_content(response)
+        if not isinstance(content, dict) or not isinstance(content.get("translated_text"), str):
+            raise ProviderError(
+                "The local Ollama translation response was invalid",
+                code="TRANSLATION_OUTPUT_INVALID",
+                retryable=False,
+            )
+        translated = content["translated_text"].strip()
+        if not translated or "\ufffd" in translated:
+            raise ProviderError(
+                "The local Ollama translation response was empty or garbled",
+                code="TRANSLATION_OUTPUT_INVALID",
+                retryable=False,
+            )
+        return ProviderResponse(
+            content={"translated_text": translated},
+            metadata=ProviderMetadata(
+                provider=self.provider_name,
+                model=self.model_name,
+                model_revision=(response.model if response.model != self.model_name else None),
+                prompt_version="translation-v0.1+ollama-json",
+                schema_version="translation-v0.1",
+                latency_ms=round((perf_counter() - started) * 1000),
+                usage=self._usage(response),
+                finish_reason=finish_reason,
+                request_id=response.id or request_id,
+            ),
+        )
+
+
 class OllamaEvaluationProvider(_OllamaJSONProvider):
     """Use a local model to extract answer evidence, never to decide mastery."""
 
@@ -403,6 +463,7 @@ class OllamaTeachingProvider(_OllamaJSONProvider):
                         "page_number": unit.page_number,
                         "quality": unit.quality,
                         "text": unit.text,
+                        "translated_text": unit.translated_text,
                     }
                     for unit in request.source_units
                 ],
@@ -478,6 +539,7 @@ class OllamaTeachingProvider(_OllamaJSONProvider):
                         "page_number": unit.page_number,
                         "quality": unit.quality,
                         "text": unit.text,
+                        "translated_text": unit.translated_text,
                     }
                     for unit in request.source_units
                 ],
@@ -543,6 +605,7 @@ class OllamaTeachingProvider(_OllamaJSONProvider):
                         "page_number": unit.page_number,
                         "quality": unit.quality,
                         "text": unit.text,
+                        "translated_text": unit.translated_text,
                     }
                     for unit in request.source_units
                 ],

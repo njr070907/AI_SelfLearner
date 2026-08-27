@@ -180,6 +180,8 @@ class DeepSeekTeachingProvider:
             "每段都要有可阅读的 explanation、至少 2 个 key_points、source_document_ids 和"
             "1–3 项 evidence。interactive_checks 必须有 2 道单选题，也必须有 evidence。"
             "evidence 的 quote 只能从 source_units 或图片中连续复制，不能凭空生成。"
+            "若 source_units 含 translated_text，可用中文译文帮助理解，但 quote 只能从 text 原文"
+            "逐字复制。"
         )
         user = json.dumps(
             {
@@ -198,6 +200,7 @@ class DeepSeekTeachingProvider:
                         "page_number": unit.page_number,
                         "quality": unit.quality,
                         "text": unit.text,
+                        "translated_text": unit.translated_text,
                     }
                     for unit in request.source_units
                 ],
@@ -319,6 +322,7 @@ class DeepSeekTeachingProvider:
                         "page_number": unit.page_number,
                         "quality": unit.quality,
                         "text": unit.text,
+                        "translated_text": unit.translated_text,
                     }
                     for unit in request.source_units
                 ],
@@ -468,6 +472,8 @@ class DeepSeekTeachingProvider:
             "每个 section 和 interactive_check 都必须有 evidence 数组（1–3 项），"
             "每项包含 document_id、quote 和可选 page_number。quote 必须是输入文字或图片中"
             "可以逐字核对的短原文片段，不能把自己的解释冒充引文；不要使用资料中没有的引文。"
+            "若 source_units 含 translated_text，请用中文译文组织讲解，但 quote 只能从 text 原文"
+            "逐字复制。"
             "顶部 sources 不能代替章节 evidence；请优先引用 source_units 中的连续文字。"
             "不得只返回 title、summary 或 learning_objectives；即使资料不足，也必须返回完整的 "
             "4 个 sections 和至少 2 个 interactive_checks。"
@@ -495,6 +501,7 @@ class DeepSeekTeachingProvider:
                         "page_number": unit.page_number,
                         "quality": unit.quality,
                         "text": unit.text,
+                        "translated_text": unit.translated_text,
                     }
                     for unit in request.source_units
                 ],
