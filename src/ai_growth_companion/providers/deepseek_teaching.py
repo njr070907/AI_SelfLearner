@@ -162,6 +162,295 @@ class DeepSeekTeachingProvider:
             ),
         )
 
+    def complete_lesson(
+        self,
+        request: TeachingRequest,
+        lesson_content: dict[str, object],
+        *,
+        request_id: str,
+    ) -> ProviderResponse:
+        """Complete an abbreviated lesson while preserving the selected source boundary."""
+        started = perf_counter()
+        system = (
+            "你是常规课程结构补全器。输入是一份可能被截断的课程草稿和资料片段。"
+            "请只根据资料补齐完整课程，不使用费曼学习法，不编造资料外的事实。"
+            "必须返回完整 JSON，包含 schema_version、topic、title、summary、"
+            "learning_objectives、sections、check_questions、interactive_checks、sources。"
+            "sections 必须正好 4 段，顺序为 concept、mechanism、boundary、example；"
+            "每段都要有可阅读的 explanation、至少 2 个 key_points、source_document_ids 和"
+            "1–3 项 evidence。interactive_checks 必须有 2 道单选题，也必须有 evidence。"
+            "evidence 的 quote 只能从 source_units 或图片中连续复制，不能凭空生成。"
+        )
+        user = json.dumps(
+            {
+                "draft": lesson_content,
+                "topic": request.topic,
+                "learning_goal": request.learning_goal,
+                "learner_level": request.learner_level,
+                "sources": [
+                    {"document_id": document_id, "filename": filename, "excerpt": excerpt}
+                    for document_id, filename, excerpt in request.sources
+                ],
+                "source_units": [
+                    {
+                        "document_id": unit.document_id,
+                        "filename": unit.filename,
+                        "page_number": unit.page_number,
+                        "quality": unit.quality,
+                        "text": unit.text,
+                    }
+                    for unit in request.source_units
+                ],
+                "source_text": (
+                    request.source_text
+                    if not request.source_units
+                    else "文字证据已按 source_units 分页提供，请不要重复猜测。"
+                ),
+                "visual_pages": [
+                    {
+                        "document_id": page.document_id,
+                        "filename": page.filename,
+                        "page_number": page.page_number,
+                    }
+                    for page in request.visual_pages
+                ],
+            },
+            ensure_ascii=False,
+        )
+        user_content: str | list[dict[str, object]] = user
+        if request.visual_pages:
+            content_parts: list[dict[str, object]] = [{"type": "text", "text": user}]
+            for page in request.visual_pages:
+                encoded = base64.b64encode(page.content).decode("ascii")
+                content_parts.extend(
+                    [
+                        {
+                            "type": "text",
+                            "text": (
+                                f"这是 {page.filename} 的第 {page.page_number} 页，请核对图片。"
+                            ),
+                        },
+                        {
+                            "type": "image_url",
+                            "image_url": {"url": f"data:{page.media_type};base64,{encoded}"},
+                        },
+                    ]
+                )
+            user_content = content_parts
+        response = self._call_messages(
+            messages=[
+                {"role": "system", "content": system},
+                {"role": "user", "content": user_content},
+            ],
+            visual=bool(request.visual_pages),
+        )
+        if not response.choices:
+            raise ProviderError(
+                "The teaching provider returned no choices",
+                code="LLM_OUTPUT_UNAVAILABLE",
+                retryable=False,
+            )
+        choice = response.choices[0]
+        if choice.message.refusal or not choice.message.content:
+            raise ProviderError(
+                "The teaching provider returned empty completion content",
+                code="LLM_OUTPUT_UNAVAILABLE",
+                retryable=False,
+            )
+        if choice.finish_reason == "length":
+            raise ProviderError(
+                "The teaching completion was truncated",
+                code="LLM_OUTPUT_TRUNCATED",
+                retryable=False,
+            )
+        try:
+            content = json.loads(choice.message.content)
+        except json.JSONDecodeError as error:
+            raise ProviderError(
+                "The teaching completion returned invalid JSON",
+                code="LLM_OUTPUT_INVALID_JSON",
+                retryable=False,
+            ) from error
+        usage = response.usage
+        return ProviderResponse(
+            content=content,
+            metadata=ProviderMetadata(
+                provider=self.provider_name,
+                model=self.model_name,
+                model_revision=(response.model if response.model != self.model_name else None),
+                prompt_version="teaching-completion-v0.1",
+                schema_version="teaching-lesson-v0.2",
+                latency_ms=round((perf_counter() - started) * 1000),
+                usage={
+                    "input_tokens": usage.prompt_tokens if usage else 0,
+                    "output_tokens": usage.completion_tokens if usage else 0,
+                    "total_tokens": usage.total_tokens if usage else 0,
+                },
+                finish_reason=choice.finish_reason or "unknown",
+                request_id=response.id or request_id,
+            ),
+        )
+
+    def repair_lesson_evidence(
+        self,
+        request: TeachingRequest,
+        lesson_content: dict[str, object],
+        *,
+        request_id: str,
+    ) -> ProviderResponse:
+        """Request a bounded evidence-only patch for a structurally valid lesson."""
+        started = perf_counter()
+        system = (
+            "你是教学资料的证据修复器。只补齐缺失的 evidence，不得改写课程内容。"
+            "只返回 JSON，且只能包含 sections 和 interactive_checks 两个数组；数组顺序必须"
+            "与输入完全一致。每个项目都必须返回 evidence 数组（1–3 项），每项包含正确的"
+            "document_id、可选 page_number、以及从 source_units 或图片中连续复制的 quote。"
+            "如果某个项目没有足够证据，仍返回空数组，绝不编造引文。"
+        )
+        user = json.dumps(
+            {
+                "lesson": lesson_content,
+                "source_units": [
+                    {
+                        "document_id": unit.document_id,
+                        "filename": unit.filename,
+                        "page_number": unit.page_number,
+                        "quality": unit.quality,
+                        "text": unit.text,
+                    }
+                    for unit in request.source_units
+                ],
+                "source_text": (
+                    request.source_text
+                    if not request.source_units
+                    else "文字证据已按 source_units 分页提供，请不要重复猜测。"
+                ),
+                "visual_pages": [
+                    {
+                        "document_id": page.document_id,
+                        "filename": page.filename,
+                        "page_number": page.page_number,
+                    }
+                    for page in request.visual_pages
+                ],
+            },
+            ensure_ascii=False,
+        )
+        user_content: str | list[dict[str, object]] = user
+        if request.visual_pages:
+            content_parts: list[dict[str, object]] = [{"type": "text", "text": user}]
+            for page in request.visual_pages:
+                encoded = base64.b64encode(page.content).decode("ascii")
+                content_parts.extend(
+                    [
+                        {
+                            "type": "text",
+                            "text": (
+                                f"这是 {page.filename} 的第 {page.page_number} 页，请核对图片。"
+                            ),
+                        },
+                        {
+                            "type": "image_url",
+                            "image_url": {"url": f"data:{page.media_type};base64,{encoded}"},
+                        },
+                    ]
+                )
+            user_content = content_parts
+        response = self._call_messages(
+            messages=[
+                {"role": "system", "content": system},
+                {"role": "user", "content": user_content},
+            ],
+            visual=bool(request.visual_pages),
+        )
+        if not response.choices:
+            raise ProviderError(
+                "The teaching provider returned no choices",
+                code="LLM_OUTPUT_UNAVAILABLE",
+                retryable=False,
+            )
+        choice = response.choices[0]
+        if choice.message.refusal or not choice.message.content:
+            raise ProviderError(
+                "The teaching provider returned empty repair content",
+                code="LLM_OUTPUT_UNAVAILABLE",
+                retryable=False,
+            )
+        if choice.finish_reason == "length":
+            raise ProviderError(
+                "The teaching evidence repair was truncated",
+                code="LLM_OUTPUT_TRUNCATED",
+                retryable=False,
+            )
+        try:
+            content = json.loads(choice.message.content)
+        except json.JSONDecodeError as error:
+            raise ProviderError(
+                "The teaching evidence repair returned invalid JSON",
+                code="LLM_OUTPUT_INVALID_JSON",
+                retryable=False,
+            ) from error
+        usage = response.usage
+        return ProviderResponse(
+            content=content,
+            metadata=ProviderMetadata(
+                provider=self.provider_name,
+                model=self.model_name,
+                model_revision=(response.model if response.model != self.model_name else None),
+                prompt_version="teaching-evidence-repair-v0.1",
+                schema_version="teaching-lesson-v0.2",
+                latency_ms=round((perf_counter() - started) * 1000),
+                usage={
+                    "input_tokens": usage.prompt_tokens if usage else 0,
+                    "output_tokens": usage.completion_tokens if usage else 0,
+                    "total_tokens": usage.total_tokens if usage else 0,
+                },
+                finish_reason=choice.finish_reason or "unknown",
+                request_id=response.id or request_id,
+            ),
+        )
+
+    def _call_messages(
+        self,
+        *,
+        messages: list[dict[str, object]],
+        visual: bool,
+    ) -> _ChatCompletionLike:
+        """Call DeepSeek for the small repair request with the same safety boundaries."""
+        try:
+            return self._client.chat.completions.create(
+                model=self.model_name,
+                messages=messages,
+                response_format={"type": "json_object"},
+                max_tokens=self._max_output_tokens,
+                stream=False,
+                extra_body={"thinking": {"type": "disabled"}},
+            )
+        except openai.APITimeoutError as error:
+            raise ProviderTimeoutError from error
+        except openai.RateLimitError as error:
+            raise ProviderError(
+                "The provider rate limit was reached", code="LLM_RATE_LIMIT", retryable=True
+            ) from error
+        except openai.APIConnectionError as error:
+            raise ProviderUnavailableError from error
+        except openai.APIStatusError as error:
+            if visual and error.status_code in {400, 404, 415, 422}:
+                raise ProviderError(
+                    "当前 DeepSeek 端点未接受视觉输入，请确认该模型和接口已启用图片能力",
+                    code="LLM_VISION_REQUEST_REJECTED",
+                    retryable=False,
+                ) from error
+            raise ProviderError(
+                "The provider rejected the teaching request",
+                code="LLM_REQUEST_REJECTED",
+                retryable=False,
+            ) from error
+        except openai.OpenAIError as error:
+            raise ProviderError(
+                "The teaching provider request failed", code="LLM_PROVIDER_ERROR", retryable=False
+            ) from error
+
     def _call(self, request: TeachingRequest) -> _ChatCompletionLike:
         system = (
             "你是一个严谨的教学内容整理器。只根据用户提供的资料生成教学导学，"
@@ -177,6 +466,9 @@ class DeepSeekTeachingProvider:
             "每个 section 和 interactive_check 都必须有 evidence 数组（1–3 项），"
             "每项包含 document_id、quote 和可选 page_number。quote 必须是输入文字或图片中"
             "可以逐字核对的短原文片段，不能把自己的解释冒充引文；不要使用资料中没有的引文。"
+            "顶部 sources 不能代替章节 evidence；请优先引用 source_units 中的连续文字。"
+            "不得只返回 title、summary 或 learning_objectives；即使资料不足，也必须返回完整的 "
+            "4 个 sections 和至少 2 个 interactive_checks。"
         )
         if request.visual_pages:
             system += (
@@ -193,7 +485,21 @@ class DeepSeekTeachingProvider:
                     {"document_id": document_id, "filename": filename, "excerpt": excerpt}
                     for document_id, filename, excerpt in request.sources
                 ],
-                "source_text": request.source_text,
+                "source_units": [
+                    {
+                        "document_id": unit.document_id,
+                        "filename": unit.filename,
+                        "page_number": unit.page_number,
+                        "quality": unit.quality,
+                        "text": unit.text,
+                    }
+                    for unit in request.source_units
+                ],
+                "source_text": (
+                    request.source_text
+                    if not request.source_units
+                    else "文字证据已按 source_units 分页提供，请不要重复猜测。"
+                ),
                 "visual_pages": [
                     {
                         "document_id": page.document_id,

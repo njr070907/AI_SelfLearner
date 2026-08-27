@@ -101,6 +101,22 @@ def test_rename_cannot_change_extension_and_oversized_text_is_split_safely(
     assert all(payload.endswith(b"\n\n") for payload in payloads[:-1])
 
 
+def test_oversized_legacy_text_is_split_without_encoding_damage(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    service = service_for(tmp_path)
+    monkeypatch.setattr(document_library_module, "MAX_DOCUMENT_BYTES", 180)
+    monkeypatch.setattr(document_library_module, "AUTO_SPLIT_TARGET_BYTES", 120)
+    original = ("函数极限描述函数在某点附近的变化趋势。\n\n" * 20).encode("gb18030")
+
+    documents = service.upload_documents(filename="legacy.txt", content=original)
+    restored = b"".join(service.read(document.document_id)[1] for document in documents)
+
+    assert len(documents) > 1
+    assert "函数极限" in restored.decode("gb18030")
+
+
 def test_oversized_pdf_is_split_at_page_boundaries(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

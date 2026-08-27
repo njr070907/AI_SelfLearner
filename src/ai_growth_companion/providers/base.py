@@ -32,7 +32,19 @@ class TeachingRequest:
     sources: tuple[tuple[str, str, str], ...]
     learning_goal: str | None = None
     learner_level: str | None = None
+    source_units: tuple["TeachingSourceUnit", ...] = ()
     visual_pages: tuple["TeachingPageImage", ...] = ()
+
+
+@dataclass(frozen=True)
+class TeachingSourceUnit:
+    """A bounded, page-aware source block supplied to a teaching Provider."""
+
+    document_id: str
+    filename: str
+    page_number: int | None
+    text: str
+    quality: str = "clear"
 
 
 @dataclass(frozen=True)
@@ -122,4 +134,32 @@ class TeachingProvider(Protocol):
 
     def generate_lesson(self, request: TeachingRequest, *, request_id: str) -> ProviderResponse:
         """Generate a raw structured lesson candidate."""
+        ...
+
+
+class TeachingEvidenceRepairProvider(Protocol):
+    """Optional bounded repair capability for real structured-output Providers."""
+
+    def repair_lesson_evidence(
+        self,
+        request: TeachingRequest,
+        lesson_content: dict[str, object],
+        *,
+        request_id: str,
+    ) -> ProviderResponse:
+        """Fill only missing source evidence without rewriting lesson prose."""
+        ...
+
+
+class TeachingCompletionProvider(Protocol):
+    """Optional bounded completion capability for incomplete lesson JSON."""
+
+    def complete_lesson(
+        self,
+        request: TeachingRequest,
+        lesson_content: dict[str, object],
+        *,
+        request_id: str,
+    ) -> ProviderResponse:
+        """Complete missing lesson fields while retaining the original source boundary."""
         ...

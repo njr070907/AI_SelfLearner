@@ -18,6 +18,8 @@ from ai_growth_companion.providers.base import (
     ProviderTimeoutError,
     ProviderUnavailableError,
     QuestionRequest,
+    TeachingCompletionProvider,
+    TeachingEvidenceRepairProvider,
     TeachingProvider,
     TeachingRequest,
 )
@@ -378,7 +380,12 @@ class OllamaTeachingProvider(_OllamaJSONProvider):
             "section_type、title、explanation、key_points、可选 example、source_document_ids、"
             "evidence。interactive_checks 必须有 2–4 道单选题，每道有 prompt、options、"
             "correct_answer、explanation、source_document_ids、evidence。source_document_ids 只能"
-            "使用输入资料的 document_id。evidence 的 quote 必须是输入资料中的连续原文片段。"
+            "使用输入资料的 document_id。每个 section 和 interactive_check 都必须有 1–3 项 "
+            "evidence；"
+            "evidence 的 quote 必须是输入资料中的连续原文片段。顶部 sources 不能代替章节 evidence。"
+            "请优先使用 source_units 中提供的页码和短引文，不要自己改写 quote。"
+            "不得只返回 title、summary 或 learning_objectives；即使资料不足，也必须返回完整的 "
+            "4 个 sections 和至少 2 个 interactive_checks。"
         )
         user = json.dumps(
             {
@@ -389,7 +396,21 @@ class OllamaTeachingProvider(_OllamaJSONProvider):
                     {"document_id": document_id, "filename": filename, "excerpt": excerpt}
                     for document_id, filename, excerpt in request.sources
                 ],
-                "source_text": request.source_text,
+                "source_units": [
+                    {
+                        "document_id": unit.document_id,
+                        "filename": unit.filename,
+                        "page_number": unit.page_number,
+                        "quality": unit.quality,
+                        "text": unit.text,
+                    }
+                    for unit in request.source_units
+                ],
+                "source_text": (
+                    request.source_text
+                    if not request.source_units
+                    else "文字证据已按 source_units 分页提供，请不要重复猜测。"
+                ),
             },
             ensure_ascii=False,
         )
@@ -407,6 +428,146 @@ class OllamaTeachingProvider(_OllamaJSONProvider):
                 model=self.model_name,
                 model_revision=(response.model if response.model != self.model_name else None),
                 prompt_version="teaching-v0.4+ollama-grounded-json",
+                schema_version="teaching-lesson-v0.2",
+                latency_ms=round((perf_counter() - started) * 1000),
+                usage=self._usage(response),
+                finish_reason=finish_reason,
+                request_id=response.id or request_id,
+            ),
+        )
+
+    def complete_lesson(
+        self,
+        request: TeachingRequest,
+        lesson_content: dict[str, object],
+        *,
+        request_id: str,
+    ) -> ProviderResponse:
+        """Complete an abbreviated draft with the same bounded source context."""
+        if request.visual_pages:
+            raise ProviderError(
+                "Ollama text models do not handle the requested PDF images",
+                code="LLM_VISION_REQUEST_REJECTED",
+                retryable=False,
+            )
+        started = perf_counter()
+        system = (
+            "你是常规课程结构补全器。输入是一份可能被截断的课程草稿和资料片段。"
+            "请只根据资料补齐完整课程，不使用费曼学习法，不编造资料外的事实。"
+            "必须返回完整 JSON，包含 schema_version、topic、title、summary、"
+            "learning_objectives、sections、check_questions、interactive_checks、sources。"
+            "sections 必须正好 4 段，顺序为 concept、mechanism、boundary、example；"
+            "每段都要有可阅读的 explanation、至少 2 个 key_points、source_document_ids 和"
+            "1–3 项 evidence。interactive_checks 必须有 2 道单选题，也必须有 evidence。"
+            "evidence 的 quote 只能从 source_units 连续复制，不能凭空生成。"
+        )
+        user = json.dumps(
+            {
+                "draft": lesson_content,
+                "topic": request.topic,
+                "learning_goal": request.learning_goal,
+                "learner_level": request.learner_level,
+                "sources": [
+                    {"document_id": document_id, "filename": filename, "excerpt": excerpt}
+                    for document_id, filename, excerpt in request.sources
+                ],
+                "source_units": [
+                    {
+                        "document_id": unit.document_id,
+                        "filename": unit.filename,
+                        "page_number": unit.page_number,
+                        "quality": unit.quality,
+                        "text": unit.text,
+                    }
+                    for unit in request.source_units
+                ],
+                "source_text": (
+                    request.source_text
+                    if not request.source_units
+                    else "文字证据已按 source_units 分页提供，请不要重复猜测。"
+                ),
+            },
+            ensure_ascii=False,
+        )
+        response = self._create_json(
+            messages=[
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+            ]
+        )
+        content, finish_reason = self._response_content(response)
+        return ProviderResponse(
+            content=content,
+            metadata=ProviderMetadata(
+                provider=self.provider_name,
+                model=self.model_name,
+                model_revision=(response.model if response.model != self.model_name else None),
+                prompt_version="teaching-completion-v0.1",
+                schema_version="teaching-lesson-v0.2",
+                latency_ms=round((perf_counter() - started) * 1000),
+                usage=self._usage(response),
+                finish_reason=finish_reason,
+                request_id=response.id or request_id,
+            ),
+        )
+
+    def repair_lesson_evidence(
+        self,
+        request: TeachingRequest,
+        lesson_content: dict[str, object],
+        *,
+        request_id: str,
+    ) -> ProviderResponse:
+        """Fill only missing evidence after a valid lesson omitted nested citations."""
+        if request.visual_pages:
+            raise ProviderError(
+                "Ollama text models do not handle the requested PDF images",
+                code="LLM_VISION_REQUEST_REJECTED",
+                retryable=False,
+            )
+        started = perf_counter()
+        system = (
+            "你是教学资料的证据修复器。只补齐缺失的 evidence，不得改写课程内容。"
+            "返回合法 JSON，且只能包含 sections 和 interactive_checks 两个数组；数组顺序必须"
+            "与输入完全一致。每个项目都必须返回 evidence 数组（1–3 项），每项包含正确的"
+            "document_id、可选 page_number、以及从 source_units 连续复制的 quote。"
+            "如果某个项目没有足够证据，仍返回空数组，绝不编造引文。"
+        )
+        user = json.dumps(
+            {
+                "lesson": lesson_content,
+                "source_units": [
+                    {
+                        "document_id": unit.document_id,
+                        "filename": unit.filename,
+                        "page_number": unit.page_number,
+                        "quality": unit.quality,
+                        "text": unit.text,
+                    }
+                    for unit in request.source_units
+                ],
+                "source_text": (
+                    request.source_text
+                    if not request.source_units
+                    else "文字证据已按 source_units 分页提供，请不要重复猜测。"
+                ),
+            },
+            ensure_ascii=False,
+        )
+        response = self._create_json(
+            messages=[
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+            ]
+        )
+        content, finish_reason = self._response_content(response)
+        return ProviderResponse(
+            content=content,
+            metadata=ProviderMetadata(
+                provider=self.provider_name,
+                model=self.model_name,
+                model_revision=(response.model if response.model != self.model_name else None),
+                prompt_version="teaching-evidence-repair-v0.1",
                 schema_version="teaching-lesson-v0.2",
                 latency_ms=round((perf_counter() - started) * 1000),
                 usage=self._usage(response),
@@ -443,3 +604,49 @@ class RoutedTeachingProvider:
                 )
             return self._vision_provider.generate_lesson(request, request_id=request_id)
         return self._text_provider.generate_lesson(request, request_id=request_id)
+
+    def repair_lesson_evidence(
+        self,
+        request: TeachingRequest,
+        lesson_content: dict[str, object],
+        *,
+        request_id: str,
+    ) -> ProviderResponse:
+        """Forward the bounded repair to the same text or vision Provider as generation."""
+        provider: object = self._vision_provider if request.visual_pages else self._text_provider
+        repair = getattr(provider, "repair_lesson_evidence", None)
+        if not callable(repair):
+            raise ProviderError(
+                "The selected teaching provider cannot repair evidence",
+                code="TEACHING_SOURCE_EVIDENCE_MISSING",
+                retryable=False,
+            )
+        repair_provider = cast(TeachingEvidenceRepairProvider, provider)
+        return repair_provider.repair_lesson_evidence(
+            request,
+            lesson_content,
+            request_id=request_id,
+        )
+
+    def complete_lesson(
+        self,
+        request: TeachingRequest,
+        lesson_content: dict[str, object],
+        *,
+        request_id: str,
+    ) -> ProviderResponse:
+        """Forward structural completion to the same text or vision Provider as generation."""
+        provider: object = self._vision_provider if request.visual_pages else self._text_provider
+        complete = getattr(provider, "complete_lesson", None)
+        if not callable(complete):
+            raise ProviderError(
+                "The selected teaching provider cannot complete lesson structure",
+                code="TEACHING_OUTPUT_SCHEMA_INVALID",
+                retryable=False,
+            )
+        completion_provider = cast(TeachingCompletionProvider, provider)
+        return completion_provider.complete_lesson(
+            request,
+            lesson_content,
+            request_id=request_id,
+        )

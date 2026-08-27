@@ -200,10 +200,10 @@ class DocumentLibraryService:
     @classmethod
     def _split_text(cls, *, filename: str, content: bytes) -> tuple[tuple[str, bytes], ...]:
         try:
-            text = content.decode("utf-8")
-        except UnicodeDecodeError as error:
+            text, encoding = cls._decode_text_with_encoding(content)
+        except ValueError as error:
             raise DocumentValidationError(
-                "Markdown/TXT 必须使用 UTF-8 编码，无法安全拆分其他编码的文件"
+                "Markdown/TXT 必须使用 UTF-8 或可安全识别的常见编码，无法安全拆分文件"
             ) from error
         lines = text.splitlines(keepends=True)
         if not lines:
@@ -224,22 +224,24 @@ class DocumentLibraryService:
         current_lines: list[str] = []
         current_bytes = 0
         for block in blocks:
-            block_bytes = len("".join(block).encode("utf-8"))
+            block_bytes = len("".join(block).encode(encoding))
             if block_bytes > target_bytes:
                 if current_lines:
-                    chunks.append("".join(current_lines).encode("utf-8"))
+                    chunks.append("".join(current_lines).encode(encoding))
                     current_lines = []
                     current_bytes = 0
-                chunks.extend(cls._split_text_block(block, target_bytes=target_bytes))
+                chunks.extend(
+                    cls._split_text_block(block, target_bytes=target_bytes, encoding=encoding)
+                )
                 continue
             if current_lines and current_bytes + block_bytes > target_bytes:
-                chunks.append("".join(current_lines).encode("utf-8"))
+                chunks.append("".join(current_lines).encode(encoding))
                 current_lines = []
                 current_bytes = 0
             current_lines.extend(block)
             current_bytes += block_bytes
         if current_lines:
-            chunks.append("".join(current_lines).encode("utf-8"))
+            chunks.append("".join(current_lines).encode(encoding))
 
         suffix = Path(filename).suffix
         return tuple(
@@ -258,44 +260,62 @@ class DocumentLibraryService:
         )
 
     @classmethod
-    def _split_text_block(cls, lines: list[str], *, target_bytes: int) -> list[bytes]:
+    def _split_text_block(
+        cls,
+        lines: list[str],
+        *,
+        target_bytes: int,
+        encoding: str,
+    ) -> list[bytes]:
         chunks: list[bytes] = []
         current: list[str] = []
         current_bytes = 0
         for line in lines:
-            line_bytes = len(line.encode("utf-8"))
+            line_bytes = len(line.encode(encoding))
             if line_bytes > target_bytes:
                 if current:
-                    chunks.append("".join(current).encode("utf-8"))
+                    chunks.append("".join(current).encode(encoding))
                     current = []
                     current_bytes = 0
-                chunks.extend(cls._split_long_text_line(line, target_bytes=target_bytes))
+                chunks.extend(
+                    cls._split_long_text_line(
+                        line,
+                        target_bytes=target_bytes,
+                        encoding=encoding,
+                    )
+                )
                 continue
             if current and current_bytes + line_bytes > target_bytes:
-                chunks.append("".join(current).encode("utf-8"))
+                chunks.append("".join(current).encode(encoding))
                 current = []
                 current_bytes = 0
             current.append(line)
             current_bytes += line_bytes
         if current:
-            chunks.append("".join(current).encode("utf-8"))
+            chunks.append("".join(current).encode(encoding))
         return chunks
 
     @classmethod
-    def _split_long_text_line(cls, line: str, *, target_bytes: int) -> list[bytes]:
+    def _split_long_text_line(
+        cls,
+        line: str,
+        *,
+        target_bytes: int,
+        encoding: str,
+    ) -> list[bytes]:
         chunks: list[bytes] = []
         current: list[str] = []
         current_bytes = 0
         for character in line:
-            character_bytes = len(character.encode("utf-8"))
+            character_bytes = len(character.encode(encoding))
             if current and current_bytes + character_bytes > target_bytes:
-                chunks.append("".join(current).encode("utf-8"))
+                chunks.append("".join(current).encode(encoding))
                 current = []
                 current_bytes = 0
             current.append(character)
             current_bytes += character_bytes
         if current:
-            chunks.append("".join(current).encode("utf-8"))
+            chunks.append("".join(current).encode(encoding))
         return chunks
 
     @staticmethod
@@ -420,18 +440,49 @@ class DocumentLibraryService:
         if len(content) > MAX_DOCUMENT_BYTES:
             raise DocumentValidationError("文件大小不能超过 20 MB")
         extension = Path(normalized).suffix.lower()
-        if extension in {".md", ".markdown", ".txt"}:
-            try:
-                content.decode("utf-8")
-            except UnicodeDecodeError as error:
-                raise DocumentValidationError(
-                    "Markdown/TXT 必须使用 UTF-8 编码，无法安全保存教学资料"
-                ) from error
+        if extension in {".md", ".markdown", ".txt"} and not cls._is_plausible_text(content):
+            raise DocumentValidationError(
+                "Markdown/TXT 必须使用 UTF-8 或可安全识别的常见编码，无法安全保存教学资料"
+            )
         mime_type = MIME_TYPES.get(
             extension,
             mimetypes.types_map.get(extension, "application/octet-stream"),
         )
         return normalized, mime_type
+
+    @staticmethod
+    def _is_plausible_text(content: bytes) -> bool:
+        """Accept common note encodings while rejecting binary-looking uploads."""
+        try:
+            DocumentLibraryService._decode_text_with_encoding(content)
+        except ValueError:
+            return False
+        return True
+
+    @staticmethod
+    def _decode_text_with_encoding(content: bytes) -> tuple[str, str]:
+        """Decode common note encodings and reject binary-looking text."""
+        candidates: list[str] = []
+        if content.startswith((b"\xff\xfe", b"\xfe\xff")):
+            candidates.extend(("utf-16", "utf-16-le", "utf-16-be"))
+        elif content.startswith(b"\xef\xbb\xbf"):
+            candidates.append("utf-8-sig")
+        candidates.extend(("utf-8", "gb18030", "big5", "utf-16-le", "utf-16-be"))
+        for encoding in dict.fromkeys(candidates):
+            try:
+                text = content.decode(encoding)
+            except UnicodeDecodeError:
+                continue
+            if not text.strip() or "\ufffd" in text:
+                continue
+            control_count = sum(
+                1
+                for character in text
+                if ord(character) < 32 and character not in {"\n", "\r", "\t"}
+            )
+            if control_count / max(len(text), 1) <= 0.01:
+                return text, encoding
+        raise ValueError("无法识别的文本编码")
 
     def _write_bytes(self, storage_name: str, content: bytes) -> None:
         path = self._path_for(storage_name)

@@ -7,9 +7,13 @@ from uuid import uuid4
 
 import streamlit as st
 
-from ai_growth_companion.application.document_library import DocumentLibraryService
+from ai_growth_companion.application.document_library import (
+    DocumentLibraryService,
+    DocumentValidationError,
+)
 from ai_growth_companion.application.export_service import ExportArtifact, UserExportService
 from ai_growth_companion.application.health import HealthReport, HealthState
+from ai_growth_companion.application.knowledge_extraction import decode_text_content
 from ai_growth_companion.application.learning_service import LearningService
 from ai_growth_companion.application.models import DiagnosisView, HistoryItem, WorkspaceSnapshot
 from ai_growth_companion.application.teaching_service import TeachingService
@@ -463,9 +467,14 @@ def _render_pre_study(
                         st.error(str(error))
                     else:
                         if document.extension in {".md", ".markdown", ".txt"}:
-                            st.markdown(content[:20_000].decode("utf-8", errors="replace"))
-                            if len(content) > 20_000:
-                                st.caption("预览已截取前 20,000 个字节。")
+                            try:
+                                preview = decode_text_content(content)[:20_000]
+                            except DocumentValidationError as error:
+                                st.error(f"该文本资料无法安全预览：{error}")
+                            else:
+                                st.markdown(preview)
+                                if len(preview) >= 20_000:
+                                    st.caption("预览已截取前 20,000 个字符。")
                         else:
                             st.info("PDF 当前可下载阅读，系统暂不自动解析 PDF 内容。")
                             st.download_button(

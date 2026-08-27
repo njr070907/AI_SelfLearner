@@ -20,7 +20,7 @@
 
 ## P0 — 完整自学 MVP
 
-这是当前从“工程底座”走向“用户可以正常使用的完整自学产品”的主队列。资料库 CRUD、资料到结构化导学的教学工作区、课程进度/报告和 20 条人工语义复核已完成；按最终用户验收重新校准的总进度约 **86%**，预计还需 **5–8 个有效工作日**，另需至少 7 个自然日试用；完整阶段、权重、时间估算、接口边界和停止条件见 [`docs/roadmap/FULL_SELF_STUDY_MVP_PLAN.md`](docs/roadmap/FULL_SELF_STUDY_MVP_PLAN.md) 和 [`docs/roadmap/MVP_PROGRESS.md`](docs/roadmap/MVP_PROGRESS.md)。
+这是当前从“工程底座”走向“用户可以正常使用的完整自学产品”的主队列。资料库 CRUD、资料到结构化导学的教学工作区、课程进度/报告和 20 条人工语义复核已完成；按最终用户验收重新校准的总进度约 **86.4%**，预计还需 **5–8 个有效工作日**，另需至少 7 个自然日试用；完整阶段、权重、时间估算、接口边界和停止条件见 [`docs/roadmap/FULL_SELF_STUDY_MVP_PLAN.md`](docs/roadmap/FULL_SELF_STUDY_MVP_PLAN.md) 和 [`docs/roadmap/MVP_PROGRESS.md`](docs/roadmap/MVP_PROGRESS.md)。
 
 - [x] [#31](https://github.com/njr070907/AI_SelfLearner/issues/31) 锁定完整自学 MVP 范围与数据/服务契约。
 - [x] [#32](https://github.com/njr070907/AI_SelfLearner/issues/32) 后端：实现完整教学闭环 API 与领域模型。
@@ -32,11 +32,11 @@
 - [x] [#38](https://github.com/njr070907/AI_SelfLearner/issues/38) 后端：实现反馈、长期状态与趋势。
 - [ ] [#39](https://github.com/njr070907/AI_SelfLearner/issues/39) 集成教学、错题、复习、进度并完成 7 天试用（Fake 全链路已合并，连续试用与发布验收待完成）。
 - [x] 本地资料库与教学来源：上传、查看、下载、重命名、替换、删除 PDF/Markdown/TXT；提取文字生成常规课程、互动小测并保存来源；掌握检测作为可选独立功能，不含 OCR/RAG。
-- [x] 本轮教学进度基础：课程章节位置、互动答案、幂等请求和课程完成状态已持久化；当前全量回归 228 tests。
-- [x] 资料库大文件默认处理：超过 20 MB 的 PDF 按页拆分，Markdown/TXT 按段落/行和 UTF-8 边界拆分后自动导入；原始字节保持可拼接恢复。
+- [x] 本轮教学进度基础：课程章节位置、互动答案、幂等请求和课程完成状态已持久化；当前全量回归 234 tests。
+- [x] 资料库大文件默认处理：超过 20 MB 的 PDF 按页拆分，Markdown/TXT 按段落/行和安全字符边界拆分后自动导入；常见编码会保持可读文本，不静默替换字符。
 - [x] 本地用户数据导出：生成带 manifest、Schema 版本、分表 JSON、资料文件和 SHA-256 校验的 ZIP；资料缺失时保留元数据并显式警告。
 - [x] 课程报告后端化：统一计算课程完成数、互动题完成率、最新答题正确率和来源资料数；UI 不再自行拼接报告指标。
-- [x] 文本资料安全提取：Markdown/TXT 无论大小均严格校验 UTF-8，拒绝用替换字符静默损坏教学内容。
+- [x] 文本资料安全提取：Markdown/TXT 无论大小均安全识别 UTF-8、UTF-16、GB18030 和 Big5，拒绝用替换字符静默损坏教学内容。
 - [x] 后端主题自动选源：`TeachingService.recommend_sources()` 使用本地抽样和小型中英主题别名表推荐 PDF/Markdown/TXT 分卷，返回页码、分数、命中词、置信度和可审计 document IDs；不引入 RAG 或向量数据库。
 - [x] PDF 视觉读取后端最小闭环：本地按主题选择最多 6 个页面并渲染为受限 JPEG；DeepSeek 教学 Provider 在显式视觉模式下发送图片内容块；文字路径、乱码拦截、结构/内容质量门槛和离线测试保持兼容；一次合成单页真实端点验证已成功。
 - [ ] 前端接入主题自动选源：用户只填主题即可使用推荐分卷；中置信度显示确认和可增删分卷；低置信度要求手动选源；生成课程前展示最终来源范围。

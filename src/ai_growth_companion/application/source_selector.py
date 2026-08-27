@@ -15,6 +15,7 @@ from ai_growth_companion.application.document_library import (
     DocumentLibraryService,
     DocumentValidationError,
 )
+from ai_growth_companion.application.knowledge_extraction import decode_text_content
 from ai_growth_companion.application.models import DocumentView
 
 MAX_SAMPLE_CHARS = 80_000
@@ -33,6 +34,9 @@ _TOPIC_ALIASES: dict[str, tuple[str, ...]] = {
     "函数极限": ("limit", "limits", "function", "functions"),
     "极限": ("limit", "limits"),
     "导数": ("derivative", "derivatives"),
+    "切线": ("tangent", "tangent line", "secant"),
+    "割线": ("secant", "secant line", "tangent"),
+    "瞬时变化率": ("instantaneous", "rate of change", "derivative"),
     "积分": ("integral", "integrals"),
     "向量": ("vector", "vectors"),
     "矩阵": ("matrix", "matrices"),
@@ -138,11 +142,7 @@ class TopicSourceSelector:
         _view, content = self.document_library.read(document.document_id)
         extension = Path(document.filename).suffix.casefold()
         if extension in {".md", ".markdown", ".txt"}:
-            try:
-                text = content.decode("utf-8")
-            except UnicodeDecodeError as error:
-                raise DocumentValidationError("资料不是 UTF-8 文本") from error
-            sample = self._normalize(text[:MAX_SAMPLE_CHARS])
+            sample = self._normalize(decode_text_content(content)[:MAX_SAMPLE_CHARS])
             self._sample_cache[cache_key] = sample
             return sample
         if extension != ".pdf":

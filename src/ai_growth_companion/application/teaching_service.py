@@ -2,6 +2,7 @@
 
 import json
 import re
+import unicodedata
 from collections.abc import Sequence
 from datetime import datetime
 from uuid import uuid4
@@ -12,7 +13,7 @@ from ai_growth_companion.application.document_library import (
     DocumentLibraryService,
     DocumentValidationError,
 )
-from ai_growth_companion.application.knowledge_extraction import extract_knowledge
+from ai_growth_companion.application.knowledge_extraction import KnowledgeUnit, extract_knowledge
 from ai_growth_companion.application.models import DocumentView
 from ai_growth_companion.application.pdf_visual import (
     MAX_VISION_PAGES,
@@ -29,6 +30,7 @@ from ai_growth_companion.providers.base import (
     TeachingPageImage,
     TeachingProvider,
     TeachingRequest,
+    TeachingSourceUnit,
 )
 from ai_growth_companion.repositories.lesson_progress_repository import (
     LessonProgressRecord,
@@ -98,6 +100,9 @@ class TeachingReportView(BaseModel):
 class TeachingService:
     """Extract selected materials, generate a validated lesson, and persist it."""
 
+    MAX_SOURCE_CONTEXT_CHARS = 60_000
+    MAX_UNITS_PER_DOCUMENT = 12
+
     def __init__(
         self,
         document_library: DocumentLibraryService,
@@ -146,6 +151,7 @@ class TeachingService:
         source_documents: list[DocumentView] = []
         source_parts: list[str] = []
         source_refs: list[tuple[str, str, str]] = []
+        source_units: list[TeachingSourceUnit] = []
         visual_pages: list[TeachingPageImage] = []
         for document_id in document_ids:
             document, content = self.document_library.read(document_id)
@@ -163,7 +169,26 @@ class TeachingService:
             )
             source_refs.append((document.document_id, document.filename, source_excerpt))
             if extracted is not None:
-                source_parts.append(f"【{document.filename}】\n{extracted.text}")
+                selected_units = self._select_source_units(
+                    normalized_topic,
+                    extracted.units,
+                    limit=self.MAX_UNITS_PER_DOCUMENT,
+                )
+                if not selected_units:
+                    selected_units = (KnowledgeUnit(None, extracted.text[:12_000], "clear"),)
+                for unit in selected_units:
+                    source_unit = TeachingSourceUnit(
+                        document_id=document.document_id,
+                        filename=document.filename,
+                        page_number=unit.page_number,
+                        text=unit.text,
+                        quality=unit.quality,
+                    )
+                    source_units.append(source_unit)
+                    page_label = (
+                        f"第 {unit.page_number} 页" if unit.page_number is not None else "文本内容"
+                    )
+                    source_parts.append(f"【{document.filename} · {page_label}】\n{unit.text}")
             if use_vision and document.extension == ".pdf":
                 remaining = MAX_VISION_PAGES - len(visual_pages)
                 if remaining > 0:
@@ -184,18 +209,17 @@ class TeachingService:
         if use_vision and not visual_pages:
             raise TeachingInputError("视觉读取模式至少需要选择一份 PDF 资料")
 
-        source_text = "\n\n".join(source_parts)[:60_000]
-        response = self.provider.generate_lesson(
-            TeachingRequest(
-                topic=normalized_topic,
-                source_text=source_text,
-                sources=tuple(source_refs),
-                learning_goal=learning_goal.strip() if learning_goal else None,
-                learner_level=learner_level,
-                visual_pages=tuple(visual_pages),
-            ),
-            request_id=request_id,
+        source_text = "\n\n".join(source_parts)[: self.MAX_SOURCE_CONTEXT_CHARS]
+        teaching_request = TeachingRequest(
+            topic=normalized_topic,
+            source_text=source_text,
+            sources=tuple(source_refs),
+            learning_goal=learning_goal.strip() if learning_goal else None,
+            learner_level=learner_level,
+            source_units=tuple(source_units),
+            visual_pages=tuple(visual_pages),
         )
+        response = self.provider.generate_lesson(teaching_request, request_id=request_id)
         selected_source_ids = {document_id for document_id, _, _ in source_refs}
         try:
             normalized_content = self._normalize_provider_lesson(
@@ -203,6 +227,13 @@ class TeachingService:
                 topic=normalized_topic,
                 source_refs=source_refs,
             )
+            if isinstance(normalized_content, dict):
+                normalized_content = self._complete_incomplete_lesson(
+                    teaching_request,
+                    normalized_content,
+                    request_id=request_id,
+                    source_refs=source_refs,
+                )
             lesson = TeachingLesson.model_validate(normalized_content)
         except Exception as error:
             raise ProviderError(
@@ -242,6 +273,11 @@ class TeachingService:
             section["evidence"] = self._normalize_evidence(
                 section.get("evidence", section.get("source_evidence", []))
             )
+        lesson_payload = self._repair_missing_evidence(
+            teaching_request,
+            lesson_payload,
+            request_id=request_id,
+        )
         lesson = TeachingLesson.model_validate(
             {
                 **lesson_payload,
@@ -256,6 +292,7 @@ class TeachingService:
             lesson,
             selected_source_ids=selected_source_ids,
             source_text=source_text,
+            source_units=source_units,
             visual_pages=visual_pages,
         )
         self._validate_lesson_quality(lesson)
@@ -382,6 +419,213 @@ class TeachingService:
                 # A lesson remains readable after its source file is deleted.
                 continue
         return tuple(documents)
+
+    @classmethod
+    def _select_source_units(
+        cls,
+        topic: str,
+        units: tuple[KnowledgeUnit, ...],
+        *,
+        limit: int,
+    ) -> tuple[KnowledgeUnit, ...]:
+        """Select topic-relevant pages while keeping neighboring context for definitions."""
+        readable = [unit for unit in units if unit.text.strip()]
+        if not readable:
+            return ()
+        terms = cls._topic_terms(topic)
+        scores = [
+            sum(unit.text.casefold().count(term.casefold()) for term in terms) for unit in readable
+        ]
+        ranked_indexes = [
+            index
+            for index, score in sorted(enumerate(scores), key=lambda item: (-item[1], item[0]))[
+                : max(1, limit // 2)
+            ]
+            if score > 0
+        ]
+        if ranked_indexes:
+            selected_indexes: set[int] = set()
+            for index in ranked_indexes:
+                selected_indexes.update(range(max(0, index - 1), min(len(readable), index + 2)))
+            candidates = [readable[index] for index in sorted(selected_indexes)]
+        else:
+            candidates = readable[:limit]
+
+        selected: list[KnowledgeUnit] = []
+        total_chars = 0
+        for unit in candidates:
+            if len(selected) >= limit:
+                break
+            remaining = 18_000 - total_chars
+            if remaining <= 0:
+                break
+            text = unit.text[:remaining]
+            selected.append(KnowledgeUnit(unit.page_number, text, unit.quality))
+            total_chars += len(text)
+        return tuple(selected)
+
+    @staticmethod
+    def _topic_terms(topic: str) -> tuple[str, ...]:
+        normalized = topic.casefold().strip()
+        aliases: dict[str, tuple[str, ...]] = {
+            "极限": ("limit", "limits"),
+            "函数极限": ("limit", "limits", "function", "functions"),
+            "导数": ("derivative", "derivatives"),
+            "切线": ("tangent", "tangent line", "secant"),
+            "割线": ("secant", "secant line", "tangent"),
+            "瞬时变化率": ("instantaneous", "rate of change", "derivative"),
+            "积分": ("integral", "integrals"),
+            "线性代数": ("linear algebra", "matrix", "vector"),
+        }
+        chunks = re.findall(r"[a-z0-9]+|[\u4e00-\u9fff]{2,}", normalized)
+        cjk_bigrams = [
+            chunk[index : index + 2]
+            for chunk in chunks
+            if re.fullmatch(r"[\u4e00-\u9fff]+", chunk)
+            for index in range(len(chunk) - 1)
+        ]
+        return tuple(
+            dict.fromkeys((normalized, *chunks, *cjk_bigrams, *aliases.get(normalized, ())))
+        )
+
+    def _repair_missing_evidence(
+        self,
+        request: TeachingRequest,
+        lesson_payload: dict[str, object],
+        *,
+        request_id: str,
+    ) -> dict[str, object]:
+        """Run one bounded evidence-only repair for Providers that explicitly support it."""
+        if not self._has_missing_evidence(lesson_payload):
+            return lesson_payload
+        repair = getattr(self.provider, "repair_lesson_evidence", None)
+        if not callable(repair):
+            return lesson_payload
+        try:
+            response = repair(
+                request,
+                lesson_payload,
+                request_id=f"{request_id}:evidence-repair",
+            )
+        except ProviderError:
+            # The original output is still validated below and will fail closed if needed.
+            return lesson_payload
+        repaired = response.content
+        if not isinstance(repaired, dict):
+            return lesson_payload
+
+        merged = dict(lesson_payload)
+        for key in ("sections", "interactive_checks"):
+            originals = merged.get(key)
+            candidates = repaired.get(key)
+            if not isinstance(originals, list) or not isinstance(candidates, list):
+                continue
+            updated: list[object] = []
+            for index, original in enumerate(originals):
+                if not isinstance(original, dict):
+                    updated.append(original)
+                    continue
+                item = dict(original)
+                existing = self._normalize_evidence(item.get("evidence", []))
+                if not existing and index < len(candidates) and isinstance(candidates[index], dict):
+                    item["evidence"] = self._normalize_evidence(
+                        candidates[index].get("evidence", [])
+                    )
+                updated.append(item)
+            merged[key] = updated
+        return merged
+
+    def _complete_incomplete_lesson(
+        self,
+        request: TeachingRequest,
+        lesson_payload: dict[str, object],
+        *,
+        request_id: str,
+        source_refs: list[tuple[str, str, str]],
+    ) -> dict[str, object]:
+        """Complete an abbreviated real-Provider response with one bounded follow-up call."""
+        if not self._has_incomplete_structure(lesson_payload):
+            return lesson_payload
+        complete = getattr(self.provider, "complete_lesson", None)
+        if not callable(complete):
+            return lesson_payload
+        try:
+            response = complete(
+                request,
+                lesson_payload,
+                request_id=f"{request_id}:lesson-completion",
+            )
+        except ProviderError:
+            return lesson_payload
+        candidate = response.content
+        if not isinstance(candidate, dict):
+            return lesson_payload
+        normalized_candidate = self._normalize_provider_lesson(
+            candidate,
+            topic=request.topic,
+            source_refs=source_refs,
+        )
+        if not isinstance(normalized_candidate, dict):
+            return lesson_payload
+
+        merged = dict(lesson_payload)
+        for key in ("sections", "interactive_checks"):
+            value = normalized_candidate.get(key)
+            if isinstance(value, list) and len(value) >= (4 if key == "sections" else 2):
+                merged[key] = value
+        for key in ("summary", "learning_objectives", "check_questions"):
+            current = merged.get(key)
+            candidate_value = normalized_candidate.get(key)
+            if key == "summary" and isinstance(current, str) and len(current.strip()) >= 30:
+                continue
+            if key != "summary" and isinstance(current, list) and len(current) >= 2:
+                continue
+            if candidate_value:
+                merged[key] = candidate_value
+        return merged
+
+    @staticmethod
+    def _has_incomplete_structure(lesson_payload: dict[str, object]) -> bool:
+        sections = lesson_payload.get("sections")
+        checks = lesson_payload.get("interactive_checks")
+        if not isinstance(sections, list) or len(sections) < 4:
+            return True
+        if not isinstance(checks, list) or len(checks) < 2:
+            return True
+        if (
+            not isinstance(lesson_payload.get("summary"), str)
+            or len(str(lesson_payload["summary"]).strip()) < 30
+        ):
+            return True
+        for key in ("learning_objectives", "check_questions"):
+            value = lesson_payload.get(key)
+            if not isinstance(value, list) or len(value) < 2:
+                return True
+        section_keys = {"section_type", "title", "explanation", "key_points"}
+        if any(
+            not isinstance(section, dict) or not section_keys.issubset(section)
+            for section in sections
+        ):
+            return True
+        check_keys = {"prompt", "options", "correct_answer", "explanation"}
+        return any(
+            not isinstance(check, dict) or not check_keys.issubset(check) for check in checks
+        )
+
+    @staticmethod
+    def _has_missing_evidence(lesson_payload: dict[str, object]) -> bool:
+        for key in ("sections", "interactive_checks"):
+            items = lesson_payload.get(key)
+            if not isinstance(items, list):
+                return True
+            if any(
+                not isinstance(item, dict)
+                or not isinstance(item.get("evidence"), list)
+                or not item["evidence"]
+                for item in items
+            ):
+                return True
+        return False
 
     @staticmethod
     def _normalize_source_ids(
@@ -548,10 +792,16 @@ class TeachingService:
         *,
         selected_source_ids: set[str],
         source_text: str,
+        source_units: list[TeachingSourceUnit],
         visual_pages: list[TeachingPageImage],
     ) -> None:
         """Require every generated teaching unit to carry inspectable source evidence."""
         allowed_pages = {(page.document_id, page.page_number) for page in visual_pages}
+        allowed_text_pages = {
+            (unit.document_id, unit.page_number)
+            for unit in source_units
+            if unit.page_number is not None
+        }
         evidence_groups = [
             *(section.evidence for section in lesson.sections),
             *(check.evidence for check in lesson.interactive_checks),
@@ -591,9 +841,16 @@ class TeachingService:
                             code="TEACHING_SOURCE_EVIDENCE_INVALID",
                             retryable=False,
                         )
-                elif evidence.page_number is not None:
+                elif (
+                    evidence.page_number is not None
+                    and (
+                        evidence.document_id,
+                        evidence.page_number,
+                    )
+                    not in allowed_text_pages
+                ):
                     raise ProviderError(
-                        "文字资料证据不应伪造 PDF 页码",
+                        "教学资料证据页码无法在已读取页面中核对",
                         code="TEACHING_SOURCE_EVIDENCE_INVALID",
                         retryable=False,
                     )
@@ -606,9 +863,16 @@ class TeachingService:
 
     @staticmethod
     def _quote_supported(quote: str, source_text: str) -> bool:
-        compact_quote = re.sub(r"[^\w\u4e00-\u9fff]+", "", quote.casefold())
-        compact_source = re.sub(r"[^\w\u4e00-\u9fff]+", "", source_text.casefold())
+        compact_quote = TeachingService._quote_key(quote)
+        compact_source = TeachingService._quote_key(source_text)
         return bool(compact_quote) and compact_quote in compact_source
+
+    @staticmethod
+    def _quote_key(text: str) -> str:
+        """Normalize PDF line breaks and common math punctuation for safe quote matching."""
+        normalized = unicodedata.normalize("NFKC", text).casefold()
+        normalized = re.sub(r"\s+", "", normalized)
+        return re.sub(r"[^\w\u4e00-\u9fff=+\-*/^().,:;%<>\[\]{}]", "", normalized)
 
     @staticmethod
     def _validate_lesson_quality(lesson: TeachingLesson) -> None:

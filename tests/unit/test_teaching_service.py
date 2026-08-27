@@ -8,7 +8,11 @@ from pypdf import PdfWriter
 
 from ai_growth_companion.application.document_library import DocumentLibraryService
 from ai_growth_companion.application.teaching_service import TeachingInputError, TeachingService
-from ai_growth_companion.providers.base import ProviderError, ProviderResponse, TeachingRequest
+from ai_growth_companion.providers.base import (
+    ProviderError,
+    ProviderResponse,
+    TeachingRequest,
+)
 from ai_growth_companion.providers.fake import FakeLLMProvider
 from ai_growth_companion.repositories.database import Database, run_migrations
 from ai_growth_companion.repositories.document_repository import SQLiteDocumentRepository
@@ -112,12 +116,117 @@ class CapturingTeachingProvider(FakeLLMProvider):
         return super().generate_lesson(request, request_id=request_id)
 
 
+class RepairingTeachingProvider(UngroundedTeachingProvider):
+    """Simulate a real Provider that can fill only omitted evidence fields."""
+
+    def repair_lesson_evidence(
+        self,
+        request: TeachingRequest,
+        lesson_content: dict[str, object],
+        *,
+        request_id: str,
+    ) -> ProviderResponse:
+        del lesson_content
+        evidence = {
+            "document_id": request.sources[0][0],
+            "quote": "极限描述函数在某点附近的变化趋势。",
+        }
+        return ProviderResponse(
+            content={
+                "sections": [{"evidence": [evidence]} for _ in range(4)],
+                "interactive_checks": [{"evidence": [evidence]} for _ in range(2)],
+            },
+            metadata=self._metadata(
+                request_id=request_id,
+                prompt_version="test-evidence-repair",
+                schema_version="teaching-lesson-v0.2",
+            ),
+        )
+
+
+class CompletingTeachingProvider(FakeLLMProvider):
+    """Simulate a model that first returns a short draft, then completes it."""
+
+    def generate_lesson(self, request: TeachingRequest, *, request_id: str) -> ProviderResponse:
+        response = super().generate_lesson(request, request_id=request_id)
+        payload = dict(response.content)
+        payload.pop("sections", None)
+        payload.pop("interactive_checks", None)
+        return ProviderResponse(content=payload, metadata=response.metadata)
+
+    def complete_lesson(
+        self,
+        request: TeachingRequest,
+        lesson_content: dict[str, object],
+        *,
+        request_id: str,
+    ) -> ProviderResponse:
+        del lesson_content
+        response = super().generate_lesson(request, request_id=request_id)
+        return ProviderResponse(content=response.content, metadata=response.metadata)
+
+
+class PageAwareTeachingProvider(FakeLLMProvider):
+    """Return genuine page numbers from text-extractable PDF source units."""
+
+    def generate_lesson(self, request: TeachingRequest, *, request_id: str) -> ProviderResponse:
+        response = super().generate_lesson(request, request_id=request_id)
+        payload = dict(response.content)
+        page_number = next(
+            (unit.page_number for unit in request.source_units if unit.page_number is not None),
+            None,
+        )
+        if page_number is not None:
+            for key in ("sections", "interactive_checks"):
+                for item in payload[key]:
+                    for evidence in item["evidence"]:
+                        evidence["page_number"] = page_number
+        return ProviderResponse(content=payload, metadata=response.metadata)
+
+
 def blank_pdf() -> bytes:
     stream = BytesIO()
     writer = PdfWriter()
     writer.add_blank_page(width=320, height=240)
     writer.write(stream)
     return stream.getvalue()
+
+
+def _minimal_text_pdf(text: str) -> bytes:
+    """Create a tiny text-extractable PDF without requiring a font package."""
+    stream = f"BT /F1 12 Tf 20 100 Td ({text}) Tj ET".encode("ascii")
+    objects = [
+        b"<< /Type /Catalog /Pages 2 0 R >>",
+        b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        (
+            b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] "
+            b"/Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>"
+        ),
+        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+        b"<< /Length "
+        + str(len(stream)).encode("ascii")
+        + b" >>\nstream\n"
+        + stream
+        + b"\nendstream",
+    ]
+    pdf = bytearray(b"%PDF-1.4\n")
+    offsets = [0]
+    for index, body in enumerate(objects, start=1):
+        offsets.append(len(pdf))
+        pdf.extend(f"{index} 0 obj\n".encode("ascii"))
+        pdf.extend(body)
+        pdf.extend(b"\nendobj\n")
+    xref = len(pdf)
+    pdf.extend(f"xref\n0 {len(objects) + 1}\n".encode("ascii"))
+    pdf.extend(b"0000000000 65535 f \n")
+    for offset in offsets[1:]:
+        pdf.extend(f"{offset:010d} 00000 n \n".encode("ascii"))
+    pdf.extend(
+        (f"trailer\n<< /Size {len(objects) + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n").encode(
+            "ascii"
+        )
+    )
+    return bytes(pdf)
 
 
 def test_uploaded_material_becomes_a_persisted_lesson(tmp_path: Path) -> None:
@@ -184,6 +293,54 @@ def test_visual_teaching_can_use_image_only_pdf_without_text_extraction(
     assert provider.last_request.visual_pages[0].page_number == 1
     assert view.lesson.sources[0].excerpt == "原始 PDF 页面将通过视觉输入读取。"
     assert view.lesson.sections[0].evidence[0].page_number == 1
+    assert provider.last_request.source_units == ()
+
+
+def test_missing_evidence_can_be_repaired_without_rewriting_lesson(tmp_path: Path) -> None:
+    teaching, documents = service_for(tmp_path, provider=RepairingTeachingProvider())
+    document = documents.upload(
+        filename="topic.md", content="# 函数极限\n\n极限描述函数在某点附近的变化趋势。".encode()
+    )
+
+    lesson = teaching.generate_lesson(
+        topic="函数极限",
+        document_ids=(document.document_id,),
+        request_id="teaching-repair-1",
+    )
+
+    assert lesson.lesson.sections[0].evidence[0].quote.startswith("极限描述函数")
+    assert lesson.lesson.interactive_checks[0].evidence[0].document_id == document.document_id
+
+
+def test_abbreviated_real_provider_output_can_be_completed(tmp_path: Path) -> None:
+    teaching, documents = service_for(tmp_path, provider=CompletingTeachingProvider())
+    document = documents.upload(
+        filename="topic.md", content="# 函数极限\n\n极限描述函数在某点附近的变化趋势。".encode()
+    )
+
+    lesson = teaching.generate_lesson(
+        topic="函数极限",
+        document_ids=(document.document_id,),
+        request_id="teaching-completion-1",
+    )
+
+    assert len(lesson.lesson.sections) == 4
+    assert len(lesson.lesson.interactive_checks) == 2
+
+
+def test_text_pdf_page_evidence_is_accepted(tmp_path: Path) -> None:
+    teaching, documents = service_for(tmp_path, provider=PageAwareTeachingProvider())
+    document = documents.upload(
+        filename="topic.pdf", content=_minimal_text_pdf("function limits describe change")
+    )
+
+    lesson = teaching.generate_lesson(
+        topic="函数极限",
+        document_ids=(document.document_id,),
+        request_id="teaching-page-evidence-1",
+    )
+
+    assert lesson.lesson.sections[0].evidence[0].page_number == 1
 
 
 def test_teaching_requires_a_topic_and_a_source(tmp_path: Path) -> None:
