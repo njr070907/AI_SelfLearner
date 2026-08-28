@@ -7,6 +7,10 @@ from ai_growth_companion.config import Settings
 from ai_growth_companion.providers.base import QuestionRequest
 from ai_growth_companion.providers.deepseek_evaluation import DEEPSEEK_MODEL
 from ai_growth_companion.providers.fake import FakeScenario
+from ai_growth_companion.providers.ollama import (
+    OLLAMA_BALANCED_MODEL,
+    OLLAMA_QUALITY_MODEL,
+)
 
 
 def test_fake_factory_is_free_and_deterministic() -> None:
@@ -69,3 +73,17 @@ def test_deepseek_factory_rejects_unapproved_model() -> None:
 
     with pytest.raises(ValueError, match="must be exactly"):
         build_provider_factory(settings, paid_calls_allowed=True)
+
+
+def test_ollama_factory_routes_evaluation_to_quality_and_questions_to_balanced_model() -> None:
+    settings = Settings(
+        _env_file=None,
+        llm_provider="ollama",
+        llm_model=OLLAMA_QUALITY_MODEL,
+    )
+
+    provider = build_provider_factory(settings)(FakeScenario.PARTIAL)
+
+    assert provider.provider_name == "ollama"
+    assert provider.model_name == OLLAMA_QUALITY_MODEL
+    assert provider.question_model_name == OLLAMA_BALANCED_MODEL

@@ -75,6 +75,14 @@ def check_health(settings: Settings, database: Database) -> HealthReport:
             state=HealthState.HEALTHY,
             detail="Fake Provider 本地可用，不访问外部网络",
         )
+    elif settings.llm_provider.casefold() == "ollama":
+        dependency = ComponentHealth(
+            state=HealthState.HEALTHY,
+            detail=(
+                f"Ollama 本地 Provider 已配置（{settings.ollama_base_url}）；"
+                "应用不会自动发起模型调用"
+            ),
+        )
     elif (
         settings.llm_provider.casefold() == "deepseek"
         and settings.llm_model == DEEPSEEK_MODEL

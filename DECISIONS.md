@@ -95,3 +95,47 @@
 - 资料库文件管理与教学生成分成两个服务：`DocumentLibraryService` 负责文件 CRUD，`TeachingService` 负责提取文字、调用 Teaching Provider、校验 `TeachingLesson` 并保存来源引用。
 - 教学内容必须经过 `concept`、`mechanism`、`boundary`、`example` 四类结构化章节；Provider 只整理资料，不能直接写入掌握等级，后续仍由回答证据、Mastery Engine 和 Learning Policy 判断。
 - 默认 Fake Provider 生成确定性免费导学；真实模式只允许 `deepseek-v4-flash-vision-exp`，并且必须显式允许付费调用。扫描版 PDF 没有 OCR 支持，RAG/向量数据库留到 MVP 之后。
+
+## 2026-08-27 — 本地 Ollama 三模型按职责路由
+
+- 增加 `ollama` Provider 模式，默认通过 `http://127.0.0.1:11434/v1` 访问本机服务，不要求 API Key、不自动重试，也不把本地模型输出直接当作掌握结论。
+- `gpt-oss:20b` 负责来源约束的常规教学内容和回答证据提取；`qwen3.5:4b` 负责互动小题生成；`qwen3.5:0.8b` 写入配置，作为后续翻译、摘要和元数据等轻量任务的预留模型。
+- 扫描版或乱码 PDF 的视觉路径仍固定使用 `deepseek-v4-flash-vision-exp`，只有用户显式开启视觉模式并满足既有付费许可时才调用；本地文字教学不依赖该 Key。
+- 所有模型返回值继续经过本地 JSON 解析、既有 Pydantic Schema、Mastery Engine 和 Learning Policy；Provider 只提供证据，不能绕过确定性业务规则。
+
+## 2026-08-27 — 教学证据采用“先修复、再降级保存”
+
+- `TEACHING_SOURCE_EVIDENCE_INVALID` 不再作为正常课程生成的终止条件。教学服务先规范化自然语言页码、0/1 起始页码和资料分卷原始页码，再按分页原文和视觉页面集合匹配；Provider 只接受一次证据修复请求。
+- 无法完全核验的课程仍保存，并在课程 JSON 中记录 `grounding_status`：`verified`、`repaired`、`partial` 或 `draft`。UI 和学习报告明确显示状态，不把部分核验课程伪装成已核验课程。
+- Provider 超时、不可用、结构缩略、跑题或质量不足时，使用资料原文构造确定性的资料导读草稿并保存。真正阻止的范围收窄为：没有资料、资料不可读且无任何可用内容，或无法生成最低可用课程结构。
+
+## 2026-08-27 — 英文资料先翻译，原文仍是证据唯一来源
+
+- 在 Ollama 模式下，教学服务先用 `OLLAMA_FAST_MODEL`（默认 `qwen3.5:0.8b`）检测并分段翻译英文/中英混排 source units，再把中文译文和英文原文的双语上下文交给教学模型。
+- `TeachingSourceUnit.text` 始终保存原文，新增的 `translated_text` 只是理解辅助；章节和互动题的 `evidence.quote` 仍必须从原文逐字复制，页码继续绑定原始 source unit。
+- 翻译是 best-effort 派生步骤：单个片段失败、模型不可用或返回乱码时，课程继续使用英文原文生成，并在课程 JSON/UI 中记录 `translation_status`、模型名和失败片段数；不因翻译故障拒绝生成报告。
+- 翻译仅影响教学内容的可读性，不改变 Mastery Engine、Learning Policy 或长期掌握结论。
+- 上传/替换入口负责排队，教学生成入口只读取缓存：翻译任务使用进程级单线程执行器和原子 JSON 写入，避免 Streamlit rerun 丢失任务或让用户等待；缓存不存在/仍在运行时直接使用原文。
+
+## 2026-08-27 — 主题由 AI 提炼，用户只选择不手写
+
+- 学习页不再提供“填写主题”输入框。页面默认分析用户选定的资料，由 `TopicSuggestionProvider` 返回结构化候选（主题、摘要、关键概念、置信度），用户从下拉列表选择后再生成课程。
+- 主题候选按所选资料的 document ID、文件名和 SHA-256 形成缓存键，后台单线程生成，避免页面刷新丢失任务；已有本地 `TopicSourceSelector` 负责把选定主题映射到相关分卷，用户仍可调整最终来源范围。
+- 主题分析属于辅助能力，不得成为课程生成的硬阻塞：分析等待或模型失败时显示“临时主题”并允许继续生成，缓存完成后刷新即可使用 AI 候选；临时选项和英文主题标签都明确标注，不能伪装成 AI 结论。
+
+## 2026-08-27 — 教学字段强制中文但保留原文证据
+
+- `TeachingRequest.output_language` 固定为 `zh-CN`。Ollama/DeepSeek Prompt 和本地服务共同约束学习者可见字段使用简体中文，英文术语仅作为必要补充，`evidence.quote` 始终保留资料原文。
+- 服务端对完整课程做中文比例检查；不满足时只允许一次有界语言修复，仍失败则保存中文资料导读草稿。翻译缓存拒绝纯英文结果，避免错误标注为已翻译。
+
+## 2026-08-27 — 教学表单目标选择化与实时生成反馈
+
+- “学习目标”不再允许自由填写，改为有限的学习意图选项；其中“不指定（由 AI 自动安排）”映射为 `learning_goal=null`，其它选项映射为稳定的后端提示语，避免任意文本污染课程 Prompt。
+- 教学生成放入单线程后台任务，UI 每 0.5 秒更新进度条、已用时和预计剩余时长。估计值按 Provider 类型取保守上限（Fake 5 秒、Ollama 300 秒、远程 120 秒），超过后显示“仍在等待模型”，不伪造精确完成百分比，也不重复提交。
+
+## 2026-08-27 — 吸收 learn 的教学方法但不安装 `.pi`
+
+- 只吸收可迁移的教学思想：知识依赖、动机解释、从资料出发的发现路径、同构且包含真实误区的选择题，以及仅在结构更清楚时提出视觉化建议；不复制其 `.pi` 配置、运行时或子代理框架。
+- 新增 `LocalRoleAgentLayer`，将 planner、teacher、quiz designer、source reviewer、translator、visual planner 的职责显式化。planner 可调用本地 Qwen 平衡模型生成 `TeachingPlan`，应用层负责 Pydantic 校验、主题/资料边界清洗和失败回退。
+- `TeachingRequest` 携带已验证的 `TeachingPlan`；Ollama/DeepSeek 教学 Prompt 按依赖顺序组织常规讲解，并可填充 `why_it_matters`、`discovery_path`、`prerequisite_ids`。UI 以学习路线折叠区呈现计划，不把学习变成费曼答题流程。
+- 角色层是增强项而非硬依赖：planner 超时、离线或返回无效 JSON 时使用确定性四段路线，课程和报告仍按原流程保存；AI 只产生候选信息，来源证据、课程状态、掌握等级和下一步动作继续由后端决定。

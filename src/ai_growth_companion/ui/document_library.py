@@ -1,5 +1,6 @@
 """Streamlit page for the local document-library CRUD flow."""
 
+from collections.abc import Callable
 from html import escape
 
 import streamlit as st
@@ -8,10 +9,17 @@ from ai_growth_companion.application.document_library import (
     DocumentLibraryService,
     DocumentValidationError,
 )
+from ai_growth_companion.application.knowledge_extraction import decode_text_content
 from ai_growth_companion.application.models import DocumentView
 
+TranslationScheduler = Callable[[str], bool]
 
-def render_document_library(service: DocumentLibraryService) -> None:
+
+def render_document_library(
+    service: DocumentLibraryService,
+    *,
+    schedule_translation: TranslationScheduler | None = None,
+) -> None:
     """Render upload, list, download, rename, replacement and deletion controls."""
     st.markdown('<div class="eyebrow">资料库 · 你的学习材料</div>', unsafe_allow_html=True)
     st.markdown('<h1 class="hero-title">资料库</h1>', unsafe_allow_html=True)
@@ -38,6 +46,7 @@ def render_document_library(service: DocumentLibraryService) -> None:
         ):
             uploaded = 0
             split_count = 0
+            translation_count = 0
             for item in uploads:
                 try:
                     documents = service.upload_documents(
@@ -48,12 +57,26 @@ def render_document_library(service: DocumentLibraryService) -> None:
                     st.error(f"{item.name}：{error}")
                 else:
                     uploaded += 1
+                    if schedule_translation is not None:
+                        for document in documents:
+                            try:
+                                translation_count += schedule_translation(document.document_id)
+                            except Exception:
+                                # Translation is an optional background aid; upload
+                                # success must never be rolled back because a local
+                                # model is unavailable.
+                                continue
                     if len(documents) > 1:
                         split_count += len(documents)
                         st.info(f"{item.name} 超过 20 MB，已自动拆分为 {len(documents)} 个分卷。")
             if uploaded:
                 suffix = f"，其中自动拆分生成 {split_count} 个分卷" if split_count else ""
                 st.success(f"已上传 {uploaded} 个文件{suffix}。")
+                if translation_count:
+                    st.info(
+                        f"已将 {translation_count} 个英文资料分卷交给后台翻译；"
+                        "你可以先继续浏览资料库，生成课程时会优先使用已完成的中文译文。"
+                    )
 
     documents = service.list_documents()
     st.markdown('<div class="rule"></div>', unsafe_allow_html=True)
@@ -66,10 +89,19 @@ def render_document_library(service: DocumentLibraryService) -> None:
         return
 
     for document in documents:
-        _render_document(service, document)
+        _render_document(
+            service,
+            document,
+            schedule_translation=schedule_translation,
+        )
 
 
-def _render_document(service: DocumentLibraryService, document: DocumentView) -> None:
+def _render_document(
+    service: DocumentLibraryService,
+    document: DocumentView,
+    *,
+    schedule_translation: TranslationScheduler | None = None,
+) -> None:
     with st.container(border=True):
         header_left, header_right = st.columns([3, 1], vertical_alignment="center")
         header_left.markdown(
@@ -89,10 +121,17 @@ def _render_document(service: DocumentLibraryService, document: DocumentView) ->
                 preview_content = None
             if preview_content is not None:
                 with st.expander("查看文本预览"):
-                    preview = preview_content[:20_000].decode("utf-8", errors="replace")
-                    st.code(preview, language="markdown" if document.extension != ".txt" else None)
-                    if len(preview_content) > 20_000:
-                        st.caption("预览已截取前 20,000 个字节，下载文件可查看完整内容。")
+                    try:
+                        preview = decode_text_content(preview_content)[:20_000]
+                    except DocumentValidationError as error:
+                        st.error(f"该文本资料无法安全预览：{error}")
+                    else:
+                        st.code(
+                            preview,
+                            language="markdown" if document.extension != ".txt" else None,
+                        )
+                        if len(preview) >= 20_000:
+                            st.caption("预览已截取前 20,000 个字符，下载文件可查看完整内容。")
 
         col_main_left, col_main_right, col_ops = st.columns([1, 1, 0.4])
 
@@ -123,6 +162,12 @@ def _render_document(service: DocumentLibraryService, document: DocumentView) ->
                 except (DocumentValidationError, LookupError) as error:
                     st.error(str(error))
                 else:
+                    if schedule_translation is not None:
+                        for document in documents:
+                            try:
+                                schedule_translation(document.document_id)
+                            except Exception:
+                                continue
                     if len(documents) > 1:
                         st.info(f"替换内容超过 20 MB，已自动拆分为 {len(documents)} 个分卷。")
                     st.success("资料内容已替换。")

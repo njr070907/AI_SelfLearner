@@ -7,9 +7,13 @@ from uuid import uuid4
 
 import streamlit as st
 
-from ai_growth_companion.application.document_library import DocumentLibraryService
+from ai_growth_companion.application.document_library import (
+    DocumentLibraryService,
+    DocumentValidationError,
+)
 from ai_growth_companion.application.export_service import ExportArtifact, UserExportService
 from ai_growth_companion.application.health import HealthReport, HealthState
+from ai_growth_companion.application.knowledge_extraction import decode_text_content
 from ai_growth_companion.application.learning_service import LearningService
 from ai_growth_companion.application.models import DiagnosisView, HistoryItem, WorkspaceSnapshot
 from ai_growth_companion.application.teaching_service import TeachingService
@@ -48,6 +52,25 @@ FAKE_SCENARIO_OPTIONS = tuple(SCENARIO_LABELS)
 DEFAULT_FAKE_SCENARIO_INDEX = FAKE_SCENARIO_OPTIONS.index(FakeScenario.PARTIAL)
 
 
+def _provider_label(settings: Settings) -> str:
+    """Return the user-facing label for the configured provider mode."""
+    provider = settings.llm_provider.casefold()
+    if settings.is_fake_mode:
+        return "Fake Provider"
+    if provider == "ollama":
+        return "Ollama Provider"
+    return "DeepSeek Provider"
+
+
+def _provider_detail(settings: Settings) -> str:
+    """Return a short sidebar detail without exposing credentials."""
+    if settings.is_fake_mode:
+        return "本地模式 · 零 API 费用"
+    if settings.llm_provider.casefold() == "ollama":
+        return "本地模型 · 零 API 费用"
+    return "固定模型 · 按次调用"
+
+
 def render_application(
     service: LearningService,
     *,
@@ -62,8 +85,8 @@ def render_application(
     preferences = current_preferences()
     apply_design_system(preferences)
     page = str(st.session_state.active_page)
-    provider_label = "Fake Provider" if settings.is_fake_mode else "DeepSeek Provider"
-    provider_detail = "本地模式 · 零 API 费用" if settings.is_fake_mode else "固定模型 · 按次调用"
+    provider_label = _provider_label(settings)
+    provider_detail = _provider_detail(settings)
     render_sidebar(
         preferences=preferences,
         active_page=page,
@@ -130,7 +153,14 @@ def render_application(
             if document_library is None:
                 st.error("资料库服务尚未配置。")
             else:
-                render_document_library(document_library)
+                render_document_library(
+                    document_library,
+                    schedule_translation=(
+                        teaching_service.schedule_translation
+                        if teaching_service is not None
+                        else None
+                    ),
+                )
         elif page == "错题":
             render_mistake_notebook(
                 service,
@@ -325,6 +355,12 @@ def _render_learning_flow(
                     format_func=SCENARIO_LABELS.__getitem__,
                     help="只控制本地 Fake Provider 的固定返回，不会访问任何真实模型。",
                 )
+        elif settings.llm_provider.casefold() == "ollama":
+            st.caption(
+                "当前使用 Ollama 本地模型进行结构化证据提取；教学/证据默认使用 "
+                f"{settings.llm_model}，互动题使用 Qwen 4B。不会显示 Fake 场景，"
+                "不会访问外部模型，也不会自动重试。"
+            )
         else:
             st.caption(
                 "当前使用 DeepSeek `deepseek-v4-flash-vision-exp` 进行结构化证据提取；"
@@ -438,9 +474,14 @@ def _render_pre_study(
                         st.error(str(error))
                     else:
                         if document.extension in {".md", ".markdown", ".txt"}:
-                            st.markdown(content[:20_000].decode("utf-8", errors="replace"))
-                            if len(content) > 20_000:
-                                st.caption("预览已截取前 20,000 个字节。")
+                            try:
+                                preview = decode_text_content(content)[:20_000]
+                            except DocumentValidationError as error:
+                                st.error(f"该文本资料无法安全预览：{error}")
+                            else:
+                                st.markdown(preview)
+                                if len(preview) >= 20_000:
+                                    st.caption("预览已截取前 20,000 个字符。")
                         else:
                             st.info("PDF 当前可下载阅读，系统暂不自动解析 PDF 内容。")
                             st.download_button(
@@ -721,6 +762,11 @@ def _render_result_actions(
                 index=DEFAULT_FAKE_SCENARIO_INDEX,
                 format_func=SCENARIO_LABELS.__getitem__,
             )
+        elif settings.llm_provider.casefold() == "ollama":
+            st.caption(
+                "本次重试仍使用 Ollama 本地模型；系统不会自动重试，"
+                "只有你点击下面的按钮才会再次请求。"
+            )
         else:
             st.caption(
                 "真实模式重试仍使用固定 DeepSeek 模型；系统不会自动重试，"
@@ -926,7 +972,7 @@ def _render_system_status(
         unsafe_allow_html=True,
     )
 
-    provider_label = "Fake Provider" if settings.is_fake_mode else "DeepSeek Provider"
+    provider_label = _provider_label(settings)
     states = (
         ("应用进程", health_report.liveness.detail, health_report.liveness.state),
         ("SQLite 数据库", health_report.readiness.detail, health_report.readiness.state),
@@ -962,6 +1008,11 @@ def _render_system_status(
     )
     if settings.is_fake_mode:
         st.caption("当前仅使用 Fake Provider，不访问外部模型，不产生 API 费用。")
+    elif settings.llm_provider.casefold() == "ollama":
+        st.caption(
+            "当前使用 Ollama 本地模型；GPT-OSS 负责教学与证据，Qwen 4B 负责互动题，"
+            "Qwen 0.8B 为轻量辅助预留。文字链路不产生 API 费用，系统不会自动重试。"
+        )
     else:
         st.caption(
             "当前使用固定 DeepSeek 模型进行证据提取；每次调用都由你的提交操作触发，"

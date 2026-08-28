@@ -189,6 +189,65 @@ Provider 选择由后端工厂统一控制：Fake 模式免费且默认；真实
 
 复测会保存 `retest_submitted` 和 `review_scheduled` 事件。复测结果是调度证据，不会绕过 Mastery Engine 直接把概念永久标记为掌握。
 
+## 10.3 常规教学与英文资料翻译
+
+教学服务接收用户确认的 `document_ids`，先在本地提取分页/片段级 `source_units`。资料库上传或替换成功后，应用会调用 `schedule_translation()` 把英文/中英混排分卷放入单线程后台队列；结果按文件 SHA-256 写入本地派生缓存，Streamlit 页面刷新不会让已完成的翻译丢失。Ollama 模式会用 `OLLAMA_FAST_MODEL` 自动检测并分段翻译；生成课程时优先使用缓存，若翻译仍在进行则直接使用原文，不等待、不阻塞保存。`TeachingSourceUnit.text` 保留原文，`translated_text` 只作为中文教学模型的理解辅助。课程生成仍要求 `evidence.quote` 从原文逐字复制，页码绑定原始 source unit。
+
+翻译属于可选的派生步骤，不新增阻塞错误：模型不可用、超时、返回乱码或单个片段失败时，服务以英文原文继续生成，并在 `TeachingLesson` 中返回 `translation_status`（`not_needed`、`translated`、`fallback_original`）、`translation_model`、成功/失败片段数。前端只展示该状态，不自行重试或修改来源证据。默认翻译超时为 60 秒，避免 CPU-only 环境长时间阻塞课程/报告生成。
+
+### 10.4 AI 主题候选与自动分卷推荐
+
+学习页通过 `TeachingService.get_topic_suggestions(document_ids)` 获取主题候选，不再要求客户端让用户手写主题。服务先读取并提取所选资料，使用资料内容签名查找本地缓存；没有缓存时提交后台 `TopicSuggestionProvider` 任务并返回 `status=pending`。候选结构为：
+
+```json
+{
+  "status": "ready",
+  "model_name": "qwen3.5:4b",
+  "suggestions": [
+    {
+      "suggestion_id": "stable-id",
+      "title": "函数极限的定义",
+      "summary": "理解函数在某点附近趋近的含义。",
+      "key_concepts": ["极限", "趋近"],
+      "confidence": "high",
+      "source_document_ids": ["document-id"]
+    }
+  ]
+}
+```
+
+`status` 可以是 `pending`、`ready`、`fallback` 或 `unavailable`。`pending`/`fallback` 时服务仍返回明确标注的临时候选，客户端不得因此阻塞课程保存。客户端将用户选中的 `title` 传给 `TeachingService.recommend_sources(topic, document_ids, limit)`；该服务返回置信度、命中词、页码/分卷范围和最终 document IDs，客户端只负责展示和允许调整，不能自行计算匹配分数或直接访问 SQL。
+
+主题 Provider 的学习者可见字段默认必须是简体中文；如果模型返回英文，应用层会为标签加中文保护前缀并保留技术原词。主题候选只用于选题和选源，不写入掌握状态，也不能替代课程生成后的来源证据校验。
+
+常规教学表单的 `learning_goal` 也采用有限预设值（概念、机制、边界、例子、综合迁移或 `null` 由 AI 自动安排），不接受自由文本输入。提交生成后，Streamlit UI 在后台线程轮询任务并每约 0.5 秒更新已用时间和预计剩余时间；该倒计时是按 Provider 类型给出的保守估计，不改变服务端生成或保存契约。
+
+### 10.5 本地角色代理与教学路线
+
+教学服务在调用主要 Teaching Provider 前，会把分页资料交给可选的本地 planner 角色，输入类型为 `TeachingPlanRequest`，输出经过 Pydantic 校验的 `TeachingPlan`：
+
+```json
+{
+  "schema_version": "teaching-plan-v0.1",
+  "topic": "函数极限",
+  "core_truths": ["资料明确支持的核心事实"],
+  "nodes": [
+    {
+      "node_id": "concept",
+      "title": "核心概念",
+      "purpose": "为什么现在学",
+      "prerequisites": [],
+      "discovery_prompt": "如何从资料发现这个概念",
+      "source_document_ids": ["document-id"]
+    }
+  ],
+  "dependencies": [{"from_node": "concept", "to_node": "mechanism"}],
+  "visual_intent": "none"
+}
+```
+
+`TeachingRequest.teaching_plan` 只携带已验证路线，不携带掌握等级或最终结论。Ollama/DeepSeek 教学 Provider 据此生成常规章节，并可返回 `why_it_matters`、`discovery_path`、`prerequisite_ids`；选择题要求选项同层级、长度相近且错误项对应真实误区。`LocalRoleAgentLayer` 同时记录 teacher、quiz designer、source reviewer、translator 和 visual planner 的职责，但不启动 `.pi`、隐藏子代理或无限循环。planner 失败时使用确定性四段路线，课程仍继续生成；证据校验、课程状态、Mastery Engine 和 Learning Policy 仍由应用层负责。
+
 ## 11. 错误格式
 
 ```json

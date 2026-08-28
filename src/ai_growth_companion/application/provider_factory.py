@@ -14,6 +14,11 @@ from ai_growth_companion.providers.deepseek_evaluation import (
     DeepSeekEvaluationProvider,
 )
 from ai_growth_companion.providers.fake import FakeLLMProvider, FakeScenario
+from ai_growth_companion.providers.ollama import (
+    OllamaEvaluationProvider,
+    OllamaInteractiveProvider,
+    OllamaQuestionProvider,
+)
 
 ApplicationProviderFactory = Callable[[FakeScenario], LLMProvider]
 
@@ -64,8 +69,30 @@ def build_provider_factory(
             raise ValueError("Fake mode cannot enable paid Provider calls")
         return lambda scenario: FakeLLMProvider(scenario)
 
+    if provider == "ollama":
+        quality_model = (
+            settings.ollama_quality_model
+            if settings.llm_model.casefold().startswith("fake")
+            else settings.llm_model
+        )
+        ollama_evaluator = OllamaEvaluationProvider(
+            model=quality_model,
+            base_url=settings.ollama_base_url,
+            timeout_seconds=settings.ollama_timeout_seconds,
+            max_output_tokens=max_output_tokens,
+            prompt_version=prompt_version,
+        )
+        questioner = OllamaQuestionProvider(
+            model=settings.ollama_balanced_model,
+            base_url=settings.ollama_base_url,
+            timeout_seconds=settings.ollama_timeout_seconds,
+            max_output_tokens=800,
+        )
+        interactive = OllamaInteractiveProvider(ollama_evaluator, questioner)
+        return lambda _scenario: interactive
+
     if provider != "deepseek":
-        raise ValueError("Interactive MVP supports only fake or deepseek Provider mode")
+        raise ValueError("Interactive MVP supports only fake, ollama, or deepseek Provider mode")
     if not paid_calls_allowed:
         raise ValueError("DeepSeek mode requires explicit paid-call permission")
     if settings.llm_api_key is None:
@@ -73,11 +100,11 @@ def build_provider_factory(
     if settings.llm_model != DEEPSEEK_MODEL:
         raise ValueError(f"DeepSeek model must be exactly {DEEPSEEK_MODEL}")
 
-    evaluator = DeepSeekEvaluationProvider(
+    deepseek_evaluator = DeepSeekEvaluationProvider(
         api_key=settings.llm_api_key.get_secret_value(),
         model=DEEPSEEK_MODEL,
         timeout_seconds=settings.llm_timeout_seconds,
         max_output_tokens=max_output_tokens,
         prompt_version=prompt_version,
     )
-    return lambda _scenario: DeepSeekInteractiveProvider(evaluator)
+    return lambda _scenario: DeepSeekInteractiveProvider(deepseek_evaluator)

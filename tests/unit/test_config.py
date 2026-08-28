@@ -20,6 +20,16 @@ def test_external_provider_requires_api_key() -> None:
         Settings(_env_file=None, llm_provider="external", llm_api_key=None)
 
 
+def test_ollama_provider_does_not_require_an_api_key() -> None:
+    settings = Settings(_env_file=None, llm_provider="ollama", llm_model="gpt-oss:20b")
+
+    assert settings.llm_api_key is None
+    assert settings.ollama_quality_model == "gpt-oss:20b"
+    assert settings.ollama_balanced_model == "qwen3.5:4b"
+    assert settings.ollama_fast_model == "qwen3.5:0.8b"
+    assert settings.ollama_translation_timeout_seconds == 60
+
+
 def test_production_rejects_content_logging() -> None:
     with pytest.raises(ValidationError, match="LOG_CONTENT_ENABLED must be false"):
         Settings(_env_file=None, app_env="production", log_content_enabled=True)

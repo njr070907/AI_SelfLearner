@@ -60,6 +60,19 @@ def test_chinese_topic_uses_small_explicit_alias_set(tmp_path: Path) -> None:
     assert "eigenvalue" in result.matches[0].matched_terms
 
 
+def test_recommendation_supports_common_legacy_text_encoding(tmp_path: Path) -> None:
+    selector, documents = selector_for(tmp_path)
+    limits = documents.upload(
+        filename="legacy-limits.txt",
+        content="函数极限描述函数在某点附近的变化趋势".encode("gb18030"),
+    )
+
+    result = selector.recommend(topic="函数极限")
+
+    assert result.selected_document_ids == (limits.document_id,)
+    assert result.confidence == "high"
+
+
 def test_recommendation_can_be_restricted_to_manual_source_scope(tmp_path: Path) -> None:
     selector, documents = selector_for(tmp_path)
     limits = documents.upload(filename="limits.txt", content=b"The limit of a function exists.")

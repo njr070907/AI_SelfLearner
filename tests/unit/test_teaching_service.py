@@ -1,12 +1,18 @@
 """Tests for generated, source-traceable teaching lessons."""
 
+from io import BytesIO
 from pathlib import Path
 
 import pytest
+from pypdf import PdfWriter
 
 from ai_growth_companion.application.document_library import DocumentLibraryService
 from ai_growth_companion.application.teaching_service import TeachingInputError, TeachingService
-from ai_growth_companion.providers.base import ProviderError, ProviderResponse, TeachingRequest
+from ai_growth_companion.providers.base import (
+    ProviderError,
+    ProviderResponse,
+    TeachingRequest,
+)
 from ai_growth_companion.providers.fake import FakeLLMProvider
 from ai_growth_companion.repositories.database import Database, run_migrations
 from ai_growth_companion.repositories.document_repository import SQLiteDocumentRepository
@@ -45,6 +51,23 @@ class UnrelatedTeachingProvider(FakeLLMProvider):
         return ProviderResponse(content=payload, metadata=response.metadata)
 
 
+class UngroundedTeachingProvider(FakeLLMProvider):
+    """Return a structurally valid lesson without chapter-level source proof."""
+
+    def generate_lesson(self, request: TeachingRequest, *, request_id: str) -> ProviderResponse:
+        response = super().generate_lesson(request, request_id=request_id)
+        payload = dict(response.content)
+        payload["sections"] = [
+            {key: value for key, value in section.items() if key != "evidence"}
+            for section in payload["sections"]
+        ]
+        payload["interactive_checks"] = [
+            {key: value for key, value in check.items() if key != "evidence"}
+            for check in payload["interactive_checks"]
+        ]
+        return ProviderResponse(content=payload, metadata=response.metadata)
+
+
 class AlternateTeachingProvider(FakeLLMProvider):
     """Emit common DeepSeek field variants to exercise service normalization."""
 
@@ -79,6 +102,198 @@ class PositionalSectionTeachingProvider(FakeLLMProvider):
         return ProviderResponse(content=payload, metadata=response.metadata)
 
 
+class CapturingTeachingProvider(FakeLLMProvider):
+    """Keep the request so the visual teaching path can be checked offline."""
+
+    supports_vision = True
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.last_request: TeachingRequest | None = None
+
+    def generate_lesson(self, request: TeachingRequest, *, request_id: str) -> ProviderResponse:
+        self.last_request = request
+        return super().generate_lesson(request, request_id=request_id)
+
+
+class RepairingTeachingProvider(UngroundedTeachingProvider):
+    """Simulate a real Provider that can fill only omitted evidence fields."""
+
+    def repair_lesson_evidence(
+        self,
+        request: TeachingRequest,
+        lesson_content: dict[str, object],
+        *,
+        request_id: str,
+    ) -> ProviderResponse:
+        del lesson_content
+        evidence = {
+            "document_id": request.sources[0][0],
+            "quote": "极限描述函数在某点附近的变化趋势。",
+        }
+        return ProviderResponse(
+            content={
+                "sections": [{"evidence": [evidence]} for _ in range(4)],
+                "interactive_checks": [{"evidence": [evidence]} for _ in range(2)],
+            },
+            metadata=self._metadata(
+                request_id=request_id,
+                prompt_version="test-evidence-repair",
+                schema_version="teaching-lesson-v0.2",
+            ),
+        )
+
+
+class CompletingTeachingProvider(FakeLLMProvider):
+    """Simulate a model that first returns a short draft, then completes it."""
+
+    def generate_lesson(self, request: TeachingRequest, *, request_id: str) -> ProviderResponse:
+        response = super().generate_lesson(request, request_id=request_id)
+        payload = dict(response.content)
+        payload.pop("sections", None)
+        payload.pop("interactive_checks", None)
+        return ProviderResponse(content=payload, metadata=response.metadata)
+
+    def complete_lesson(
+        self,
+        request: TeachingRequest,
+        lesson_content: dict[str, object],
+        *,
+        request_id: str,
+    ) -> ProviderResponse:
+        del lesson_content
+        response = super().generate_lesson(request, request_id=request_id)
+        return ProviderResponse(content=response.content, metadata=response.metadata)
+
+
+class EnglishFirstTeachingProvider(FakeLLMProvider):
+    """Simulate a model that ignores the requested Chinese output once."""
+
+    def generate_lesson(self, request: TeachingRequest, *, request_id: str) -> ProviderResponse:
+        response = super().generate_lesson(request, request_id=request_id)
+        payload = dict(response.content)
+        payload.update(
+            {
+                "title": "Function limits course",
+                "summary": "This lesson explains how a function approaches a value.",
+                "learning_objectives": [
+                    "Explain the definition of a function limit",
+                    "Check the conditions and use a new example",
+                ],
+                "check_questions": [
+                    "What does a function limit describe?",
+                    "When should the usual method not be used?",
+                ],
+            }
+        )
+        for section in payload["sections"]:
+            section["title"] = "Understand the concept"
+            section["explanation"] = "This explanation is intentionally in English."
+            section["key_points"] = ["definition", "mechanism"]
+            section["example"] = "Apply the idea to a new example."
+        for check in payload["interactive_checks"]:
+            check["prompt"] = "Choose the correct interpretation."
+            check["options"] = ["The first option", "The second option"]
+            check["correct_answer"] = "The first option"
+            check["explanation"] = "The first option matches the concept."
+        return ProviderResponse(content=payload, metadata=response.metadata)
+
+    def complete_lesson(
+        self,
+        request: TeachingRequest,
+        lesson_content: dict[str, object],
+        *,
+        request_id: str,
+    ) -> ProviderResponse:
+        del lesson_content
+        response = super().generate_lesson(request, request_id=request_id)
+        return ProviderResponse(content=response.content, metadata=response.metadata)
+
+
+class PageAwareTeachingProvider(FakeLLMProvider):
+    """Return genuine page numbers from text-extractable PDF source units."""
+
+    def generate_lesson(self, request: TeachingRequest, *, request_id: str) -> ProviderResponse:
+        response = super().generate_lesson(request, request_id=request_id)
+        payload = dict(response.content)
+        page_number = next(
+            (unit.page_number for unit in request.source_units if unit.page_number is not None),
+            None,
+        )
+        if page_number is not None:
+            for key in ("sections", "interactive_checks"):
+                for item in payload[key]:
+                    for evidence in item["evidence"]:
+                        evidence["page_number"] = page_number
+        return ProviderResponse(content=payload, metadata=response.metadata)
+
+
+class InvalidVisualEvidenceProvider(CapturingTeachingProvider):
+    """Return a visual lesson with an original-book page instead of a split-page number."""
+
+    def generate_lesson(self, request: TeachingRequest, *, request_id: str) -> ProviderResponse:
+        response = super().generate_lesson(request, request_id=request_id)
+        payload = dict(response.content)
+        for key in ("sections", "interactive_checks"):
+            for item in payload[key]:
+                for evidence in item["evidence"]:
+                    evidence["page_number"] = 1651
+        return ProviderResponse(content=payload, metadata=response.metadata)
+
+
+class FailingTeachingProvider(FakeLLMProvider):
+    """Simulate a provider outage while keeping the local source readable."""
+
+    def generate_lesson(self, request: TeachingRequest, *, request_id: str) -> ProviderResponse:
+        del request, request_id
+        raise ProviderError("provider unavailable", code="LLM_UNAVAILABLE", retryable=True)
+
+
+def blank_pdf() -> bytes:
+    stream = BytesIO()
+    writer = PdfWriter()
+    writer.add_blank_page(width=320, height=240)
+    writer.write(stream)
+    return stream.getvalue()
+
+
+def _minimal_text_pdf(text: str) -> bytes:
+    """Create a tiny text-extractable PDF without requiring a font package."""
+    stream = f"BT /F1 12 Tf 20 100 Td ({text}) Tj ET".encode("ascii")
+    objects = [
+        b"<< /Type /Catalog /Pages 2 0 R >>",
+        b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        (
+            b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] "
+            b"/Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>"
+        ),
+        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+        b"<< /Length "
+        + str(len(stream)).encode("ascii")
+        + b" >>\nstream\n"
+        + stream
+        + b"\nendstream",
+    ]
+    pdf = bytearray(b"%PDF-1.4\n")
+    offsets = [0]
+    for index, body in enumerate(objects, start=1):
+        offsets.append(len(pdf))
+        pdf.extend(f"{index} 0 obj\n".encode("ascii"))
+        pdf.extend(body)
+        pdf.extend(b"\nendobj\n")
+    xref = len(pdf)
+    pdf.extend(f"xref\n0 {len(objects) + 1}\n".encode("ascii"))
+    pdf.extend(b"0000000000 65535 f \n")
+    for offset in offsets[1:]:
+        pdf.extend(f"{offset:010d} 00000 n \n".encode("ascii"))
+    pdf.extend(
+        (f"trailer\n<< /Size {len(objects) + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n").encode(
+            "ascii"
+        )
+    )
+    return bytes(pdf)
+
+
 def test_uploaded_material_becomes_a_persisted_lesson(tmp_path: Path) -> None:
     teaching, documents = service_for(tmp_path)
     document = documents.upload(
@@ -102,6 +317,15 @@ def test_uploaded_material_becomes_a_persisted_lesson(tmp_path: Path) -> None:
         "example",
     }
     assert len(view.lesson.interactive_checks) == 2
+    assert view.lesson.teaching_plan is not None
+    assert [node.node_id for node in view.lesson.teaching_plan.nodes] == [
+        "concept",
+        "mechanism",
+        "boundary",
+        "example",
+    ]
+    assert view.lesson.sections[0].why_it_matters
+    assert view.lesson.sections[0].discovery_path
     assert (
         view.lesson.interactive_checks[0].correct_answer
         in view.lesson.interactive_checks[0].options
@@ -114,12 +338,136 @@ def test_uploaded_material_becomes_a_persisted_lesson(tmp_path: Path) -> None:
     assert source_fact in view.lesson.sections[0].explanation
     assert source_fact in view.lesson.sections[2].explanation
     assert source_fact in view.lesson.interactive_checks[0].explanation
+    assert source_fact in view.lesson.sections[0].evidence[0].quote
+    assert source_fact in view.lesson.interactive_checks[0].evidence[0].quote
     assert teaching.get_lesson(view.lesson_id).lesson == view.lesson
     assert len(teaching.list_lessons()) == 1
 
     documents.delete(document.document_id)
     assert teaching.get_lesson(view.lesson_id).lesson == view.lesson
     assert teaching.get_lesson(view.lesson_id).source_documents == ()
+
+
+def test_visual_teaching_can_use_image_only_pdf_without_text_extraction(
+    tmp_path: Path,
+) -> None:
+    provider = CapturingTeachingProvider()
+    teaching, documents = service_for(tmp_path, provider=provider)
+    document = documents.upload(filename="扫描教材.pdf", content=blank_pdf())
+
+    view = teaching.generate_lesson(
+        topic="函数极限",
+        document_ids=(document.document_id,),
+        request_id="teaching-vision-service-1",
+        use_vision=True,
+    )
+
+    assert provider.last_request is not None
+    assert len(provider.last_request.visual_pages) == 1
+    assert provider.last_request.visual_pages[0].page_number == 1
+    assert view.lesson.sources[0].excerpt == "原始 PDF 页面将通过视觉输入读取。"
+    assert view.lesson.sections[0].evidence[0].page_number == 1
+    assert provider.last_request.source_units == ()
+
+
+def test_visual_split_page_is_reconciled_and_saved(tmp_path: Path) -> None:
+    provider = InvalidVisualEvidenceProvider()
+    teaching, documents = service_for(tmp_path, provider=provider)
+    document = documents.upload(
+        filename="Calculus_part_12_pages_1651-1651.pdf", content=blank_pdf()
+    )
+
+    lesson = teaching.generate_lesson(
+        topic="函数极限",
+        document_ids=(document.document_id,),
+        request_id="teaching-vision-page-repair-1",
+        use_vision=True,
+    )
+
+    assert lesson.lesson.grounding_status in {"repaired", "partial"}
+    assert lesson.lesson.sections[0].evidence[0].page_number == 1
+
+
+def test_provider_failure_saves_a_local_draft(tmp_path: Path) -> None:
+    teaching, documents = service_for(tmp_path, provider=FailingTeachingProvider())
+    document = documents.upload(
+        filename="topic.md", content="# 函数极限\n\n极限描述函数在某点附近的变化趋势。".encode()
+    )
+
+    lesson = teaching.generate_lesson(
+        topic="函数极限",
+        document_ids=(document.document_id,),
+        request_id="teaching-provider-fallback-1",
+    )
+
+    assert lesson.lesson.grounding_status == "draft"
+    assert any("LLM_UNAVAILABLE" in issue for issue in lesson.lesson.grounding_issues)
+    assert len(lesson.lesson.sections) == 4
+    assert len(lesson.lesson.interactive_checks) == 2
+
+
+def test_missing_evidence_can_be_repaired_without_rewriting_lesson(tmp_path: Path) -> None:
+    teaching, documents = service_for(tmp_path, provider=RepairingTeachingProvider())
+    document = documents.upload(
+        filename="topic.md", content="# 函数极限\n\n极限描述函数在某点附近的变化趋势。".encode()
+    )
+
+    lesson = teaching.generate_lesson(
+        topic="函数极限",
+        document_ids=(document.document_id,),
+        request_id="teaching-repair-1",
+    )
+
+    assert lesson.lesson.sections[0].evidence[0].quote.startswith("极限描述函数")
+    assert lesson.lesson.interactive_checks[0].evidence[0].document_id == document.document_id
+
+
+def test_abbreviated_real_provider_output_can_be_completed(tmp_path: Path) -> None:
+    teaching, documents = service_for(tmp_path, provider=CompletingTeachingProvider())
+    document = documents.upload(
+        filename="topic.md", content="# 函数极限\n\n极限描述函数在某点附近的变化趋势。".encode()
+    )
+
+    lesson = teaching.generate_lesson(
+        topic="函数极限",
+        document_ids=(document.document_id,),
+        request_id="teaching-completion-1",
+    )
+
+    assert len(lesson.lesson.sections) == 4
+    assert len(lesson.lesson.interactive_checks) == 2
+
+
+def test_english_provider_output_gets_one_bounded_chinese_repair(tmp_path: Path) -> None:
+    teaching, documents = service_for(tmp_path, provider=EnglishFirstTeachingProvider())
+    document = documents.upload(
+        filename="topic.md",
+        content=b"# Function limits\n\nFunction limits describe change near a point.",
+    )
+
+    lesson = teaching.generate_lesson(
+        topic="函数极限",
+        document_ids=(document.document_id,),
+        request_id="teaching-language-repair-1",
+    )
+
+    assert lesson.lesson.title == "函数极限：从材料到理解"
+    assert TeachingService._has_chinese_prose(lesson.lesson)
+
+
+def test_text_pdf_page_evidence_is_accepted(tmp_path: Path) -> None:
+    teaching, documents = service_for(tmp_path, provider=PageAwareTeachingProvider())
+    document = documents.upload(
+        filename="topic.pdf", content=_minimal_text_pdf("function limits describe change")
+    )
+
+    lesson = teaching.generate_lesson(
+        topic="函数极限",
+        document_ids=(document.document_id,),
+        request_id="teaching-page-evidence-1",
+    )
+
+    assert lesson.lesson.sections[0].evidence[0].page_number == 1
 
 
 def test_teaching_requires_a_topic_and_a_source(tmp_path: Path) -> None:
@@ -132,7 +480,7 @@ def test_teaching_requires_a_topic_and_a_source(tmp_path: Path) -> None:
         teaching.generate_lesson(topic="函数极限", document_ids=(), request_id="teaching-test-3")
 
 
-def test_teaching_rejects_obviously_unrelated_provider_content(tmp_path: Path) -> None:
+def test_teaching_saves_a_draft_for_obviously_unrelated_provider_content(tmp_path: Path) -> None:
     _default_teaching, documents = service_for(tmp_path)
     database = Database(f"sqlite:///{(tmp_path / 'unrelated.db').as_posix()}")
     run_migrations(database)
@@ -146,13 +494,28 @@ def test_teaching_rejects_obviously_unrelated_provider_content(tmp_path: Path) -
         filename="topic.md", content="# 函数极限\n\n极限描述变化趋势。".encode()
     )
 
-    with pytest.raises(ProviderError, match="unrelated|not relevant|不相关") as captured:
-        teaching.generate_lesson(
-            topic="函数极限",
-            document_ids=(document.document_id,),
-            request_id="teaching-unrelated-1",
-        )
-    assert captured.value.code == "TEACHING_CONTENT_NOT_RELEVANT"
+    lesson = teaching.generate_lesson(
+        topic="函数极限",
+        document_ids=(document.document_id,),
+        request_id="teaching-unrelated-1",
+    )
+    assert lesson.lesson.grounding_status == "draft"
+    assert any("跑题" in issue for issue in lesson.lesson.grounding_issues)
+
+
+def test_teaching_repairs_structured_content_without_source_evidence(tmp_path: Path) -> None:
+    teaching, documents = service_for(tmp_path, provider=UngroundedTeachingProvider())
+    document = documents.upload(
+        filename="topic.md", content="# 函数极限\n\n极限描述变化趋势。".encode()
+    )
+
+    lesson = teaching.generate_lesson(
+        topic="函数极限",
+        document_ids=(document.document_id,),
+        request_id="teaching-ungrounded-1",
+    )
+    assert lesson.lesson.grounding_status == "repaired"
+    assert lesson.lesson.sections[0].evidence
 
 
 def test_teaching_normalizes_common_provider_field_variants(tmp_path: Path) -> None:
@@ -265,3 +628,6 @@ def test_lesson_activity_progress_is_persisted_and_idempotent(tmp_path: Path) ->
     assert report.completion_rate == 100
     assert report.accuracy == 50
     assert report.source_document_count == 1
+    assert report.verified_lesson_count == 1
+    assert report.partial_lesson_count == 0
+    assert report.draft_lesson_count == 0

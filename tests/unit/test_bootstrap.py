@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from ai_growth_companion.application.bootstrap import build_learning_service
+from ai_growth_companion.application.bootstrap import build_learning_service, build_teaching_service
 from ai_growth_companion.config import Settings
 from ai_growth_companion.providers.deepseek_evaluation import DEEPSEEK_MODEL
 from ai_growth_companion.providers.fake import FakeScenario
@@ -51,3 +51,23 @@ def test_bootstrap_constructs_deepseek_mode_only_with_fixed_model_and_permission
     service = build_learning_service(database, settings)
 
     assert service.provider_factory(FakeScenario.PARTIAL).provider_name == "deepseek"
+
+
+def test_bootstrap_constructs_ollama_mode_without_an_api_key(tmp_path: Path) -> None:
+    database = Database(f"sqlite:///{(tmp_path / 'bootstrap-ollama.db').as_posix()}")
+    run_migrations(database)
+    settings = Settings(
+        _env_file=None,
+        llm_provider="ollama",
+        llm_model="gpt-oss:20b",
+    )
+
+    learning = build_learning_service(database, settings)
+    teaching = build_teaching_service(database, settings)
+
+    provider = learning.provider_factory(FakeScenario.PARTIAL)
+    assert provider.provider_name == "ollama"
+    assert provider.model_name == "gpt-oss:20b"
+    assert teaching.provider.provider_name == "ollama"
+    assert teaching.provider.model_name == "gpt-oss:20b"
+    assert teaching.provider.supports_vision is False

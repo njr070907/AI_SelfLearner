@@ -55,6 +55,17 @@ def test_pdf_text_is_extracted_locally() -> None:
 
     assert "limit definition" in result.text
     assert result.page_count == 1
+    assert result.units[0].page_number == 1
+    assert result.units[0].quality == "sparse"
+
+
+@pytest.mark.parametrize("encoding", ["gb18030", "utf-16"])
+def test_common_text_encodings_are_decoded_without_replacement(encoding: str) -> None:
+    result = extract_knowledge("legacy.txt", "函数极限的变化趋势".encode(encoding))
+
+    assert "函数极限" in result.text
+    assert result.encoding == encoding
+    assert "函数极限" in "\n\n".join(unit.text for unit in result.units)
 
 
 @pytest.mark.parametrize(
@@ -80,3 +91,4 @@ def test_long_material_is_truncated_with_a_flag() -> None:
 
     assert len(result.text) == 30_000
     assert result.truncated is True
+    assert len(result.units) == 3

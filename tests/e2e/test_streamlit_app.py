@@ -19,6 +19,7 @@ def app_for(tmp_path: Path, monkeypatch: MonkeyPatch, name: str) -> AppTest:
     database_url = f"sqlite:///{(tmp_path / name).as_posix()}"
     monkeypatch.setenv("DATABASE_URL", database_url)
     monkeypatch.setenv("LLM_PROVIDER", "fake")
+    monkeypatch.setenv("LLM_PAID_CALLS_ALLOWED", "false")
     load_settings.cache_clear()
     run_migrations(Database(database_url))
     return AppTest.from_file(APP_PATH).run(timeout=10)
@@ -34,6 +35,17 @@ def app_for_real_provider(tmp_path: Path, monkeypatch: MonkeyPatch, name: str) -
     load_settings.cache_clear()
     run_migrations(Database(database_url))
     return AppTest.from_file(APP_PATH).run(timeout=10)
+
+
+def app_for_ollama(tmp_path: Path, monkeypatch: MonkeyPatch, name: str) -> AppTest:
+    database_url = f"sqlite:///{(tmp_path / name).as_posix()}"
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    monkeypatch.setenv("LLM_PROVIDER", "ollama")
+    monkeypatch.setenv("LLM_MODEL", "gpt-oss:20b")
+    monkeypatch.setenv("LLM_PAID_CALLS_ALLOWED", "false")
+    load_settings.cache_clear()
+    run_migrations(Database(database_url))
+    return AppTest.from_file(APP_PATH).run(timeout=30)
 
 
 def app_for_seeded(tmp_path: Path, monkeypatch: MonkeyPatch, name: str) -> AppTest:
@@ -360,6 +372,27 @@ def test_real_provider_mode_hides_fake_controls_and_reports_deepseek(
     assert "当前仅使用 Fake Provider" not in page
 
 
+def test_ollama_mode_reports_local_provider_and_hides_fake_controls(
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    app = app_for_ollama(tmp_path, monkeypatch, "ui-ollama-provider.db")
+
+    app = open_learn(app)
+    assert not any(item.label == "诊断场景" for item in app.selectbox)
+    assert "Ollama Provider" in rendered_markdown(app)
+
+    app = (
+        next(item for item in app.sidebar.button if item.key == "nav_system")
+        .click()
+        .run(timeout=10)
+    )
+    page = rendered_markdown(app)
+    assert "Ollama Provider" in page
+    assert "gpt-oss:20b" in page
+    assert "当前仅使用 Fake Provider" not in page
+
+
 def test_search_filters_real_history_and_opens_progress(
     tmp_path: Path,
     monkeypatch: MonkeyPatch,
@@ -435,10 +468,12 @@ def test_teaching_workspace_generates_a_conventional_lesson_with_interactive_che
     app = button_with_label(app, "上传资料").click().run(timeout=10)
     app = open_teaching(app)
 
-    source_mode_radio = next(item for item in app.radio if item.key == "teaching_source_mode")
-    app = source_mode_radio.set_value("manual").run(timeout=10)
-    next(item for item in app.multiselect if item.label == "选择一份或多份资料").select("limits.md")
-    input_with_label(app, "这次要学习的知识主题").input("函数极限")
+    next(item for item in app.multiselect if item.label == "分析哪些资料（默认全部）").select(
+        "limits.md"
+    )
+    assert not any(item.label == "这次要学习的知识主题" for item in app.text_input)
+    assert not any(item.label == "学习目标（可选）" for item in app.text_input)
+    app = select_with_label(app, "学习目标").select("理解机制与步骤").run(timeout=10)
     app = button_with_label(app, "生成我的教学内容").click().run(timeout=10)
 
     assert not app.exception
@@ -477,10 +512,9 @@ def test_teaching_progress_can_complete_and_resume_the_lesson(
     app = button_with_label(app, "上传资料").click().run(timeout=10)
     app = open_learn(app)
 
-    source_mode_radio = next(item for item in app.radio if item.key == "teaching_source_mode")
-    app = source_mode_radio.set_value("manual").run(timeout=10)
-    next(item for item in app.multiselect if item.label == "选择一份或多份资料").select("limits.md")
-    input_with_label(app, "这次要学习的知识主题").input("函数极限")
+    next(item for item in app.multiselect if item.label == "分析哪些资料（默认全部）").select(
+        "limits.md"
+    )
     app = button_with_label(app, "生成我的教学内容").click().run(timeout=10)
 
     for _ in range(3):

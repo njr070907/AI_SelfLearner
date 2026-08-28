@@ -15,6 +15,7 @@ from ai_growth_companion.application.document_library import (
     DocumentLibraryService,
     DocumentValidationError,
 )
+from ai_growth_companion.application.knowledge_extraction import decode_text_content
 from ai_growth_companion.application.models import DocumentView
 
 MAX_SAMPLE_CHARS = 80_000
@@ -24,6 +25,7 @@ MAX_RECOMMENDATIONS = 8
 _TOKEN_PATTERN = re.compile(r"[a-z0-9]+|[\u4e00-\u9fff]+")
 _CJK_PATTERN = re.compile(r"[\u4e00-\u9fff]{2,}")
 _PAGE_RANGE_PATTERN = re.compile(r"_pages_(\d+)-(\d+)", re.IGNORECASE)
+_DOCUMENT_SAMPLE_CACHE: dict[tuple[str, str], str] = {}
 
 # These aliases cover the first materials already in the local library. They are
 # deliberately small and deterministic; adding a large semantic ontology here
@@ -33,6 +35,9 @@ _TOPIC_ALIASES: dict[str, tuple[str, ...]] = {
     "函数极限": ("limit", "limits", "function", "functions"),
     "极限": ("limit", "limits"),
     "导数": ("derivative", "derivatives"),
+    "切线": ("tangent", "tangent line", "secant"),
+    "割线": ("secant", "secant line", "tangent"),
+    "瞬时变化率": ("instantaneous", "rate of change", "derivative"),
     "积分": ("integral", "integrals"),
     "向量": ("vector", "vectors"),
     "矩阵": ("matrix", "matrices"),
@@ -72,7 +77,6 @@ class TopicSourceSelector:
 
     def __init__(self, document_library: DocumentLibraryService) -> None:
         self.document_library = document_library
-        self._sample_cache: dict[tuple[str, str], str] = {}
 
     def recommend(
         self,
@@ -132,18 +136,14 @@ class TopicSourceSelector:
 
     def _sample_document(self, document: DocumentView) -> str:
         cache_key = (document.document_id, document.sha256)
-        cached = self._sample_cache.get(cache_key)
+        cached = _DOCUMENT_SAMPLE_CACHE.get(cache_key)
         if cached is not None:
             return cached
         _view, content = self.document_library.read(document.document_id)
         extension = Path(document.filename).suffix.casefold()
         if extension in {".md", ".markdown", ".txt"}:
-            try:
-                text = content.decode("utf-8")
-            except UnicodeDecodeError as error:
-                raise DocumentValidationError("资料不是 UTF-8 文本") from error
-            sample = self._normalize(text[:MAX_SAMPLE_CHARS])
-            self._sample_cache[cache_key] = sample
+            sample = self._normalize(decode_text_content(content)[:MAX_SAMPLE_CHARS])
+            _DOCUMENT_SAMPLE_CACHE[cache_key] = sample
             return sample
         if extension != ".pdf":
             return ""
@@ -152,14 +152,17 @@ class TopicSourceSelector:
             page_count = len(reader.pages)
             if page_count == 0:
                 return ""
-            indexes = {0, page_count // 2, page_count - 1}
+            # The selector only needs a quick relevance hint.  Large uploaded
+            # chunks are sampled from their first page; full page extraction is
+            # reserved for lesson generation and evidence validation.
+            indexes = {0} if page_count > 8 else set(range(page_count))
             text = "\n\n".join(
                 reader.pages[index].extract_text() or "" for index in sorted(indexes)
             )
         except Exception as error:
             raise DocumentValidationError("PDF 无法读取") from error
         sample = self._normalize(text[:MAX_SAMPLE_CHARS])
-        self._sample_cache[cache_key] = sample
+        _DOCUMENT_SAMPLE_CACHE[cache_key] = sample
         return sample
 
     @classmethod

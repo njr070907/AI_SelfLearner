@@ -30,6 +30,7 @@ def main() -> None:
             {
                 "DATABASE_URL": database_url,
                 "LLM_PROVIDER": "fake",
+                "LLM_PAID_CALLS_ALLOWED": "false",
                 "STREAMLIT_BROWSER_GATHER_USAGE_STATS": "false",
             }
         )

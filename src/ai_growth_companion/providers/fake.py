@@ -29,6 +29,7 @@ class FakeLLMProvider:
     """Return predictable fixtures without calling a network or paid model."""
 
     provider_name: str = "fake"
+    supports_vision = False
     model_name: str = "fake-mastery-v0.1"
     model_revision: str | None = "deterministic-1"
 
@@ -89,7 +90,20 @@ class FakeLLMProvider:
             for document_id, filename, source_excerpt in request.sources
         ]
         source_ids = [document_id for document_id, _, _ in request.sources]
-        source_fact = excerpt[:240] or "资料中暂未提取到可展示的文字。"
+        source_fact = (
+            " ".join(request.source_units[0].text.split())[:240]
+            if request.source_units and request.source_units[0].text.strip()
+            else excerpt[:240]
+        ) or "资料中暂未提取到可展示的文字。"
+        source_evidence: list[dict[str, object]] = []
+        if source_ids:
+            evidence: dict[str, object] = {
+                "document_id": source_ids[0],
+                "quote": source_fact[:600],
+            }
+            if request.visual_pages:
+                evidence["page_number"] = request.visual_pages[0].page_number
+            source_evidence.append(evidence)
         return ProviderResponse(
             content={
                 "schema_version": "teaching-lesson-v0.2",
@@ -119,6 +133,7 @@ class FakeLLMProvider:
                             "并说明它为什么符合定义。"
                         ),
                         "source_document_ids": source_ids,
+                        "evidence": source_evidence,
                     },
                     {
                         "section_type": "mechanism",
@@ -131,6 +146,7 @@ class FakeLLMProvider:
                         "key_points": ["输入是什么", "中间如何变化", "输出如何产生"],
                         "example": "尝试用一个具体情境走完这条过程。",
                         "source_document_ids": source_ids,
+                        "evidence": source_evidence,
                     },
                     {
                         "section_type": "boundary",
@@ -143,6 +159,7 @@ class FakeLLMProvider:
                         "key_points": ["适用条件", "常见误区", "失效或需要补充的情况"],
                         "example": "构造一个看似相同、但条件不满足的反例。",
                         "source_document_ids": source_ids,
+                        "evidence": source_evidence,
                     },
                     {
                         "section_type": "example",
@@ -154,6 +171,7 @@ class FakeLLMProvider:
                         "key_points": ["新例子", "关键步骤", "边界提醒"],
                         "example": f"请用一个未出现在材料中的例子说明 {request.topic}。",
                         "source_document_ids": source_ids,
+                        "evidence": source_evidence,
                     },
                 ],
                 "check_questions": [
@@ -174,6 +192,7 @@ class FakeLLMProvider:
                             f"只背结论无法判断什么时候适用。资料中的关键内容是：{source_fact[:120]}"
                         ),
                         "source_document_ids": source_ids,
+                        "evidence": source_evidence,
                     },
                     {
                         "prompt": f"学习 {request.topic} 时，遇到一个新例子最应该先检查什么？",
@@ -188,6 +207,7 @@ class FakeLLMProvider:
                             f"{source_fact[:120]}"
                         ),
                         "source_document_ids": source_ids,
+                        "evidence": source_evidence,
                     },
                 ],
                 "sources": source_refs,
