@@ -103,37 +103,26 @@ def _render_document(
     schedule_translation: TranslationScheduler | None = None,
 ) -> None:
     with st.container(border=True):
-        left, middle, right = st.columns([2.8, 1.5, 1.2], vertical_alignment="center")
-        left.markdown(
+        header_left, header_right = st.columns([3, 1], vertical_alignment="center")
+        header_left.markdown(
             f'<div class="row-title">{escape(document.filename)}</div>'
             f'<div class="row-meta">{_format_size(document.size_bytes)} · '
             f"{escape(document.mime_type)} · {escape(document.status)}</div>",
             unsafe_allow_html=True,
         )
-        middle.caption(f"更新于 {document.updated_at.astimezone().strftime('%Y-%m-%d %H:%M')}")
-        try:
-            _, content = service.read(document.document_id)
-        except LookupError as error:
-            right.error(str(error))
-        else:
-            right.download_button(
-                "下载",
-                data=content,
-                file_name=document.filename,
-                mime=document.mime_type,
-                key=f"document_download_{document.document_id}",
-                use_container_width=True,
-            )
+        header_right.caption(
+            f"更新于 {document.updated_at.astimezone().strftime('%Y-%m-%d %H:%M')}"
+        )
 
         if document.extension in {".md", ".markdown", ".txt"}:
             try:
-                _, content = service.read(document.document_id)
+                _, preview_content = service.read(document.document_id)
             except LookupError:
-                pass
-            else:
+                preview_content = None
+            if preview_content is not None:
                 with st.expander("查看文本预览"):
                     try:
-                        preview = decode_text_content(content)[:20_000]
+                        preview = decode_text_content(preview_content)[:20_000]
                     except DocumentValidationError as error:
                         st.error(f"该文本资料无法安全预览：{error}")
                     else:
@@ -144,8 +133,9 @@ def _render_document(
                         if len(preview) >= 20_000:
                             st.caption("预览已截取前 20,000 个字符，下载文件可查看完整内容。")
 
-        edit, replace, remove = st.columns(3)
-        with edit.form(key=f"document_rename_form_{document.document_id}"):
+        col_main_left, col_main_right, col_ops = st.columns([1, 1, 0.4])
+
+        with col_main_left.form(key=f"document_rename_form_{document.document_id}"):
             new_name = st.text_input("修改文件名", value=document.filename)
             if st.form_submit_button("保存名称"):
                 try:
@@ -156,7 +146,7 @@ def _render_document(
                     st.success("文件名已更新。")
                     st.rerun()
 
-        with replace.form(key=f"document_replace_form_{document.document_id}"):
+        with col_main_right.form(key=f"document_replace_form_{document.document_id}"):
             replacement = st.file_uploader(
                 "替换文件",
                 type=["pdf", "md", "markdown", "txt"],
@@ -183,7 +173,21 @@ def _render_document(
                     st.success("资料内容已替换。")
                     st.rerun()
 
-        with remove:
+        with col_ops:
+            try:
+                _, content = service.read(document.document_id)
+            except LookupError as error:
+                st.error(str(error))
+            else:
+                st.download_button(
+                    "下载",
+                    data=content,
+                    file_name=document.filename,
+                    mime=document.mime_type,
+                    key=f"document_download_{document.document_id}",
+                    use_container_width=True,
+                )
+
             confirmed = st.checkbox(
                 "确认删除",
                 key=f"document_delete_confirm_{document.document_id}",

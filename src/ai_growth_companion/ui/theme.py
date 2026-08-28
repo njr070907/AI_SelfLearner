@@ -969,6 +969,13 @@ input::placeholder, textarea::placeholder {
 [role="listbox"] [role="option"] { color: var(--ink) !important; }
 [data-testid="stAlert"] { border-radius: 15px; }
 
+/* Document library card: two equal main columns + narrow operations column */
+[data-testid="stHorizontalBlock"] > div:nth-child(3) {
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+}
+
 @media (max-width: 980px) {
   [data-testid="stMainBlockContainer"] { padding: 1rem 2rem 5rem; }
   .hero-title { font-size: clamp(2.25rem, 6vw, 3.4rem); }
@@ -1119,6 +1126,85 @@ input::placeholder, textarea::placeholder {
 @media (prefers-contrast: more) {
   :root { --line: rgba(105, 124, 151, .52); --line-strong: rgba(88, 106, 134, .74); }
 }
+/* --- Multiselect chips: accent instead of Streamlit default red -------------- */
+/* Streamlit 1.62 wraps chips as span[data-tag] in stMultiSelectTagsContainer */
+[data-testid="stMultiSelectTagsContainer"] span[data-tag] {
+  background: var(--accent-soft) !important;
+  color: var(--accent) !important;
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent) !important;
+  border-radius: var(--radius-small) !important;
+  transition: background var(--motion-fast) var(--ease),
+              border-color var(--motion-fast) var(--ease);
+}
+[data-testid="stMultiSelectTagsContainer"] span[data-tag]:hover {
+  background: var(--accent-soft-strong) !important;
+  border-color: color-mix(in srgb, var(--accent) 36%, transparent) !important;
+}
+[data-testid="stMultiSelectTagsContainer"] span[data-tag] span {
+  color: var(--accent) !important;
+}
+[data-testid="stMultiSelectTagsContainer"] span[data-tag] svg {
+  color: var(--accent) !important;
+}
+
+/* --- Multiselect control container background + text ---------------------- */
+/* Emotion sets he component bg via e.colors.secondaryBg (not a CSS var) */
+[data-testid="stMultiSelectTagsContainer"] {
+  background: var(--surface-elevated) !important;
+  color: var(--ink) !important;
+}
+[data-testid="stMultiSelectTagsContainer"] input {
+  color: var(--ink) !important;
+  -webkit-text-fill-color: var(--ink) !important;
+}
+[data-testid="stMultiSelectTagsContainer"] input::placeholder {
+  color: var(--ink-muted) !important;
+  -webkit-text-fill-color: var(--ink-muted) !important;
+}
+
+/* --- Multiselect dropdown background + option text ------------------------ */
+/* Emotion sets we dropdown bg via e.colors.bgColor (not a CSS var) */
+[data-testid="stMultiSelectDropdown"] {
+  background: var(--surface-elevated) !important;
+}
+[data-testid="stMultiSelectDropdown"] [data-item-hl] {
+  color: var(--ink) !important;
+}
+
+/* --- Text input root background + value + placeholder --------------------- */
+/* Emotion sets root bg via e.colors.inputFill (not a CSS var) */
+[data-testid="stTextInputRootElement"] {
+  background: var(--surface-elevated) !important;
+  border-color: var(--line) !important;
+}
+[data-testid="stTextInputField"] {
+  color: var(--ink) !important;
+  -webkit-text-fill-color: var(--ink) !important;
+}
+[data-testid="stTextInputField"]::placeholder {
+  color: var(--ink-muted) !important;
+  -webkit-text-fill-color: var(--ink-muted) !important;
+}
+
+/* --- Multiselect container focus ring ------------------------------------- */
+[data-testid="stMultiSelect"]:focus-within {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px var(--focus-ring) !important;
+}
+
+/* --- Radio: accent outer circle + canvas inner dot ------------------------ */
+/* Streamlit radio: stRadioOption > div > div > div(circle) > div(dot) */
+/* fe (outer circle): background = primary when selected, borderColor when not */
+/* Override fe to always use accent; override pe to always use canvas, so: */
+/*   selected = accent fill + small canvas dot ✓ */
+/*   unselected = accent ring + large canvas dot ✓ */
+[data-testid="stRadioOption"] > div > div > div:first-child {
+  background-color: var(--accent) !important;
+}
+[data-testid="stRadioOption"] > div > div > div:first-child > div {
+  background-color: var(--canvas) !important;
+}
+
 @media (prefers-reduced-transparency: reduce) {
   [data-testid="stSidebar"], .st-key-app_toolbar, .st-key-search_results,
   [data-testid="stHeader"] {
