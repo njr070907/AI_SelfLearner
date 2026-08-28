@@ -73,9 +73,9 @@ def render_teaching_workspace(
         topic_changed = topic.strip() != previous_topic and previous_topic != ""
         if topic_changed:
             st.session_state.pop("teaching_source_recommendation", None)
-            st.session_state.pop("teaching_confirmed_sources", None)
 
         selected_ids: tuple[str, ...] = ()
+        recommendation = None
 
         if source_mode == "auto":
             recommendation = st.session_state.get("teaching_source_recommendation")
@@ -95,20 +95,31 @@ def render_teaching_workspace(
                     recommendation = None
 
             if recommendation is not None:
-                _render_source_recommendation(recommendation, document_labels, teaching_service)
-                selected_ids = tuple(st.session_state.get("teaching_confirmed_sources", []))
-        else:
-            selected_ids = tuple(
-                st.multiselect(
-                    "选择一份或多份资料",
-                    options=tuple(document_labels),
-                    format_func=document_labels.__getitem__,
-                    key="teaching_selected_documents",
-                    help="教学内容只会根据你选择的资料生成，并保留来源文件记录。",
-                )
+                _render_source_recommendation(recommendation, document_labels)
+
+        # Single multiselect avoids React removeChild crash from swapping two
+        # different st.multiselect widgets with distinct keys in if/else branches.
+        auto_defaults = (
+            [
+                doc_id
+                for doc_id in recommendation.selected_document_ids
+                if doc_id in document_labels
+            ]
+            if recommendation is not None
+            else []
+        )
+        selected_ids = tuple(
+            st.multiselect(
+                "选择一份或多份资料",
+                options=tuple(document_labels),
+                default=auto_defaults if source_mode == "auto" else [],
+                format_func=document_labels.__getitem__,
+                key="teaching_selected_documents",
+                help="教学内容只会根据你选择的资料生成，并保留来源文件记录。",
             )
-            if topic.strip():
-                st.session_state.teaching_topic_value = topic.strip()
+        )
+        if topic.strip():
+            st.session_state.teaching_topic_value = topic.strip()
         goal = st.text_input(
             "学习目标（可选）",
             key="teaching_goal",
@@ -167,9 +178,8 @@ def render_teaching_workspace(
 def _render_source_recommendation(
     recommendation: TopicSourceSelection,
     document_labels: dict[str, str],
-    teaching_service: TeachingService,
 ) -> None:
-    """Render the auto-recommended source selection with confidence-based UI."""
+    """Render the auto-recommended source info (selection widget lives in caller)."""
     confidence_labels = {
         "high": "高置信度",
         "medium": "中置信度",
@@ -197,19 +207,6 @@ def _render_source_recommendation(
 
         if recommendation.requires_confirmation:
             st.info("推荐置信度较低，建议确认或调整选择。")
-
-        st.multiselect(
-            "确认或调整推荐的资料",
-            options=tuple(document_labels),
-            default=[
-                doc_id
-                for doc_id in recommendation.selected_document_ids
-                if doc_id in document_labels
-            ],
-            format_func=document_labels.__getitem__,
-            key="teaching_confirmed_sources",
-            help="你可以调整系统推荐的资料选择。",
-        )
 
 
 def _render_existing_lessons(teaching_service: TeachingService) -> None:
